@@ -29,7 +29,7 @@ function fmtTime(min: number) {
 export default function TimetablePage() {
   const now = new Date();
   const [year, setYear] = useState(String(now.getFullYear()));
-  const [semester, setSemester] = useState("1");  // 1=1학기, 2=여름, 3=2학기, 4=겨울
+  const [semester, setSemester] = useState("3");  // 1=1학기, 2=여름, 3=2학기, 4=겨울
   const [mode, setMode] = useState<Mode>("room");
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(false);
