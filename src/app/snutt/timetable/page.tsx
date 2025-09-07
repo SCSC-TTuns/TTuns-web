@@ -82,7 +82,7 @@ export default function TimetablePage() {
   const [year, setYear] = useState("2025");
   const [semester, setSemester] = useState("3");
 
-  const [mode, setMode] = useState<Mode>("room");
+  const [mode, setMode] = useState<Mode>("professor");
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -167,6 +167,9 @@ export default function TimetablePage() {
     if (!canSearch) return;
     setLoading(true);
     setCopied("");
+    setDept("");
+    setDeptOptions([]);
+    setProfFiltered([]);
 
     try {
       if (mode === "free") {
@@ -217,7 +220,13 @@ export default function TimetablePage() {
         setFreeRooms([]);
         setEvents([]);
         setActiveLectures([]);
-        if (typeof window !== "undefined" && window.innerWidth < 720) setCollapsed(true);
+
+        const depts = Array.from(new Set(filteredByName.map(extractDept).filter(Boolean)));
+        setDeptOptions(depts);
+
+        if (depts.length <= 1 && typeof window !== "undefined" && window.innerWidth < 720) {
+          setCollapsed(true);
+        }
         return;
       }
 
@@ -453,7 +462,7 @@ export default function TimetablePage() {
                       <option key={d} value={d}>{d}</option>
                     ))}
                   </select>
-                  <div className="tt-deptHint">동명이인 감지됨 — 소속을 선택하면 시간표가 표시됩니다.</div>
+                  <div className="tt-deptHint">동명이인이 있습니다. 소속을 선택하면 시간표가 표시됩니다.</div>
                 </div>
               )}
             </div>

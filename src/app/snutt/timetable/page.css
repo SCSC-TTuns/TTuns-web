@@ -58,6 +58,19 @@
 
 .tt-controls { display: grid; gap: 8px; }
 
+/* ===== 필터 패널 애니메이션 ===== */
+.tt-panel {
+  overflow: hidden;
+  max-height: var(--panel-max-h, 520px);
+  transition: max-height 0.35s ease-in-out, margin-top 0.35s ease-in-out;
+}
+.tt-panel.collapsed {
+  max-height: 0;
+  margin-top: 0 !important;
+}
+.tt-controls[data-collapsed="1"] .tt-row { display: none; }
+
+
 .tt-row {
   display: grid;
   grid-template-columns:
@@ -165,7 +178,6 @@
   font-weight: 800;
 }
 
-.tt-controls[data-collapsed="1"] .tt-row { display: none; }
 @media (max-width: 720px) {
   .tt-controls[data-collapsed="1"] .tt-pillbar { display: flex; }
 }
@@ -232,10 +244,10 @@
 /* ===== 시간표 ===== */
 .tt-tableWrap {
   max-width: 1100px; margin: 0 auto;
-  border-radius: 12px; overflow: auto;
+  border-radius: 12px; overflow-x: hidden; /* 가로 스크롤 방지 */
   background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow);
 }
-.tt-grid { display: grid; grid-template-columns: 40px repeat(6, 1fr); }
+.tt-grid { display: grid; grid-template-columns: 36px repeat(6, 1fr); }
 .tt-headCell {
   padding: 7px 4px; text-align: center; font-weight: 800;
   color: #0f172a; border-bottom: 1px solid var(--line);
@@ -265,6 +277,7 @@
   position: absolute; padding: 5px 7px; box-sizing: border-box;
   border: 2px solid; border-radius: 10px; overflow: hidden;
   box-shadow: 0 3px 10px rgba(15, 23, 42, 0.06);
+  cursor: pointer;
 }
 .tt-evTitle {
   font-weight: 800; font-size: 12.5px; line-height: 1.15;
@@ -275,6 +288,42 @@
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #334155;
 }
 .tt-evTime { margin-top: 3px; font-size: 11px; color: #64748b; }
+
+
+/* ===== 상세 정보 모달 ===== */
+.tt-modal {
+  position: fixed; inset: 0; z-index: 10;
+  background: rgba(15, 23, 42, 0.3);
+  display: grid; place-items: center; padding: 16px;
+  backdrop-filter: blur(4px);
+}
+.tt-modalCard {
+  background: var(--panel); border-radius: 12px; box-shadow: var(--shadow);
+  width: 100%; max-width: 420px;
+  border: 1px solid var(--line);
+}
+.tt-modalHead {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 16px; border-bottom: 1px solid var(--line);
+}
+.tt-modalTitle { font-size: 18px; font-weight: 900; }
+.tt-x {
+  border: none; background: #f1f5f9; color: #475569;
+  font-size: 20px; line-height: 1; width: 28px; height: 28px;
+  border-radius: 9999px; cursor: pointer;
+}
+.tt-modalBody {
+  padding: 16px; font-size: 14px;
+  display: grid; gap: 8px;
+}
+.tt-modalBody b { color: #334155; }
+.tt-modalBody ul { padding-left: 18px; margin-top: 4px; display: grid; gap: 4px; }
+.tt-modalFoot {
+  padding: 12px 16px; border-top: 1px solid var(--line);
+  display: flex; justify-content: flex-end;
+}
+.tt-modalFoot .tt-primary { padding: 0 20px; }
+
 
 /* ===== 반응형 ===== */
 @media (max-width: 1024px) {
@@ -290,14 +339,17 @@
 }
 
 @media (max-width: 720px) {
-  .tt-header { padding: 8px 10px; }
+  .tt-wrap { padding: 10px 0 20px; } /* 모바일에서 좌우 여백 제거 */
+  .tt-header, .tt-freeWrap, .tt-tableWrap, .tt-empty {
+    margin-left: 10px; margin-right: 10px;
+  }
   .tt-title { font-size: 18px; }
   .tt-row { grid-template-columns: 1fr 1fr; gap: 8px; }
   .tt-row > .tt-mode,
   .tt-row > .tt-primary { grid-column: span 2; }
   .tt-field input, .tt-field select { padding: 8px 9px; }
   .tt-segbtn { padding: 6px 8px; font-size: 12px; }
-  .tt-grid { grid-template-columns: 34px repeat(6, 1fr); } /* 모바일 시간축 더 좁게 */
+  .tt-grid { grid-template-columns: 30px repeat(6, 1fr); } /* 모바일 시간축 더 좁게 */
 
   /* 모바일에서 강의명 2줄까지 */
   .tt-evTitle {
@@ -310,6 +362,3 @@
   /* 빈 강의실: 1열 */
   .tt-freeList { grid-template-columns: 1fr; }
 }
-
-
-

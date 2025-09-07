@@ -48,6 +48,7 @@ export type LectureSlim = {
   class_time_json: LectureTimeRaw[];
   course_number: string;
   lecture_number: string;
+  department: string; // 학과 정보 추가
   year?: number;
   semester?: number | string;
 };
@@ -206,6 +207,7 @@ async function fetchAllPagesSlim(
     class_time_json: Array.isArray(lec.class_time_json) ? lec.class_time_json : [],
     course_number: typeof lec.course_number === "string" ? lec.course_number : "",
     lecture_number: typeof lec.lecture_number === "string" ? lec.lecture_number : "",
+    department: typeof lec.department === "string" ? lec.department : "",
     year: typeof lec.year === "number" ? lec.year : undefined,
     semester: (typeof lec.semester === "number" || typeof lec.semester === "string") ? lec.semester : undefined,
   }));
