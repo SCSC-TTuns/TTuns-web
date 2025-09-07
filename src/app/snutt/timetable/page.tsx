@@ -528,7 +528,7 @@ const [mode, setMode] = useState<Mode>("room");
                 const hour = Math.floor(m / 60);
                 return (
                   <div key={m} className="tt-hourMark" style={{ top }}>
-                    <div className="tt-label">{hour}</div>
+                    <div className="tt-label" data-hour={hour}>{hour}</div>
                     <div className="tt-line" />
                   </div>
                 );
