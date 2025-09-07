@@ -53,7 +53,6 @@ function nowKst() {
   return { snuttDay, minute, hhmm: `${hh}:${mm}` };
 }
 
-/** SNUTT 응답에서 department 우선 추출 */
 function extractDept(lec: any): string {
   return (
     lec?.department ||
@@ -66,7 +65,6 @@ function extractDept(lec: any): string {
   );
 }
 
-/** SNUTT class_time_json에서 event와 매칭되는지 검사 */
 function lectureHasTime(lec: any, ev: EventBlock) {
   const times: any[] = Array.isArray(lec?.class_time_json) ? lec.class_time_json : [];
   return times.some((t) => {
@@ -81,7 +79,7 @@ function lectureHasTime(lec: any, ev: EventBlock) {
 export default function TimetablePage() {
   const [year, setYear] = useState("2025");
   const [semester, setSemester] = useState("3");
-const [mode, setMode] = useState<Mode>("room");
+  const [mode, setMode] = useState<Mode>("room");
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -93,12 +91,10 @@ const [mode, setMode] = useState<Mode>("room");
   const panelRef = useRef<HTMLDivElement | null>(null);
   const [panelMaxH, setPanelMaxH] = useState<number>(520);
 
-  // 동명이인 처리용
   const [deptOptions, setDeptOptions] = useState<string[]>([]);
   const [dept, setDept] = useState<string>("");
   const [profFiltered, setProfFiltered] = useState<AnyLecture[]>([]);
 
-  // 상세 팝업
   const [activeLectures, setActiveLectures] = useState<AnyLecture[]>([]);
   const [sel, setSel] = useState<{ ev: EventBlock; lec?: AnyLecture } | null>(null);
 
@@ -106,7 +102,8 @@ const [mode, setMode] = useState<Mode>("room");
   const laid = layoutByDay(events) as Laid;
   const { startMin, endMin } = timeBounds(events);
 
-  // 패널 높이 측정(부드러운 접힘/펼침)
+  const semesterCacheRef = useRef(new Map<string, AnyLecture[]>());
+
   useLayoutEffect(() => {
     if (!panelRef.current) return;
     const el = panelRef.current;
@@ -130,7 +127,6 @@ const [mode, setMode] = useState<Mode>("room");
     return () => window.removeEventListener("resize", update);
   }, [startMin, endMin]);
 
-  // 학기 프리페치
   useEffect(() => {
     const url = `/api/snutt/search?year=${encodeURIComponent(Number(year))}&semester=${encodeURIComponent(semester)}`;
     fetch(url).catch(() => {});
@@ -150,7 +146,6 @@ const [mode, setMode] = useState<Mode>("room");
     return mode === "professor" ? "교수명" : mode === "room" ? "강의실" : "빈 강의실";
   }, [mode]);
 
-  // 검색어/모드 변경 시 동명이인 상태 초기화
   useEffect(() => {
     setDept("");
     setDeptOptions([]);
@@ -194,21 +189,25 @@ const [mode, setMode] = useState<Mode>("room");
         return;
       }
 
-      const url = `/api/snutt/search?year=${encodeURIComponent(
-        Number(year)
-      )}&semester=${encodeURIComponent(semester)}`;
-      const res = await fetch(url);
-      const data: unknown = await res.json();
+      const key = `${Number(year)}-${semester}`;
+      let all: AnyLecture[] | undefined = semesterCacheRef.current.get(key);
 
-      if (!res.ok || !Array.isArray(data)) {
-        setEvents([]);
-        setActiveLectures([]);
-        setFreeRooms([]);
-        alert((data as { error?: string })?.error || "불러오기 실패");
-        return;
+      if (!all) {
+        const url = `/api/snutt/search?year=${encodeURIComponent(
+          Number(year)
+        )}&semester=${encodeURIComponent(semester)}`;
+        const res = await fetch(url);
+        const data: unknown = await res.json();
+        if (!res.ok || !Array.isArray(data)) {
+          setEvents([]);
+          setActiveLectures([]);
+          setFreeRooms([]);
+          alert((data as { error?: string })?.error || "불러오기 실패");
+          return;
+        }
+        all = data as AnyLecture[];
+        semesterCacheRef.current.set(key, all);
       }
-
-      const all = data as AnyLecture[];
 
       if (mode === "professor") {
         const filteredByName = all.filter((lec) =>
@@ -218,17 +217,14 @@ const [mode, setMode] = useState<Mode>("room");
         setFreeRooms([]);
         setEvents([]);
         setActiveLectures([]);
-
         const depts = Array.from(new Set(filteredByName.map(extractDept).filter(Boolean)));
         setDeptOptions(depts);
-
         if (depts.length <= 1 && typeof window !== "undefined" && window.innerWidth < 720) {
           setCollapsed(true);
         }
         return;
       }
 
-      // 강의실 모드
       const filtered = all.filter((lec) => lectureMatchesRoomExact(lec, q));
       const evts = buildEventsFromLectures(filtered, {
         showBy: mode,
@@ -248,7 +244,6 @@ const [mode, setMode] = useState<Mode>("room");
     }
   };
 
-  // 교수 모드: 이름 1차 필터 → 소속 선택 → 시간표 생성
   useEffect(() => {
     if (mode !== "professor") return;
 
@@ -353,7 +348,6 @@ const [mode, setMode] = useState<Mode>("room");
         </div>
 
         <div className="tt-controls" data-collapsed={collapsed ? "1" : "0"}>
-          {/* 접힘 상태 요약 pill */}
           <div className="tt-pillbar" aria-hidden={!collapsed}>
             <span className="tt-pill">{year} • {semesterLabel}</span>
             <span className="tt-pill">{modeLabel}</span>
@@ -364,7 +358,6 @@ const [mode, setMode] = useState<Mode>("room");
             </button>
           </div>
 
-          {/* 필터 패널(부드러운 애니메이션) */}
           <div
             id="tt-filter-panel"
             ref={panelRef}
@@ -451,27 +444,25 @@ const [mode, setMode] = useState<Mode>("room");
                 {loading ? "불러오는 중…" : "검색"}
               </button>
 
-              {/* 동명이인: 소속 선택 */}
-{mode === "professor" && deptOptions.length > 1 && (
-  <div className="tt-field tt-dept">
-    <label>소속</label>
-    <select
-      value={dept}
-      onChange={(e) => {
-        const v = e.target.value;
-        setDept(v);
-        if (v) setCollapsed(true); // 선택 즉시 필터 접기
-      }}
-    >
-      <option value="" disabled>소속 선택</option>
-      {deptOptions.map((d) => (
-        <option key={d} value={d}>{d}</option>
-      ))}
-    </select>
-    <div className="tt-deptHint">동명이인이 있습니다. 소속을 선택하면 시간표가 표시됩니다.</div>
-  </div>
-)}
-
+              {mode === "professor" && deptOptions.length > 1 && (
+                <div className="tt-field tt-dept">
+                  <label>소속</label>
+                  <select
+                    value={dept}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setDept(v);
+                      if (v) setCollapsed(true);
+                    }}
+                  >
+                    <option value="" disabled>소속 선택</option>
+                    {deptOptions.map((d) => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
+                  <div className="tt-deptHint">동명이인이 있습니다. 소속을 선택하면 시간표가 표시됩니다.</div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -500,7 +491,6 @@ const [mode, setMode] = useState<Mode>("room");
         </div>
       )}
 
-      {/* 결과 없음 / 소속 미선택 안내 */}
       {mode !== "free" && !loading && events.length === 0 && (
         <div className="tt-empty">
           {mode === "professor" && profFiltered.length > 0 && deptOptions.length > 1 && !dept
@@ -585,7 +575,6 @@ const [mode, setMode] = useState<Mode>("room");
         </div>
       )}
 
-      {/* 상세 모달 */}
       {sel && (
         <div className="tt-modal" onClick={() => setSel(null)} role="dialog" aria-modal="true">
           <div className="tt-modalCard" onClick={(e) => e.stopPropagation()}>
