@@ -76,6 +76,21 @@ function lectureHasTime(lec: any, ev: EventBlock) {
   });
 }
 
+const JOINT_RE = /(연계|연합|협동)/;
+
+function groupDepts(uniqueDepts: string[]) {
+  const list = Array.from(new Set(uniqueDepts.map((s) => s.trim()).filter(Boolean)));
+  const joint = list.filter((d) => JOINT_RE.test(d));
+  const base = list.filter((d) => !JOINT_RE.test(d));
+  if (list.length === 0) return { mode: "dropdown" as const, options: [] as string[] };
+  if (base.length === 1) {
+    const label = base[0];
+    const include = new Set<string>([label, ...joint]);
+    return { mode: "collapsed" as const, label, include };
+  }
+  return { mode: "dropdown" as const, options: list };
+}
+
 export default function TimetablePage() {
   const [year, setYear] = useState("2025");
   const [semester, setSemester] = useState("3");
@@ -93,6 +108,7 @@ export default function TimetablePage() {
 
   const [deptOptions, setDeptOptions] = useState<string[]>([]);
   const [dept, setDept] = useState<string>("");
+  const [deptInclude, setDeptInclude] = useState<string[] | null>(null);
   const [profFiltered, setProfFiltered] = useState<AnyLecture[]>([]);
 
   const [activeLectures, setActiveLectures] = useState<AnyLecture[]>([]);
@@ -103,6 +119,8 @@ export default function TimetablePage() {
   const { startMin, endMin } = timeBounds(events);
 
   const semesterCacheRef = useRef(new Map<string, AnyLecture[]>());
+  const lastSearchRef = useRef<{ q: string; year: string; semester: string; mode: Mode } | null>(null);
+  const autoCollapseRef = useRef<number>(0);
 
   useLayoutEffect(() => {
     if (!panelRef.current) return;
@@ -149,12 +167,13 @@ export default function TimetablePage() {
   useEffect(() => {
     setDept("");
     setDeptOptions([]);
+    setDeptInclude(null);
     setProfFiltered([]);
     setActiveLectures([]);
     setEvents([]);
     setFreeRooms([]);
     setSel(null);
-  }, [mode, q, year, semester]);
+  }, [mode, year, semester]);
 
   const onSearch = async () => {
     if (!canSearch) return;
@@ -162,7 +181,10 @@ export default function TimetablePage() {
     setCopied("");
     setDept("");
     setDeptOptions([]);
+    setDeptInclude(null);
     setProfFiltered([]);
+    lastSearchRef.current = { q: q.trim(), year, semester, mode };
+    autoCollapseRef.current = Date.now();
 
     try {
       if (mode === "free") {
@@ -210,18 +232,11 @@ export default function TimetablePage() {
       }
 
       if (mode === "professor") {
-        const filteredByName = all.filter((lec) =>
-          lectureMatchesProfessorExact(lec, q)
-        );
+        const filteredByName = all.filter((lec) => lectureMatchesProfessorExact(lec, q));
         setProfFiltered(filteredByName);
         setFreeRooms([]);
         setEvents([]);
         setActiveLectures([]);
-        const depts = Array.from(new Set(filteredByName.map(extractDept).filter(Boolean)));
-        setDeptOptions(depts);
-        if (depts.length <= 1 && typeof window !== "undefined" && window.innerWidth < 720) {
-          setCollapsed(true);
-        }
         return;
       }
 
@@ -249,31 +264,61 @@ export default function TimetablePage() {
 
     if (!profFiltered.length) {
       setDeptOptions([]);
+      setDeptInclude(null);
       setEvents([]);
       setActiveLectures([]);
       return;
     }
 
-    const opts = Array.from(
+    const ls = lastSearchRef.current;
+    if (!ls || ls.mode !== "professor" || ls.q !== q.trim() || ls.year !== year || ls.semester !== semester) {
+      return;
+    }
+
+    const rawOpts = Array.from(
       new Set(
         profFiltered
           .map((lec) => String(extractDept(lec) || "").trim())
           .filter((v) => v.length > 0)
       )
     );
-    setDeptOptions(opts);
 
-    if (opts.length > 1 && (!dept || !opts.includes(dept))) {
+    const grouped = groupDepts(rawOpts);
+
+    if (grouped.mode === "collapsed") {
+      const includeArr = Array.from(grouped.include);
+      setDeptOptions([grouped.label]);
+      setDept(grouped.label);
+      setDeptInclude(includeArr);
+      const filteredByGroup = profFiltered.filter((lec) =>
+        includeArr.includes(String(extractDept(lec)).trim())
+      );
+      const evts = buildEventsFromLectures(filteredByGroup, {
+        showBy: "professor",
+        query: q.trim(),
+      }) as EventBlock[];
+      setFreeRooms([]);
+      setEvents(evts);
+      setActiveLectures(filteredByGroup);
+      if (typeof window !== "undefined" && window.innerWidth < 720 && autoCollapseRef.current) {
+        setCollapsed(true);
+        autoCollapseRef.current = 0;
+      }
+      return;
+    }
+
+    setDeptOptions(grouped.options);
+    setDeptInclude(null);
+
+    if (!dept || !grouped.options.includes(dept)) {
       setEvents([]);
       setActiveLectures([]);
       return;
     }
 
-    const effectiveDept = opts.length === 1 ? opts[0] : dept;
-
-    const filteredByDept = effectiveDept
-      ? profFiltered.filter((lec) => String(extractDept(lec)).trim() === effectiveDept)
-      : profFiltered;
+    const filteredByDept = profFiltered.filter(
+      (lec) => String(extractDept(lec)).trim() === dept
+    );
 
     const evts = buildEventsFromLectures(filteredByDept, {
       showBy: "professor",
@@ -283,14 +328,11 @@ export default function TimetablePage() {
     setFreeRooms([]);
     setEvents(evts);
     setActiveLectures(filteredByDept);
-  }, [mode, profFiltered, dept, q]);
+  }, [mode, profFiltered, dept, q, year, semester]);
 
-  const totalHeight = Math.max(380, (endMin - startMin) * PPM);
-
-  const hourMarks: number[] = [];
-  for (let m = Math.floor(startMin / 60) * 60; m <= Math.ceil(endMin / 60) * 60; m += 60) {
-    hourMarks.push(m);
-  }
+  const onKeyDownInput: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
+    if (e.key === "Enter" && canSearch && !loading) onSearch();
+  };
 
   const copyRoom = async (room: string) => {
     try {
@@ -300,31 +342,30 @@ export default function TimetablePage() {
     } catch {}
   };
 
-  const onKeyDownInput: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
-    if (e.key === "Enter" && canSearch && !loading) onSearch();
-  };
-
-  const openDetail = (ev: EventBlock) => {
-    let lec: AnyLecture | undefined;
-    if (activeLectures?.length) {
-      lec =
-        activeLectures.find((L: any) => {
-          const prof = String(L?.instructor || L?.professor || "").trim();
-          const title = String(L?.title || L?.course_title || L?.name || "").trim();
-          const sameProf = !ev.professor || prof.includes(ev.professor) || ev.professor.includes(prof);
-          const sameTitle = !ev.title || title.includes(ev.title) || ev.title.includes(title);
-          return sameTitle && sameProf && lectureHasTime(L, ev);
-        }) ||
-        activeLectures.find((L: any) => lectureHasTime(L, ev));
-    }
-    setSel({ ev, lec });
-  };
-
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setSel(null); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+const openDetail = (ev: EventBlock) => {
+  let lec: AnyLecture | undefined;
+
+  if (activeLectures?.length) {
+    lec =
+      activeLectures.find((L: any) => {
+        const prof = String(L?.instructor || L?.professor || "").trim();
+        const title = String(L?.title || L?.course_title || L?.name || "").trim();
+        const sameProf =
+          !ev.professor || prof.includes(ev.professor) || ev.professor.includes(prof);
+        const sameTitle =
+          !ev.title || title.includes(ev.title) || ev.title.includes(title);
+        return sameTitle && sameProf && lectureHasTime(L, ev);
+      }) ||
+      activeLectures.find((L: any) => lectureHasTime(L, ev));
+  }
+
+  setSel({ ev, lec });
+};
 
   return (
     <div className="tt-wrap">
@@ -494,7 +535,7 @@ export default function TimetablePage() {
       {mode !== "free" && !loading && events.length === 0 && (
         <div className="tt-empty">
           {mode === "professor" && profFiltered.length > 0 && deptOptions.length > 1 && !dept
-            ? "동명이인입니다. 소속을 선택해 주세요."
+            ? "소속을 선택해 주세요."
             : "결과가 없습니다. 입력값과 학기를 확인해 주세요."}
         </div>
       )}
@@ -607,7 +648,7 @@ export default function TimetablePage() {
                   )}
                 </>
               )}
-              {!sel.lec && <div className="tt-empty">추가 정보를 찾지 못했어요(매칭 실패). 기본 정보만 표시됩니다.</div>}
+              {!sel.lec && <div className="tt-empty">소속이 여러 곳인 교수가 있을 수 있어요.</div>}
             </div>
             <div className="tt-modalFoot">
               <button className="tt-primary" onClick={() => setSel(null)}>확인</button>
