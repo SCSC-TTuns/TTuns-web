@@ -81,8 +81,7 @@ function lectureHasTime(lec: any, ev: EventBlock) {
 export default function TimetablePage() {
   const [year, setYear] = useState("2025");
   const [semester, setSemester] = useState("3");
-
-  const [mode, setMode] = useState<Mode>("professor");
+const [mode, setMode] = useState<Mode>("room");
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -111,7 +110,6 @@ export default function TimetablePage() {
   useLayoutEffect(() => {
     if (!panelRef.current) return;
     const el = panelRef.current;
-    // 펼쳐진 상태에서 실제 높이 측정해 CSS 변수로 전달
     requestAnimationFrame(() => setPanelMaxH(el.scrollHeight));
   }, [collapsed, mode, year, semester, q, deptOptions.length]);
 
@@ -270,14 +268,12 @@ export default function TimetablePage() {
     );
     setDeptOptions(opts);
 
-    // 소속이 여러 개인데 아직 선택 안 됨 → 시간표 표시하지 않음
     if (opts.length > 1 && (!dept || !opts.includes(dept))) {
       setEvents([]);
       setActiveLectures([]);
       return;
     }
 
-    // 소속이 하나뿐이면 자동 선택처럼 동작
     const effectiveDept = opts.length === 1 ? opts[0] : dept;
 
     const filteredByDept = effectiveDept
@@ -313,7 +309,6 @@ export default function TimetablePage() {
     if (e.key === "Enter" && canSearch && !loading) onSearch();
   };
 
-  // 상세 모달 열기
   const openDetail = (ev: EventBlock) => {
     let lec: AnyLecture | undefined;
     if (activeLectures?.length) {
@@ -325,12 +320,11 @@ export default function TimetablePage() {
           const sameTitle = !ev.title || title.includes(ev.title) || ev.title.includes(title);
           return sameTitle && sameProf && lectureHasTime(L, ev);
         }) ||
-        activeLectures.find((L: any) => lectureHasTime(L, ev)); // 최후 보정
+        activeLectures.find((L: any) => lectureHasTime(L, ev));
     }
     setSel({ ev, lec });
   };
 
-  // ESC로 닫기
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setSel(null); };
     window.addEventListener("keydown", onKey);
@@ -348,8 +342,13 @@ export default function TimetablePage() {
             onClick={() => setCollapsed((v) => !v)}
             aria-expanded={!collapsed}
             aria-controls="tt-filter-panel"
+            title={collapsed ? "필터 펼치기" : "필터 접기"}
           >
-            {collapsed ? "필터 펼치기" : "필터 접기"}
+            <svg className="tt-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                 strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <polyline points="6 15 12 9 18 15"></polyline>
+            </svg>
+            <span className="sr-only">{collapsed ? "필터 펼치기" : "필터 접기"}</span>
           </button>
         </div>
 
@@ -359,7 +358,7 @@ export default function TimetablePage() {
             <span className="tt-pill">{year} • {semesterLabel}</span>
             <span className="tt-pill">{modeLabel}</span>
             <span className="tt-pill tt-pill-q" title={q}>{q || "검색어 없음"}</span>
-            {mode === "professor" && dept && <span className="tt-pill">소속: {dept}</span>}
+            {mode === "professor" && dept && <span className="tt-pill">{dept}</span>}
             <button type="button" className="tt-pillbtn" onClick={() => setCollapsed(false)}>
               수정
             </button>
@@ -453,18 +452,26 @@ export default function TimetablePage() {
               </button>
 
               {/* 동명이인: 소속 선택 */}
-              {mode === "professor" && deptOptions.length > 1 && (
-                <div className="tt-field tt-dept">
-                  <label>소속</label>
-                  <select value={dept} onChange={(e) => setDept(e.target.value)}>
-                    <option value="" disabled>소속 선택</option>
-                    {deptOptions.map((d) => (
-                      <option key={d} value={d}>{d}</option>
-                    ))}
-                  </select>
-                  <div className="tt-deptHint">동명이인이 있습니다. 소속을 선택하면 시간표가 표시됩니다.</div>
-                </div>
-              )}
+{mode === "professor" && deptOptions.length > 1 && (
+  <div className="tt-field tt-dept">
+    <label>소속</label>
+    <select
+      value={dept}
+      onChange={(e) => {
+        const v = e.target.value;
+        setDept(v);
+        if (v) setCollapsed(true); // 선택 즉시 필터 접기
+      }}
+    >
+      <option value="" disabled>소속 선택</option>
+      {deptOptions.map((d) => (
+        <option key={d} value={d}>{d}</option>
+      ))}
+    </select>
+    <div className="tt-deptHint">동명이인이 있습니다. 소속을 선택하면 시간표가 표시됩니다.</div>
+  </div>
+)}
+
             </div>
           </div>
         </div>
@@ -513,9 +520,10 @@ export default function TimetablePage() {
             ))}
           </div>
 
-          <div className="tt-grid tt-body" style={{ height: totalHeight }}>
+          <div className="tt-grid tt-body" style={{ height: Math.max(380, (endMin - startMin) * PPM) }}>
             <div className="tt-timeCol">
-              {hourMarks.map((m) => {
+              {Array.from({ length: Math.floor(endMin / 60) - Math.floor(startMin / 60) + 1 }).map((_, idx) => {
+                const m = (Math.floor(startMin / 60) + idx) * 60;
                 const top = (m - startMin) * PPM;
                 const hour = Math.floor(m / 60);
                 return (
@@ -531,7 +539,8 @@ export default function TimetablePage() {
               const list = (laid[d] ?? []) as EventBlock[];
               return (
                 <div key={d} className="tt-dayCol">
-                  {hourMarks.map((m) => {
+                  {Array.from({ length: Math.floor(endMin / 60) - Math.floor(startMin / 60) + 1 }).map((_, idx) => {
+                    const m = (Math.floor(startMin / 60) + idx) * 60;
                     const top = (m - startMin) * PPM;
                     return <div key={m} className="tt-hLine" style={{ top }} />;
                   })}
