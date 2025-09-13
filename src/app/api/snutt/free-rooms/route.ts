@@ -16,21 +16,26 @@ function parseHHmm(s?: string): number | null {
   if (!s) return null;
   const m = s.match(/^(\d{1,2}):(\d{2})$/);
   if (!m) return null;
-  const hh = Number(m[1]), mm = Number(m[2]);
+  const hh = Number(m[1]),
+    mm = Number(m[2]);
   if (!Number.isFinite(hh) || !Number.isFinite(mm)) return null;
   return hh * 60 + mm;
 }
 
 /** SNUTT 시간 블록을 안전하게 분 범위로 */
 function toMinuteRange(t: {
-  startMinute?: number; endMinute?: number;
-  start_time?: string; end_time?: string;
-  start?: number; len?: number;
+  startMinute?: number;
+  endMinute?: number;
+  start_time?: string;
+  end_time?: string;
+  start?: number;
+  len?: number;
 }): { s: number; e: number } | null {
   if (typeof t.startMinute === "number" && typeof t.endMinute === "number")
     return { s: t.startMinute, e: t.endMinute };
 
-  const ps = parseHHmm(t.start_time), pe = parseHHmm(t.end_time);
+  const ps = parseHHmm(t.start_time),
+    pe = parseHHmm(t.end_time);
   if (ps !== null && pe !== null) return { s: ps, e: pe };
 
   if (typeof t.start === "number" && typeof t.len === "number") {
@@ -43,7 +48,10 @@ function toMinuteRange(t: {
 
 /** "301-118, 301-119 / 301-201" → ["301-118","301-119","301-201"] */
 function splitPlaces(p: string): string[] {
-  return p.split(/[,\s/]+/).map(x => x.trim()).filter(Boolean);
+  return p
+    .split(/[,\s/]+/)
+    .map((x) => x.trim())
+    .filter(Boolean);
 }
 
 /** 방 이름만: "301-118" → "118", "301-B119" → "B119" */
@@ -75,7 +83,8 @@ export async function GET(req: NextRequest) {
     minute = atParam ? (parseHHmm(atParam) ?? base.minute) : base.minute;
   } else {
     const base = nowKst();
-    day = base.snuttDay; minute = base.minute;
+    day = base.snuttDay;
+    minute = base.minute;
   }
 
   // 5분 단위 파생 캐시
@@ -134,14 +143,20 @@ export async function GET(req: NextRequest) {
       // 현재 점유?  [s, e) (끝 시각 비포함)
       let occupied = false;
       for (const r of ranges) {
-        if (r.s <= minute && minute < r.e) { occupied = true; break; }
+        if (r.s <= minute && minute < r.e) {
+          occupied = true;
+          break;
+        }
       }
       if (occupied) continue;
 
       // 다음 시작 시각 (없으면 24:00)
       let until = END_OF_DAY;
       for (const r of ranges) {
-        if (r.s >= minute) { until = r.s; break; }
+        if (r.s >= minute) {
+          until = r.s;
+          break;
+        }
       }
       free.push({ room, until });
     }

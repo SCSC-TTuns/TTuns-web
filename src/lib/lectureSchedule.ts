@@ -1,12 +1,11 @@
 export type AnyLecture = Record<string, any>;
 
-export type DayIndex = 0|1|2|3|4|5|6;
-export const DAY_LABELS = ["월","화","수","목","금","토","일"] as const;
-const DAYS = [0,1,2,3,4,5,6] as const;
+export type DayIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+export const DAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"] as const;
+const DAYS = [0, 1, 2, 3, 4, 5, 6] as const;
 
 /** 완전 일치: 양끝 공백만 무시(대소문자/하이픈은 그대로 비교) */
-const strictEq = (a?: any, b?: any) =>
-  String(a ?? "").trim() === String(b ?? "").trim();
+const strictEq = (a?: any, b?: any) => String(a ?? "").trim() === String(b ?? "").trim();
 
 export function extractProfessor(lec: AnyLecture): string {
   if (typeof lec?.instructor === "string") return lec.instructor;
@@ -77,7 +76,7 @@ export function buildEventsFromLectures(
         end,
         title,
         professor: prof,
-        room: matchedRoom || (t?.place || rooms[0] || ""),
+        room: matchedRoom || t?.place || rooms[0] || "",
         courseNumber: lec?.course_number,
         lectureNumber: lec?.lecture_number,
       });
@@ -89,13 +88,31 @@ export function buildEventsFromLectures(
 export type LaidOutEvent = TimetableEvent & { col: number; colCount: number };
 
 export function layoutByDay(events: TimetableEvent[]): Record<DayIndex, LaidOutEvent[]> {
-  const byDay: Record<DayIndex, TimetableEvent[]> = {0:[],1:[],2:[],3:[],4:[],5:[],6:[]};
-  events.forEach((e) => { byDay[e.day].push(e); });
+  const byDay: Record<DayIndex, TimetableEvent[]> = {
+    0: [],
+    1: [],
+    2: [],
+    3: [],
+    4: [],
+    5: [],
+    6: [],
+  };
+  events.forEach((e) => {
+    byDay[e.day].push(e);
+  });
 
-  const laid: Record<DayIndex, LaidOutEvent[]> = {0:[],1:[],2:[],3:[],4:[],5:[],6:[]};
+  const laid: Record<DayIndex, LaidOutEvent[]> = {
+    0: [],
+    1: [],
+    2: [],
+    3: [],
+    4: [],
+    5: [],
+    6: [],
+  };
 
   DAYS.forEach((d) => {
-    const list = byDay[d].slice().sort((a,b) => a.start - b.start || a.end - b.end);
+    const list = byDay[d].slice().sort((a, b) => a.start - b.start || a.end - b.end);
     const lanesEnd: number[] = [];
     const placed: LaidOutEvent[] = [];
 
@@ -107,16 +124,16 @@ export function layoutByDay(events: TimetableEvent[]): Record<DayIndex, LaidOutE
       placed.push({ ...e, col: lane, colCount: 0 });
     }
     const colCount = Math.max(1, lanesEnd.length);
-    laid[d] = placed.map(p => ({ ...p, colCount }));
+    laid[d] = placed.map((p) => ({ ...p, colCount }));
   });
 
   return laid;
 }
 
 export function timeBounds(events: TimetableEvent[]): { startMin: number; endMin: number } {
-  if (!events.length) return { startMin: 8*60, endMin: 22*60 };
-  const mins = events.flatMap(e => [e.start, e.end]);
+  if (!events.length) return { startMin: 8 * 60, endMin: 22 * 60 };
+  const mins = events.flatMap((e) => [e.start, e.end]);
   const min = Math.min(...mins);
   const max = Math.max(...mins);
-  return { startMin: Math.min(min, 8*60), endMin: Math.max(max, 22*60) };
+  return { startMin: Math.min(min, 8 * 60), endMin: Math.max(max, 22 * 60) };
 }

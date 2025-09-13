@@ -1,10 +1,33 @@
 export type AnyLecture = Record<string, any>;
 
 const norm = (s?: any) =>
-  (s ?? "").toString().toLowerCase().replace(/[\s\u200b\-_.(),/\\[\]{}・·:;|]+/g, "");
+  (s ?? "")
+    .toString()
+    .toLowerCase()
+    .replace(/[\s\u200b\-_.(),/\\[\]{}・·:;|]+/g, "");
 
 // 한글 초성 보조(교수명 검색 강화)
-const CHO = ["ㄱ","ㄲ","ㄴ","ㄷ","ㄸ","ㄹ","ㅁ","ㅂ","ㅃ","ㅅ","ㅆ","ㅇ","ㅈ","ㅉ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
+const CHO = [
+  "ㄱ",
+  "ㄲ",
+  "ㄴ",
+  "ㄷ",
+  "ㄸ",
+  "ㄹ",
+  "ㅁ",
+  "ㅂ",
+  "ㅃ",
+  "ㅅ",
+  "ㅆ",
+  "ㅇ",
+  "ㅈ",
+  "ㅉ",
+  "ㅊ",
+  "ㅋ",
+  "ㅌ",
+  "ㅍ",
+  "ㅎ",
+];
 function toChosung(str: string) {
   let out = "";
   for (const ch of str) {
@@ -22,7 +45,7 @@ export function extractProfAndRoom(lec: AnyLecture) {
     "";
   const roomTop = lec?.place || lec?.room || lec?.location || "";
   const roomFromTimes = Array.isArray(lec?.class_time_json)
-    ? (lec.class_time_json.map((t: any) => t?.place || t?.room || t?.location).find(Boolean) || "")
+    ? lec.class_time_json.map((t: any) => t?.place || t?.room || t?.location).find(Boolean) || ""
     : "";
   return { professor, room: roomTop || roomFromTimes };
 }
@@ -46,7 +69,8 @@ type MatchOpts = { exact?: boolean };
 export function profMatches(lec: AnyLecture, q: string, opts?: MatchOpts) {
   if (!q) return true;
   const prof = extractProfAndRoom(lec).professor || "";
-  const np = norm(prof), nq = norm(q);
+  const np = norm(prof),
+    nq = norm(q);
   if (opts?.exact) return np === nq || toChosung(prof) === toChosung(q); // 초성 완전일치도 허용
   return np.includes(nq) || toChosung(prof).includes(toChosung(q));
 }

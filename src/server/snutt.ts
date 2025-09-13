@@ -5,7 +5,6 @@ export type SemesterValue = string | number;
 
 export type FreeRoom = { room: string; until: number }; // until = 분(0~1440)
 
-
 export type LectureTimeRaw = {
   day: number | string;
   place?: string;
@@ -56,8 +55,7 @@ export type LectureSlim = {
 /** ====== 설정 ====== */
 const PAGE_SIZE = 200;
 const MAX_PAGES = 100;
-const CACHE_TTL_MS =
-  (Number(process.env.SNUTT_CACHE_TTL_SECONDS || "1800") || 1800) * 1000;
+const CACHE_TTL_MS = (Number(process.env.SNUTT_CACHE_TTL_SECONDS || "1800") || 1800) * 1000;
 const RATE = {
   windowMs: Number(process.env.SNUTT_RATE_LIMIT_WINDOW_MS || "60000") || 60000,
   max: Number(process.env.SNUTT_RATE_LIMIT_MAX || "30") || 30,
@@ -111,7 +109,9 @@ function pickArray(data: unknown): LectureRaw[] {
 function keyOf(x: LectureRaw): string {
   return (
     x._id ??
-    `${x.course_number ?? ""}#${x.lecture_number ?? ""}#${x.course_title ?? x.title ?? ""}#${x.year ?? ""}#${x.semester ?? ""}`
+    `${x.course_number ?? ""}#${x.lecture_number ?? ""}#${x.course_title ?? x.title ?? ""}#${
+      x.year ?? ""
+    }#${x.semester ?? ""}`
   );
 }
 
@@ -119,7 +119,7 @@ async function callSnutt(
   body: Record<string, unknown>,
   base: string,
   apiKey: string,
-  accessToken: string,
+  accessToken: string
 ): Promise<{ status: number; data: unknown }> {
   const res = await fetch(`${base}/v1/search_query`, {
     method: "POST",
@@ -136,7 +136,9 @@ async function callSnutt(
   let data: unknown = text;
   const ct = res.headers.get("content-type") || "";
   if (ct.includes("application/json")) {
-    try { data = JSON.parse(text) as unknown; } catch {}
+    try {
+      data = JSON.parse(text) as unknown;
+    } catch {}
   }
   return { status: res.status, data };
 }
@@ -152,10 +154,14 @@ export function canonicalSemesterId(sem: string): string {
 }
 export function semesterVariantsByCanonical(canon: string): SemesterValue[] {
   switch (canon) {
-    case "1": return ["1", 1];
-    case "2": return ["2", 2, "S"];
-    case "3": return ["3", 3, "2"];
-    case "4": return ["4", 4, "W"];
+    case "1":
+      return ["1", 1];
+    case "2":
+      return ["2", 2, "S"];
+    case "3":
+      return ["3", 3, "2"];
+    case "4":
+      return ["4", 4, "W"];
     default: {
       const n = Number(canon);
       return Number.isFinite(n) ? [canon, n] : [canon];
@@ -169,13 +175,18 @@ async function fetchAllPagesSlim(
   apiKey: string,
   accessToken: string,
   year: number,
-  semesterVariant: SemesterValue,
+  semesterVariant: SemesterValue
 ): Promise<LectureSlim[]> {
   const uniq = new Map<string, LectureRaw>();
 
   // offset 기반
   for (let p = 0; p < MAX_PAGES; p++) {
-    const payload: Record<string, unknown> = { year, semester: semesterVariant, limit: PAGE_SIZE, offset: p * PAGE_SIZE };
+    const payload: Record<string, unknown> = {
+      year,
+      semester: semesterVariant,
+      limit: PAGE_SIZE,
+      offset: p * PAGE_SIZE,
+    };
     const { status, data } = await callSnutt(payload, base, apiKey, accessToken);
     if (status === 400 || status === 404) break;
     if (status >= 500) throw { status, data };
@@ -187,7 +198,12 @@ async function fetchAllPagesSlim(
   // page 기반 (offset 무시 대비)
   if (uniq.size <= PAGE_SIZE) {
     for (let p = 0; p < MAX_PAGES; p++) {
-      const payload: Record<string, unknown> = { year, semester: semesterVariant, page: p, limit: PAGE_SIZE };
+      const payload: Record<string, unknown> = {
+        year,
+        semester: semesterVariant,
+        page: p,
+        limit: PAGE_SIZE,
+      };
       const { status, data } = await callSnutt(payload, base, apiKey, accessToken);
       if (status === 400 || status === 404) break;
       if (status >= 500) throw { status, data };
@@ -201,22 +217,28 @@ async function fetchAllPagesSlim(
   const full = Array.from(uniq.values());
   return full.map((lec) => ({
     course_title:
-      typeof lec.course_title === "string" ? lec.course_title :
-      (typeof lec.title === "string" ? lec.title : ""),
+      typeof lec.course_title === "string"
+        ? lec.course_title
+        : typeof lec.title === "string"
+          ? lec.title
+          : "",
     instructor: typeof lec.instructor === "string" ? lec.instructor : "",
     class_time_json: Array.isArray(lec.class_time_json) ? lec.class_time_json : [],
     course_number: typeof lec.course_number === "string" ? lec.course_number : "",
     lecture_number: typeof lec.lecture_number === "string" ? lec.lecture_number : "",
     department: typeof lec.department === "string" ? lec.department : "",
     year: typeof lec.year === "number" ? lec.year : undefined,
-    semester: (typeof lec.semester === "number" || typeof lec.semester === "string") ? lec.semester : undefined,
+    semester:
+      typeof lec.semester === "number" || typeof lec.semester === "string"
+        ? lec.semester
+        : undefined,
   }));
 }
 
 /** 캐시/병합 포함 핵심: 학기별 슬림 강의 목록 */
 export async function getSlimLectures(
   year: number,
-  semesterInput: string,
+  semesterInput: string
 ): Promise<{ data: LectureSlim[]; cache: "HIT" | "COALESCE" | "MISS" }> {
   const base = process.env.SNUTT_API_BASE || "https://snutt-api.wafflestudio.com";
   const apiKey = process.env.SNUTT_API_KEY;
@@ -265,7 +287,7 @@ export function nowKst() {
   const now = new Date();
   const kst = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
   const jsDay = kst.getDay(); // 0=Sun..6=Sat
-  const snuttDay = jsDay === 0 ? 6 : (jsDay - 1); // 월=0..일=6
+  const snuttDay = jsDay === 0 ? 6 : jsDay - 1; // 월=0..일=6
   const minute = kst.getHours() * 60 + kst.getMinutes();
   return { kst, snuttDay, minute };
 }

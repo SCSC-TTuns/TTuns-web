@@ -37,10 +37,13 @@ function colorForTitle(title: string) {
   return { fill: `hsla(${h}, 85%, 96%, 1)`, stroke: `hsl(${h}, 70%, 42%)` };
 }
 function fmtTime(min: number) {
-  const h = Math.floor(min / 60), m = min % 60;
+  const h = Math.floor(min / 60),
+    m = min % 60;
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
-function fmtHHMM(min: number) { return fmtTime(min); }
+function fmtHHMM(min: number) {
+  return fmtTime(min);
+}
 
 function nowKst() {
   const now = new Date();
@@ -55,13 +58,7 @@ function nowKst() {
 
 function extractDept(lec: any): string {
   return (
-    lec?.department ||
-    lec?.dept ||
-    lec?.college ||
-    lec?.collegeName ||
-    lec?.major ||
-    lec?.org ||
-    ""
+    lec?.department || lec?.dept || lec?.college || lec?.collegeName || lec?.major || lec?.org || ""
   );
 }
 
@@ -119,7 +116,9 @@ export default function TimetablePage() {
   const { startMin, endMin } = timeBounds(events);
 
   const semesterCacheRef = useRef(new Map<string, AnyLecture[]>());
-  const lastSearchRef = useRef<{ q: string; year: string; semester: string; mode: Mode } | null>(null);
+  const lastSearchRef = useRef<{ q: string; year: string; semester: string; mode: Mode } | null>(
+    null
+  );
   const autoCollapseRef = useRef<number>(0);
 
   useLayoutEffect(() => {
@@ -146,17 +145,21 @@ export default function TimetablePage() {
   }, [startMin, endMin]);
 
   useEffect(() => {
-    const url = `/api/snutt/search?year=${encodeURIComponent(Number(year))}&semester=${encodeURIComponent(semester)}`;
+    const url = `/api/snutt/search?year=${encodeURIComponent(
+      Number(year)
+    )}&semester=${encodeURIComponent(semester)}`;
     fetch(url).catch(() => {});
   }, [year, semester]);
 
-  const canSearch = useMemo(
-    () => !!year && !!semester && q.trim().length > 0,
-    [year, semester, q]
-  );
+  const canSearch = useMemo(() => !!year && !!semester && q.trim().length > 0, [year, semester, q]);
 
   const semesterLabel = useMemo(() => {
-    const m: Record<string, string> = { "1": "1학기", "2": "여름학기", "3": "2학기", "4": "겨울학기" };
+    const m: Record<string, string> = {
+      "1": "1학기",
+      "2": "여름학기",
+      "3": "2학기",
+      "4": "겨울학기",
+    };
     return m[String(semester)] || String(semester);
   }, [semester]);
 
@@ -191,9 +194,7 @@ export default function TimetablePage() {
         const k = nowKst();
         const url = `/api/snutt/free-rooms?year=${encodeURIComponent(
           Number(year)
-        )}&semester=${encodeURIComponent(
-          semester
-        )}&building=${encodeURIComponent(q.trim())}&day=${
+        )}&semester=${encodeURIComponent(semester)}&building=${encodeURIComponent(q.trim())}&day=${
           k.snuttDay
         }&at=${k.hhmm}`;
         const res = await fetch(url);
@@ -271,15 +272,19 @@ export default function TimetablePage() {
     }
 
     const ls = lastSearchRef.current;
-    if (!ls || ls.mode !== "professor" || ls.q !== q.trim() || ls.year !== year || ls.semester !== semester) {
+    if (
+      !ls ||
+      ls.mode !== "professor" ||
+      ls.q !== q.trim() ||
+      ls.year !== year ||
+      ls.semester !== semester
+    ) {
       return;
     }
 
     const rawOpts = Array.from(
       new Set(
-        profFiltered
-          .map((lec) => String(extractDept(lec) || "").trim())
-          .filter((v) => v.length > 0)
+        profFiltered.map((lec) => String(extractDept(lec) || "").trim()).filter((v) => v.length > 0)
       )
     );
 
@@ -316,9 +321,7 @@ export default function TimetablePage() {
       return;
     }
 
-    const filteredByDept = profFiltered.filter(
-      (lec) => String(extractDept(lec)).trim() === dept
-    );
+    const filteredByDept = profFiltered.filter((lec) => String(extractDept(lec)).trim() === dept);
 
     const evts = buildEventsFromLectures(filteredByDept, {
       showBy: "professor",
@@ -343,29 +346,29 @@ export default function TimetablePage() {
   };
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setSel(null); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSel(null);
+    };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
-const openDetail = (ev: EventBlock) => {
-  let lec: AnyLecture | undefined;
+  const openDetail = (ev: EventBlock) => {
+    let lec: AnyLecture | undefined;
 
-  if (activeLectures?.length) {
-    lec =
-      activeLectures.find((L: any) => {
-        const prof = String(L?.instructor || L?.professor || "").trim();
-        const title = String(L?.title || L?.course_title || L?.name || "").trim();
-        const sameProf =
-          !ev.professor || prof.includes(ev.professor) || ev.professor.includes(prof);
-        const sameTitle =
-          !ev.title || title.includes(ev.title) || ev.title.includes(title);
-        return sameTitle && sameProf && lectureHasTime(L, ev);
-      }) ||
-      activeLectures.find((L: any) => lectureHasTime(L, ev));
-  }
+    if (activeLectures?.length) {
+      lec =
+        activeLectures.find((L: any) => {
+          const prof = String(L?.instructor || L?.professor || "").trim();
+          const title = String(L?.title || L?.course_title || L?.name || "").trim();
+          const sameProf =
+            !ev.professor || prof.includes(ev.professor) || ev.professor.includes(prof);
+          const sameTitle = !ev.title || title.includes(ev.title) || ev.title.includes(title);
+          return sameTitle && sameProf && lectureHasTime(L, ev);
+        }) || activeLectures.find((L: any) => lectureHasTime(L, ev));
+    }
 
-  setSel({ ev, lec });
-};
+    setSel({ ev, lec });
+  };
 
   return (
     <div className="tt-wrap">
@@ -380,8 +383,16 @@ const openDetail = (ev: EventBlock) => {
             aria-controls="tt-filter-panel"
             title={collapsed ? "필터 펼치기" : "필터 접기"}
           >
-            <svg className="tt-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                 strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <svg
+              className="tt-chevron"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
               <polyline points="6 15 12 9 18 15"></polyline>
             </svg>
             <span className="sr-only">{collapsed ? "필터 펼치기" : "필터 접기"}</span>
@@ -390,9 +401,13 @@ const openDetail = (ev: EventBlock) => {
 
         <div className="tt-controls" data-collapsed={collapsed ? "1" : "0"}>
           <div className="tt-pillbar" aria-hidden={!collapsed}>
-            <span className="tt-pill">{year} • {semesterLabel}</span>
+            <span className="tt-pill">
+              {year} • {semesterLabel}
+            </span>
             <span className="tt-pill">{modeLabel}</span>
-            <span className="tt-pill tt-pill-q" title={q}>{q || "검색어 없음"}</span>
+            <span className="tt-pill tt-pill-q" title={q}>
+              {q || "검색어 없음"}
+            </span>
             {mode === "professor" && dept && <span className="tt-pill">{dept}</span>}
             <button type="button" className="tt-pillbtn" onClick={() => setCollapsed(false)}>
               수정
@@ -428,11 +443,19 @@ const openDetail = (ev: EventBlock) => {
               </div>
 
               <div className="tt-field tt-grow">
-                <label>{mode === "professor" ? "교수명" : mode === "room" ? "강의실" : "건물 동번호"}</label>
+                <label>
+                  {mode === "professor" ? "교수명" : mode === "room" ? "강의실" : "건물 동번호"}
+                </label>
                 <input
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
-                  placeholder={mode === "professor" ? "예: 문송기" : mode === "room" ? "예: 26-B101" : "예: 301"}
+                  placeholder={
+                    mode === "professor"
+                      ? "예: 문송기"
+                      : mode === "room"
+                        ? "예: 26-B101"
+                        : "예: 301"
+                  }
                   inputMode={mode === "free" ? "numeric" : "text"}
                   onKeyDown={onKeyDownInput}
                 />
@@ -496,12 +519,18 @@ const openDetail = (ev: EventBlock) => {
                       if (v) setCollapsed(true);
                     }}
                   >
-                    <option value="" disabled>소속 선택</option>
+                    <option value="" disabled>
+                      소속 선택
+                    </option>
                     {deptOptions.map((d) => (
-                      <option key={d} value={d}>{d}</option>
+                      <option key={d} value={d}>
+                        {d}
+                      </option>
                     ))}
                   </select>
-                  <div className="tt-deptHint">동명이인이 있습니다. 소속을 선택하면 시간표가 표시됩니다.</div>
+                  <div className="tt-deptHint">
+                    동명이인이 있습니다. 소속을 선택하면 시간표가 표시됩니다.
+                  </div>
                 </div>
               )}
             </div>
@@ -551,26 +580,35 @@ const openDetail = (ev: EventBlock) => {
             ))}
           </div>
 
-          <div className="tt-grid tt-body" style={{ height: Math.max(380, (endMin - startMin) * PPM) }}>
+          <div
+            className="tt-grid tt-body"
+            style={{ height: Math.max(380, (endMin - startMin) * PPM) }}
+          >
             <div className="tt-timeCol">
-              {Array.from({ length: Math.floor(endMin / 60) - Math.floor(startMin / 60) + 1 }).map((_, idx) => {
-                const m = (Math.floor(startMin / 60) + idx) * 60;
-                const top = (m - startMin) * PPM;
-                const hour = Math.floor(m / 60);
-                return (
-                  <div key={m} className="tt-hourMark" style={{ top }}>
-                    <div className="tt-label" data-hour={hour}>{hour}</div>
-                    <div className="tt-line" />
-                  </div>
-                );
-              })}
+              {Array.from({ length: Math.floor(endMin / 60) - Math.floor(startMin / 60) + 1 }).map(
+                (_, idx) => {
+                  const m = (Math.floor(startMin / 60) + idx) * 60;
+                  const top = (m - startMin) * PPM;
+                  const hour = Math.floor(m / 60);
+                  return (
+                    <div key={m} className="tt-hourMark" style={{ top }}>
+                      <div className="tt-label" data-hour={hour}>
+                        {hour}
+                      </div>
+                      <div className="tt-line" />
+                    </div>
+                  );
+                }
+              )}
             </div>
 
             {VISIBLE_DAYS.map((d) => {
               const list = (laid[d] ?? []) as EventBlock[];
               return (
                 <div key={d} className="tt-dayCol">
-                  {Array.from({ length: Math.floor(endMin / 60) - Math.floor(startMin / 60) + 1 }).map((_, idx) => {
+                  {Array.from({
+                    length: Math.floor(endMin / 60) - Math.floor(startMin / 60) + 1,
+                  }).map((_, idx) => {
                     const m = (Math.floor(startMin / 60) + idx) * 60;
                     const top = (m - startMin) * PPM;
                     return <div key={m} className="tt-hLine" style={{ top }} />;
@@ -585,7 +623,9 @@ const openDetail = (ev: EventBlock) => {
                       <div
                         key={`${i}-${e.title}-${e.start}`}
                         className="tt-event"
-                        title={`${e.title}\n${mode === "professor" ? e.room : e.professor}\n${fmtTime(e.start)}–${fmtTime(e.end)}`}
+                        title={`${e.title}\n${
+                          mode === "professor" ? e.room : e.professor
+                        }\n${fmtTime(e.start)}–${fmtTime(e.end)}`}
                         style={{
                           top,
                           left: `${leftPct}%`,
@@ -621,26 +661,59 @@ const openDetail = (ev: EventBlock) => {
           <div className="tt-modalCard" onClick={(e) => e.stopPropagation()}>
             <div className="tt-modalHead">
               <div className="tt-modalTitle">{sel.ev.title}</div>
-              <button className="tt-x" onClick={() => setSel(null)} aria-label="닫기">×</button>
+              <button className="tt-x" onClick={() => setSel(null)} aria-label="닫기">
+                ×
+              </button>
             </div>
             <div className="tt-modalBody">
-              <div><b>시간</b> {fmtTime(sel.ev.start)}–{fmtTime(sel.ev.end)} ({DAY_LABELS[sel.ev.day]})</div>
-              <div><b>{mode === "professor" ? "강의실" : "교수"}</b> {mode === "professor" ? sel.ev.room : sel.ev.professor}</div>
+              <div>
+                <b>시간</b> {fmtTime(sel.ev.start)}–{fmtTime(sel.ev.end)} ({DAY_LABELS[sel.ev.day]})
+              </div>
+              <div>
+                <b>{mode === "professor" ? "강의실" : "교수"}</b>{" "}
+                {mode === "professor" ? sel.ev.room : sel.ev.professor}
+              </div>
               {sel.lec && (
                 <>
-                  {extractDept(sel.lec) && <div><b>소속</b> {extractDept(sel.lec)}</div>}
-                  {sel.lec?.credit != null && <div><b>학점</b> {String((sel.lec as any).credit)}</div>}
-                  {sel.lec?.classification && <div><b>구분</b> {String((sel.lec as any).classification)}</div>}
-                  {(sel.lec as any)?.course_number && <div><b>학수번호</b> {String((sel.lec as any).course_number)}</div>}
-                  {(sel.lec as any)?.lecture_number && <div><b>분반</b> {String((sel.lec as any).lecture_number)}</div>}
-                  {(sel.lec as any)?.remark && <div><b>비고</b> {String((sel.lec as any).remark)}</div>}
+                  {extractDept(sel.lec) && (
+                    <div>
+                      <b>소속</b> {extractDept(sel.lec)}
+                    </div>
+                  )}
+                  {sel.lec?.credit != null && (
+                    <div>
+                      <b>학점</b> {String((sel.lec as any).credit)}
+                    </div>
+                  )}
+                  {sel.lec?.classification && (
+                    <div>
+                      <b>구분</b> {String((sel.lec as any).classification)}
+                    </div>
+                  )}
+                  {(sel.lec as any)?.course_number && (
+                    <div>
+                      <b>학수번호</b> {String((sel.lec as any).course_number)}
+                    </div>
+                  )}
+                  {(sel.lec as any)?.lecture_number && (
+                    <div>
+                      <b>분반</b> {String((sel.lec as any).lecture_number)}
+                    </div>
+                  )}
+                  {(sel.lec as any)?.remark && (
+                    <div>
+                      <b>비고</b> {String((sel.lec as any).remark)}
+                    </div>
+                  )}
                   {Array.isArray((sel.lec as any).class_time_json) && (
                     <div>
                       <b>전체 일정</b>
                       <ul>
                         {((sel.lec as any).class_time_json as any[]).map((t, idx) => (
                           <li key={idx}>
-                            {DAY_LABELS[Number(t?.day ?? -1)]} {String(t?.place ?? "")} {fmtTime(Number(t?.startMinute ?? t?.start ?? 0))}–{fmtTime(Number(t?.endMinute ?? t?.end ?? 0))}
+                            {DAY_LABELS[Number(t?.day ?? -1)]} {String(t?.place ?? "")}{" "}
+                            {fmtTime(Number(t?.startMinute ?? t?.start ?? 0))}–
+                            {fmtTime(Number(t?.endMinute ?? t?.end ?? 0))}
                           </li>
                         ))}
                       </ul>
@@ -651,7 +724,9 @@ const openDetail = (ev: EventBlock) => {
               {!sel.lec && <div className="tt-empty">소속이 여러 곳인 교수가 있을 수 있어요.</div>}
             </div>
             <div className="tt-modalFoot">
-              <button className="tt-primary" onClick={() => setSel(null)}>확인</button>
+              <button className="tt-primary" onClick={() => setSel(null)}>
+                확인
+              </button>
             </div>
           </div>
         </div>

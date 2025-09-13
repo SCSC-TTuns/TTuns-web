@@ -30,8 +30,10 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   let body: unknown = null;
-  try { body = await req.json(); } catch {}
-  const rec = (typeof body === "object" && body) ? (body as Record<string, unknown>) : {};
+  try {
+    body = await req.json();
+  } catch {}
+  const rec = typeof body === "object" && body ? (body as Record<string, unknown>) : {};
   const year = Number(rec.year);
   const semester = String(rec.semester ?? "");
   return handle(req, year, semester);
