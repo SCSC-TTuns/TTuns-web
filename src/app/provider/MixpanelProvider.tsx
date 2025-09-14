@@ -2,21 +2,17 @@
 
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import { initMixpanel, isReady, track } from '@/lib/mixpanel/mixpanelClient';
+import { isReady, track } from '@/lib/mixpanel/mixpanelClient';
 
 export default function MixpanelProvider() {
   const pathname = usePathname();
 
   useEffect(() => {
-    initMixpanel();
-  }, []);
-
-  useEffect(() => {
-    const f = () => {
+    const tick = () => {
       if (isReady()) track('page_viewed', { path: pathname || '/', title: document.title || '' });
-      else setTimeout(f, 120);
+      else setTimeout(tick, 150);
     };
-    f();
+    tick();
   }, [pathname]);
 
   return null;
