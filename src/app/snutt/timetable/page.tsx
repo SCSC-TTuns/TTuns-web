@@ -181,9 +181,7 @@ export default function TimetablePage() {
   }, [startMin, endMin]);
 
   useEffect(() => {
-    const url = `/api/snutt/search?year=${encodeURIComponent(
-      Number(year)
-    )}&semester=${encodeURIComponent(semester)}`;
+    const url = `/api/snutt/search?year=${Number(year)}&semester=${semester}&mode=${mode}&q=${encodeURIComponent(q.trim())}`;
     fetch(url).catch(() => {});
   }, [year, semester]);
 
@@ -289,7 +287,7 @@ export default function TimetablePage() {
       }
 
       if (mode === "professor") {
-        const filteredByName = all.filter((lec) => lectureMatchesProfessorExact(lec, q));
+        const filteredByName = all as AnyLecture[];
         setProfFiltered(filteredByName);
         setFreeRooms([]);
         setEvents([]);

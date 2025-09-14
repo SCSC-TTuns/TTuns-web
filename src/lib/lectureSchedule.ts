@@ -1,139 +1,75 @@
 export type AnyLecture = Record<string, any>;
-
 export type DayIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6;
-export const DAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"] as const;
-const DAYS = [0, 1, 2, 3, 4, 5, 6] as const;
+export const DAY_LABELS = ["월","화","수","목","금","토","일"] as const;
 
-/** 완전 일치: 양끝 공백만 무시(대소문자/하이픈은 그대로 비교) */
-const strictEq = (a?: any, b?: any) => String(a ?? "").trim() === String(b ?? "").trim();
+const norm = (v:any)=>String(v??"").trim();
 
 export function extractProfessor(lec: AnyLecture): string {
   if (typeof lec?.instructor === "string") return lec.instructor;
+  if (typeof lec?.professor === "string") return lec.professor;
   if (Array.isArray(lec?.instructors)) return lec.instructors.join(", ");
   return "";
 }
 
 export function allRooms(lec: AnyLecture): string[] {
-  const set = new Set<string>();
-  const top = lec?.place || lec?.room || lec?.location;
-  if (typeof top === "string" && top.trim()) set.add(top.trim());
-  if (Array.isArray(lec?.class_time_json)) {
-    for (const t of lec.class_time_json) {
-      const p = t?.place || t?.room || t?.location;
-      if (typeof p === "string" && p.trim()) set.add(p.trim());
-    }
+  const times:any[] = Array.isArray(lec?.class_time_json)?lec.class_time_json:[];
+  const s = new Set<string>();
+  for (const t of times) {
+    const r = norm(t?.place ?? t?.room ?? t?.location);
+    if (r) s.add(r);
   }
-  return [...set];
-}
-
-export function lectureMatchesProfessorExact(lec: AnyLecture, q: string): boolean {
-  if (!q) return false;
-  return strictEq(extractProfessor(lec), q);
-}
-
-export function lectureMatchesRoomExact(lec: AnyLecture, q: string): boolean {
-  if (!q) return false;
-  return allRooms(lec).some((r) => strictEq(r, q));
+  return [...s];
 }
 
 export type TimetableEvent = {
-  day: DayIndex;
-  start: number;
-  end: number;
-  title: string;
-  professor?: string;
-  room?: string;
-  courseNumber?: string;
-  lectureNumber?: string;
+  day: DayIndex; start: number; end: number;
+  title: string; professor: string; room: string;
+  courseNumber?: string; lectureNumber?: string;
 };
 
-function toDayIndex(d: any): DayIndex {
-  const n = Number(d);
-  return (n >= 0 && n <= 6 ? n : 0) as DayIndex;
-}
+function toDayIndex(d:any):DayIndex{ const n=Number(d); return (n>=0&&n<=6?n:0) as DayIndex; }
+function toMinutes(v:any){ if(typeof v==="number"&&isFinite(v))return v;
+  const s=String(v??"").trim(); const m=s.match(/^(\d{1,2}):(\d{2})$/);
+  if(m) return Number(m[1])*60+Number(m[2]); const n=Number(s); return isFinite(n)?n:0; }
 
-export function buildEventsFromLectures(
-  lectures: AnyLecture[],
-  opts: { showBy: "professor" | "room"; query: string }
-): TimetableEvent[] {
-  const out: TimetableEvent[] = [];
-  for (const lec of lectures) {
-    const title = lec?.course_title || lec?.title || "";
+export function buildEventsFromLectures(lectures:AnyLecture[], opts:{showBy:"professor"|"room";query:string}):TimetableEvent[]{
+  const out:TimetableEvent[]=[];
+  for(const lec of lectures){
+    const title = lec?.course_title ?? lec?.title ?? "";
     const prof = extractProfessor(lec);
     const rooms = allRooms(lec);
-    const matchedRoom = rooms.find((r) => strictEq(r, opts.query));
-    const times = Array.isArray(lec?.class_time_json) ? lec.class_time_json : [];
-
-    for (const t of times) {
-      const day = toDayIndex(t?.day);
-      const start = Number(t?.startMinute ?? 0);
-      const end = Number(t?.endMinute ?? 0);
-      if (!start && !end) continue;
-
+    const times:any[] = Array.isArray(lec?.class_time_json)?lec.class_time_json:[];
+    for(const t of times){
+      const day = toDayIndex(t?.day ?? t?.dayOfWeek);
+      const start = toMinutes(t?.startMinute ?? t?.start_minute ?? t?.start ?? t?.start_time);
+      const end   = toMinutes(t?.endMinute   ?? t?.end_minute   ?? t?.end   ?? t?.end_time);
+      if(!start && !end) continue;
       out.push({
-        day,
-        start,
-        end,
-        title,
-        professor: prof,
-        room: matchedRoom || t?.place || rooms[0] || "",
-        courseNumber: lec?.course_number,
-        lectureNumber: lec?.lecture_number,
+        day, start, end, title, professor: prof,
+        room: String(t?.place ?? t?.room ?? t?.location ?? rooms[0] ?? ""),
+        courseNumber: lec?.course_number, lectureNumber: lec?.lecture_number
       });
     }
   }
   return out;
 }
 
-export type LaidOutEvent = TimetableEvent & { col: number; colCount: number };
-
-export function layoutByDay(events: TimetableEvent[]): Record<DayIndex, LaidOutEvent[]> {
-  const byDay: Record<DayIndex, TimetableEvent[]> = {
-    0: [],
-    1: [],
-    2: [],
-    3: [],
-    4: [],
-    5: [],
-    6: [],
-  };
-  events.forEach((e) => {
-    byDay[e.day].push(e);
+export type LaidOutEvent = TimetableEvent & { col:number; colCount:number };
+export function layoutByDay(events:TimetableEvent[]):Record<DayIndex,LaidOutEvent[]>{
+  const by:Record<DayIndex,TimetableEvent[]>={0:[],1:[],2:[],3:[],4:[],5:[],6:[]};
+  for(const e of events) by[e.day].push(e);
+  const laid:Record<DayIndex,LaidOutEvent[]>={0:[],1:[],2:[],3:[],4:[],5:[],6:[]};
+  (Object.keys(by) as unknown as DayIndex[]).forEach(d=>{
+    const list=by[d].sort((a,b)=>a.start-b.start||a.end-b.end);
+    const lanes:number[]=[]; const placed:LaidOutEvent[]=[];
+    for(const e of list){ let lane=0; while(lane<lanes.length&&lanes[lane]>e.start) lane++; lanes[lane]=e.end; placed.push({...e,col:lane,colCount:0}); }
+    const cc=Math.max(1,lanes.length); laid[d]=placed.map(p=>({...p,colCount:cc}));
   });
-
-  const laid: Record<DayIndex, LaidOutEvent[]> = {
-    0: [],
-    1: [],
-    2: [],
-    3: [],
-    4: [],
-    5: [],
-    6: [],
-  };
-
-  DAYS.forEach((d) => {
-    const list = byDay[d].slice().sort((a, b) => a.start - b.start || a.end - b.end);
-    const lanesEnd: number[] = [];
-    const placed: LaidOutEvent[] = [];
-
-    for (const e of list) {
-      let lane = 0;
-      while (lane < lanesEnd.length && lanesEnd[lane] > e.start) lane++;
-      if (lane === lanesEnd.length) lanesEnd.push(0);
-      lanesEnd[lane] = e.end;
-      placed.push({ ...e, col: lane, colCount: 0 });
-    }
-    const colCount = Math.max(1, lanesEnd.length);
-    laid[d] = placed.map((p) => ({ ...p, colCount }));
-  });
-
   return laid;
 }
 
-export function timeBounds(events: TimetableEvent[]): { startMin: number; endMin: number } {
-  if (!events.length) return { startMin: 8 * 60, endMin: 22 * 60 };
-  const mins = events.flatMap((e) => [e.start, e.end]);
-  const min = Math.min(...mins);
-  const max = Math.max(...mins);
-  return { startMin: Math.min(min, 8 * 60), endMin: Math.max(max, 22 * 60) };
-}
+export function timeBounds(events:TimetableEvent[]){ if(!events.length) return {startMin:8*60,endMin:22*60};
+  const mins=events.flatMap(e=>[e.start,e.end]); return {startMin:Math.min(...mins,8*60), endMin:Math.max(...mins,22*60)}; }
+
+export function lectureMatchesProfessorExact(lec:AnyLecture,q:string){ return norm(extractProfessor(lec))===norm(q); }
+export function lectureMatchesRoomExact(lec:AnyLecture,q:string){ return allRooms(lec).some(r=>norm(r)===norm(q)); }
