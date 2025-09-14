@@ -224,6 +224,7 @@ export default function TimetablePage() {
     setProfFiltered([]);
     lastSearchRef.current = { q: q.trim(), year, semester, mode };
     autoCollapseRef.current = Date.now();
+
     try {
       if (mode === "free") {
         const k = nowKst();
@@ -234,9 +235,15 @@ export default function TimetablePage() {
         }&at=${k.hhmm}`;
         const res = await fetch(url);
         const data: unknown = await res.json();
+
         if (!res.ok || !Array.isArray(data)) {
           setFreeRooms([]);
-          trackEvent("search_failed", { mode, year, semester });
+          trackEvent("search_failed", {
+            search_type: mode,
+            year,
+            semester,
+            query: q.trim(),
+          });
           alert((data as { error?: string })?.error || "불러오기 실패");
           return;
         }
@@ -244,17 +251,20 @@ export default function TimetablePage() {
         setEvents([]);
         setActiveLectures([]);
         trackEvent("search_performed", {
-          mode,
+          search_type: mode,
           year,
           semester,
+          query: q.trim(),
           query_len: q.trim().length,
           result_count: Array.isArray(data) ? data.length : 0,
         });
         if (typeof window !== "undefined" && window.innerWidth < 720) setCollapsed(true);
         return;
       }
+
       const key = `${Number(year)}-${semester}`;
       let all: AnyLecture[] | undefined = semesterCacheRef.current.get(key);
+
       if (!all) {
         const url = `/api/snutt/search?year=${encodeURIComponent(
           Number(year)
@@ -265,13 +275,19 @@ export default function TimetablePage() {
           setEvents([]);
           setActiveLectures([]);
           setFreeRooms([]);
-          trackEvent("search_failed", { mode, year, semester });
+          trackEvent("search_failed", {
+            search_type: mode,
+            year,
+            semester,
+            query: q.trim(),
+          });
           alert((data as { error?: string })?.error || "불러오기 실패");
           return;
         }
         all = data as AnyLecture[];
         semesterCacheRef.current.set(key, all);
       }
+
       if (mode === "professor") {
         const filteredByName = all.filter((lec) => lectureMatchesProfessorExact(lec, q));
         setProfFiltered(filteredByName);
@@ -279,14 +295,16 @@ export default function TimetablePage() {
         setEvents([]);
         setActiveLectures([]);
         trackEvent("search_performed", {
-          mode,
+          search_type: mode,
           year,
           semester,
+          query: q.trim(),
           query_len: q.trim().length,
           result_count: filteredByName.length,
         });
         return;
       }
+
       const filtered = all.filter((lec) => lectureMatchesRoomExact(lec, q));
       const evts = buildEventsFromLectures(filtered, {
         showBy: mode,
@@ -296,9 +314,10 @@ export default function TimetablePage() {
       setEvents(evts);
       setActiveLectures(filtered);
       trackEvent("search_performed", {
-        mode,
+        search_type: mode,
         year,
         semester,
+        query: q.trim(),
         query_len: q.trim().length,
         result_count: evts.length,
       });
@@ -307,7 +326,12 @@ export default function TimetablePage() {
       setFreeRooms([]);
       setEvents([]);
       setActiveLectures([]);
-      trackEvent("search_failed", { mode, year, semester });
+      trackEvent("search_failed", {
+        search_type: mode,
+        year,
+        semester,
+        query: q.trim(),
+      });
       alert("불러오기 실패");
     } finally {
       setLoading(false);
@@ -316,6 +340,7 @@ export default function TimetablePage() {
 
   useEffect(() => {
     if (mode !== "professor") return;
+
     if (!profFiltered.length) {
       setDeptOptions([]);
       setDeptInclude(null);
@@ -323,6 +348,7 @@ export default function TimetablePage() {
       setActiveLectures([]);
       return;
     }
+
     const ls = lastSearchRef.current;
     if (
       !ls ||
@@ -333,12 +359,15 @@ export default function TimetablePage() {
     ) {
       return;
     }
+
     const rawOpts = Array.from(
       new Set(
         profFiltered.map((lec) => String(extractDept(lec) || "").trim()).filter((v) => v.length > 0)
       )
     );
+
     const grouped = groupDepts(rawOpts);
+
     if (grouped.mode === "collapsed") {
       const includeArr = Array.from(grouped.include);
       setDeptOptions([grouped.label]);
@@ -360,18 +389,23 @@ export default function TimetablePage() {
       }
       return;
     }
+
     setDeptOptions(grouped.options);
     setDeptInclude(null);
+
     if (!dept || !grouped.options.includes(dept)) {
       setEvents([]);
       setActiveLectures([]);
       return;
     }
+
     const filteredByDept = profFiltered.filter((lec) => String(extractDept(lec)).trim() === dept);
+
     const evts = buildEventsFromLectures(filteredByDept, {
       showBy: "professor",
       query: q.trim(),
     }) as EventBlock[];
+
     setFreeRooms([]);
     setEvents(evts);
     setActiveLectures(filteredByDept);
@@ -400,9 +434,9 @@ export default function TimetablePage() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
-
   const openDetail = (ev: EventBlock) => {
     let lec: AnyLecture | undefined;
+
     if (activeLectures?.length) {
       lec =
         activeLectures.find((L: any) => {
@@ -414,6 +448,7 @@ export default function TimetablePage() {
           return sameTitle && sameProf && lectureHasTime(L, ev);
         }) || activeLectures.find((L: any) => lectureHasTime(L, ev));
     }
+
     setSel({ ev, lec });
     trackEvent("event_detail_opened", {
       by: mode,
@@ -646,7 +681,10 @@ export default function TimetablePage() {
             ))}
           </div>
 
-          <div className="tt-grid tt-body" style={{ height: Math.max(380, (endMin - startMin) * PPM) }}>
+          <div
+            className="tt-grid tt-body"
+            style={{ height: Math.max(380, (endMin - startMin) * PPM) }}
+          >
             <div className="tt-timeCol">
               {Array.from({ length: Math.floor(endMin / 60) - Math.floor(startMin / 60) + 1 }).map(
                 (_, idx) => {
