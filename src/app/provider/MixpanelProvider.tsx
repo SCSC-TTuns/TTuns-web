@@ -2,8 +2,7 @@
 
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import { initMixpanel, isReady } from '@/lib/mixpanel/mixpanelClient';
-import { trackUIEvent } from '@/lib/mixpanel/trackEvent';
+import { initMixpanel, isReady, track } from '@/lib/mixpanel/mixpanelClient';
 
 export default function MixpanelProvider() {
   const pathname = usePathname();
@@ -14,11 +13,8 @@ export default function MixpanelProvider() {
 
   useEffect(() => {
     const f = () => {
-      if (isReady()) {
-        trackUIEvent.pageView(pathname || '/', typeof document !== 'undefined' ? document.title : '');
-      } else {
-        setTimeout(f, 100);
-      }
+      if (isReady()) track('page_viewed', { path: pathname || '/', title: document.title || '' });
+      else setTimeout(f, 120);
     };
     f();
   }, [pathname]);
