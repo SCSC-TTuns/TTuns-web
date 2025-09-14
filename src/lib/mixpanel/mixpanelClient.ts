@@ -9,9 +9,10 @@ type MixpanelLike = {
 };
 
 const TOKEN = process.env.NEXT_PUBLIC_MIXPANEL_TOKEN || '';
-
+const API_HOST = process.env.NEXT_PUBLIC_MIXPANEL_API_HOST || 'https://api.mixpanel.com';
 let isInitialized = false;
 let cached: MixpanelLike | null = null;
+let loading = false;
 
 function getAnonymousId(): string {
   if (typeof window === 'undefined') return 'server';
@@ -31,21 +32,39 @@ function getMixpanel(): MixpanelLike {
   if (cached) return cached;
   if (typeof window === 'undefined') return (cached = {});
   const w = window as any;
-  if (w && w.mixpanel) {
-    cached = w.mixpanel as MixpanelLike;
-  } else {
-    cached = {};
-  }
+  cached = (w && w.mixpanel) ? (w.mixpanel as MixpanelLike) : {};
   return cached;
 }
 
-export function initMixpanel(): void {
+function loadCdn(): Promise<void> {
+  if (typeof window === 'undefined') return Promise.resolve();
+  if ((window as any).mixpanel) return Promise.resolve();
+  if (loading) {
+    return new Promise((res) => {
+      const i = setInterval(() => {
+        if ((window as any).mixpanel) { clearInterval(i); res(); }
+      }, 50);
+    });
+  }
+  loading = true;
+  return new Promise((resolve) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.mxpnl.com/libs/mixpanel-2-latest.min.js';
+    s.async = true;
+    s.onload = () => { loading = false; resolve(); };
+    s.onerror = () => { loading = false; resolve(); };
+    document.head.appendChild(s);
+  });
+}
+
+export async function initMixpanel(): Promise<void> {
   if (isInitialized || !TOKEN) return;
   if (typeof window === 'undefined') return;
+  await loadCdn();
   try {
     const mp = getMixpanel();
     if (mp.init) {
-      mp.init(TOKEN, { api_host: 'https://api.mixpanel.com', track_pageview: false, persistence: 'localStorage' });
+      mp.init(TOKEN, { api_host: API_HOST, track_pageview: false, persistence: 'localStorage' });
     }
     const anon = getAnonymousId();
     if (mp.identify) mp.identify(anon);
@@ -55,14 +74,15 @@ export function initMixpanel(): void {
   }
 }
 
-export function identify(id: string): void {
+export async function identify(id: string): Promise<void> {
   try {
+    await initMixpanel();
     const mp = getMixpanel();
     if (mp.identify) mp.identify(id);
   } catch {}
 }
 
-export function reset(): void {
+export async function reset(): Promise<void> {
   try {
     const mp = getMixpanel();
     if (mp.reset) mp.reset();
@@ -70,9 +90,9 @@ export function reset(): void {
   } catch {}
 }
 
-export function track(name: string, props?: Record<string, any>): void {
+export async function track(name: string, props?: Record<string, any>): Promise<void> {
   try {
-    if (!isInitialized) initMixpanel();
+    await initMixpanel();
     const mp = getMixpanel();
     if (mp.track) mp.track(name, { timestamp: new Date().toISOString(), ...props });
   } catch {}
