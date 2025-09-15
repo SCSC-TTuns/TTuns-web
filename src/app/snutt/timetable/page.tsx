@@ -11,6 +11,9 @@ import {
   layoutByDay,
   timeBounds,
 } from "@/lib/lectureSchedule";
+import TrackedButton from "@/components/TrackedButton";
+import { initMixpanel, isReady } from "@/lib/mixpanel/mixpanelClient";
+import { trackEvent, trackUIEvent } from "@/lib/mixpanel/trackEvent";
 import "./page.css";
 
 type Mode = "professor" | "room" | "free";
@@ -126,6 +129,39 @@ export default function TimetablePage() {
     null
   );
   const autoCollapseRef = useRef<number>(0);
+  const viewStartRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    initMixpanel();
+    const start = Date.now();
+    viewStartRef.current = start;
+    const sendPageView = () => {
+      if (isReady()) {
+        trackUIEvent.pageView("/snutt/timetable", document.title || "TTuns Timetable");
+      } else {
+        setTimeout(sendPageView, 100);
+      }
+    };
+    sendPageView();
+    const onHide = () => {
+      if (viewStartRef.current != null) {
+        const dur = Date.now() - viewStartRef.current;
+        trackEvent("page_duration", { page: "/snutt/timetable", duration_ms: dur });
+        viewStartRef.current = Date.now();
+      }
+    };
+    document.addEventListener("visibilitychange", onHide);
+    window.addEventListener("beforeunload", onHide);
+    return () => {
+      document.removeEventListener("visibilitychange", onHide);
+      window.removeEventListener("beforeunload", onHide);
+      if (viewStartRef.current != null) {
+        const dur = Date.now() - viewStartRef.current;
+        trackEvent("page_duration", { page: "/snutt/timetable", duration_ms: dur });
+        viewStartRef.current = null;
+      }
+    };
+  }, []);
 
   useLayoutEffect(() => {
     if (!panelRef.current) return;
@@ -257,6 +293,12 @@ export default function TimetablePage() {
 
         if (!res.ok || !Array.isArray(data)) {
           setFreeRooms([]);
+          trackEvent("search_failed", {
+            search_type: mode,
+            year,
+            semester,
+            query: q.trim(),
+          });
           alert((data as { error?: string })?.error || "불러오기 실패");
           return;
         }
@@ -264,6 +306,14 @@ export default function TimetablePage() {
         addHistory("free", query);
         setEvents([]);
         setActiveLectures([]);
+        trackEvent("search_performed", {
+          search_type: mode,
+          year,
+          semester,
+          query: q.trim(),
+          query_len: q.trim().length,
+          result_count: Array.isArray(data) ? data.length : 0,
+        });
         if (typeof window !== "undefined" && window.innerWidth < 720) setCollapsed(true);
         return;
       }
@@ -281,6 +331,12 @@ export default function TimetablePage() {
           setEvents([]);
           setActiveLectures([]);
           setFreeRooms([]);
+          trackEvent("search_failed", {
+            search_type: mode,
+            year,
+            semester,
+            query: q.trim(),
+          });
           alert((data as { error?: string })?.error || "불러오기 실패");
           return;
         }
@@ -295,6 +351,14 @@ export default function TimetablePage() {
         setFreeRooms([]);
         setEvents([]);
         setActiveLectures([]);
+        trackEvent("search_performed", {
+          search_type: mode,
+          year,
+          semester,
+          query: q.trim(),
+          query_len: q.trim().length,
+          result_count: filteredByName.length,
+        });
         return;
       }
 
@@ -306,12 +370,26 @@ export default function TimetablePage() {
       setFreeRooms([]);
       setEvents(evts);
       setActiveLectures(filtered);
+      trackEvent("search_performed", {
+        search_type: mode,
+        year,
+        semester,
+        query: q.trim(),
+        query_len: q.trim().length,
+        result_count: evts.length,
+      });
       addHistory("room", query);
       if (typeof window !== "undefined" && window.innerWidth < 720) setCollapsed(true);
     } catch {
       setFreeRooms([]);
       setEvents([]);
       setActiveLectures([]);
+      trackEvent("search_failed", {
+        search_type: mode,
+        year,
+        semester,
+        query: q.trim(),
+      });
       alert("불러오기 실패");
     } finally {
       setLoading(false);
@@ -392,13 +470,17 @@ export default function TimetablePage() {
   }, [mode, profFiltered, dept, q, year, semester]);
 
   const onKeyDownInput: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
-    if (e.key === "Enter" && canSearch && !loading) onSearch();
+    if (e.key === "Enter" && canSearch && !loading) {
+      trackUIEvent.buttonClick("timetable_search");
+      onSearch();
+    }
   };
 
   const copyRoom = async (room: string) => {
     try {
       await navigator.clipboard.writeText(room);
       setCopied(room);
+      trackEvent("room_copied", { room_prefix: room.split("-")[0] || "", label_len: room.length });
       setTimeout(() => setCopied(""), 1500);
     } catch {}
   };
@@ -426,6 +508,13 @@ export default function TimetablePage() {
     }
 
     setSel({ ev, lec });
+    trackEvent("event_detail_opened", {
+      by: mode,
+      title_len: (ev.title || "").length,
+      day: ev.day,
+      start: ev.start,
+      end: ev.end,
+    });
   };
 
   return (
@@ -433,12 +522,12 @@ export default function TimetablePage() {
       <header className="tt-header">
         <div className="tt-headRow">
           <h1 className="tt-title">TTuns</h1>
-          <button
-            type="button"
+          <TrackedButton
+            button_type="toggle_filter_collapse"
             className="tt-collapseBtn"
-            onClick={() => setCollapsed((v) => !v)}
             aria-expanded={!collapsed}
             aria-controls="tt-filter-panel"
+            onClick={() => setCollapsed((v) => !v)}
             title={collapsed ? "필터 펼치기" : "필터 접기"}
           >
             <svg
@@ -454,7 +543,7 @@ export default function TimetablePage() {
               <polyline points="6 15 12 9 18 15"></polyline>
             </svg>
             <span className="sr-only">{collapsed ? "필터 펼치기" : "필터 접기"}</span>
-          </button>
+          </TrackedButton>
         </div>
 
         <div className="tt-controls" data-collapsed={collapsed ? "1" : "0"}>
@@ -467,9 +556,13 @@ export default function TimetablePage() {
               {q || "검색어 없음"}
             </span>
             {mode === "professor" && dept && <span className="tt-pill">{dept}</span>}
-            <button type="button" className="tt-pillbtn" onClick={() => setCollapsed(false)}>
+            <TrackedButton
+              button_type="pill_edit_filters"
+              className="tt-pillbtn"
+              onClick={() => setCollapsed(false)}
+            >
               수정
-            </button>
+            </TrackedButton>
           </div>
 
           <div
@@ -540,32 +633,34 @@ export default function TimetablePage() {
               <div className="tt-field tt-mode">
                 <label>검색 유형</label>
                 <div className="tt-segment" role="tablist" aria-label="검색 유형 선택">
-                  <button
-                    type="button"
+                  <TrackedButton
+                    button_type="mode_professor"
                     className={`tt-segbtn ${mode === "professor" ? "on" : ""}`}
                     aria-pressed={mode === "professor"}
                     onClick={() => {
                       setMode("professor");
                       setFreeRooms([]);
                       setCollapsed(false);
+                      trackEvent("mode_changed", { to: "professor" });
                     }}
                   >
                     교수명
-                  </button>
-                  <button
-                    type="button"
+                  </TrackedButton>
+                  <TrackedButton
+                    button_type="mode_room"
                     className={`tt-segbtn ${mode === "room" ? "on" : ""}`}
                     aria-pressed={mode === "room"}
                     onClick={() => {
                       setMode("room");
                       setFreeRooms([]);
                       setCollapsed(false);
+                      trackEvent("mode_changed", { to: "room" });
                     }}
                   >
                     강의실
-                  </button>
-                  <button
-                    type="button"
+                  </TrackedButton>
+                  <TrackedButton
+                    button_type="mode_free"
                     className={`tt-segbtn ${mode === "free" ? "on" : ""}`}
                     aria-pressed={mode === "free"}
                     onClick={() => {
@@ -573,20 +668,22 @@ export default function TimetablePage() {
                       setEvents([]);
                       setActiveLectures([]);
                       setCollapsed(false);
+                      trackEvent("mode_changed", { to: "free" });
                     }}
                   >
                     빈 강의실
-                  </button>
+                  </TrackedButton>
                 </div>
               </div>
 
-              <button
+              <TrackedButton
+                button_type="timetable_search"
                 className="tt-primary"
                 onClick={() => onSearch()}
                 disabled={!canSearch || loading}
               >
                 {loading ? "불러오는 중…" : "검색"}
-              </button>
+              </TrackedButton>
 
               {mode === "professor" && deptOptions.length > 1 && (
                 <div className="tt-field tt-dept">
@@ -596,6 +693,7 @@ export default function TimetablePage() {
                     onChange={(e) => {
                       const v = e.target.value;
                       setDept(v);
+                      trackEvent("department_selected", { has_value: !!v });
                       if (v) setCollapsed(true);
                     }}
                   >
@@ -630,11 +728,16 @@ export default function TimetablePage() {
           ) : (
             <div className="tt-freeList">
               {freeRooms.map(({ room, until }) => (
-                <button key={room} className="tt-roomBtn" onClick={() => copyRoom(room)}>
+                <TrackedButton
+                  key={room}
+                  button_type="free_room_copy"
+                  className="tt-roomBtn"
+                  onClick={() => copyRoom(room)}
+                >
                   <span className="tt-roomName">{room}</span>
                   <span className="tt-until">~ {fmtHHMM(until)}</span>
                   <span className="tt-copy">{copied === room ? "복사됨" : "복사"}</span>
-                </button>
+                </TrackedButton>
               ))}
             </div>
           )}
@@ -741,9 +844,14 @@ export default function TimetablePage() {
           <div className="tt-modalCard" onClick={(e) => e.stopPropagation()}>
             <div className="tt-modalHead">
               <div className="tt-modalTitle">{sel.ev.title}</div>
-              <button className="tt-x" onClick={() => setSel(null)} aria-label="닫기">
+              <TrackedButton
+                button_type="detail_close_icon"
+                className="tt-x"
+                aria-label="닫기"
+                onClick={() => setSel(null)}
+              >
                 ×
-              </button>
+              </TrackedButton>
             </div>
             <div className="tt-modalBody">
               <div>
@@ -804,9 +912,13 @@ export default function TimetablePage() {
               {!sel.lec && <div className="tt-empty">소속이 여러 곳인 교수가 있을 수 있어요.</div>}
             </div>
             <div className="tt-modalFoot">
-              <button className="tt-primary" onClick={() => setSel(null)}>
+              <TrackedButton
+                button_type="detail_close_button"
+                className="tt-primary"
+                onClick={() => setSel(null)}
+              >
                 확인
-              </button>
+              </TrackedButton>
             </div>
           </div>
         </div>
