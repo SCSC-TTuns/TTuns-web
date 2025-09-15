@@ -112,6 +112,12 @@ export default function TimetablePage() {
   const [sel, setSel] = useState<{ ev: EventBlock; lec?: AnyLecture } | null>(null);
 
   const [PPM, setPPM] = useState(1.1);
+  // search history by category (mode)
+  const [historyByMode, setHistoryByMode] = useState<Record<Mode, string[]>>({
+    professor: [],
+    room: [],
+    free: [],
+  });
   const laid = layoutByDay(events) as Laid;
   const { startMin, endMin } = timeBounds(events);
 
@@ -178,15 +184,64 @@ export default function TimetablePage() {
     setSel(null);
   }, [mode, year, semester]);
 
-  const onSearch = async () => {
-    if (!canSearch) return;
+  // ===== Search History (localStorage) =====
+  const HIST_KEY = "ttuns.searchHistory.v1";
+  const loadHistory = (): Record<Mode, string[]> => {
+    if (typeof window === "undefined") return { professor: [], room: [], free: [] };
+    try {
+      const raw = localStorage.getItem(HIST_KEY);
+      const parsed = raw ? (JSON.parse(raw) as Partial<Record<Mode, string[]>>) : {};
+      const dedup = (arr: unknown): string[] => {
+        if (!Array.isArray(arr)) return [];
+        const uniq = Array.from(
+          new Set(
+            arr.map((v) => (typeof v === "string" ? v.trim() : "")).filter((s): s is string => !!s)
+          )
+        );
+        return uniq.slice(0, 3);
+      };
+      return {
+        professor: dedup(parsed.professor),
+        room: dedup(parsed.room),
+        free: dedup(parsed.free),
+      };
+    } catch {
+      return { professor: [], room: [], free: [] };
+    }
+  };
+  const saveHistory = (next: Record<Mode, string[]>) => {
+    try {
+      if (typeof window !== "undefined") localStorage.setItem(HIST_KEY, JSON.stringify(next));
+    } catch {}
+  };
+  const addHistory = (m: Mode, query: string) => {
+    const t = query.trim();
+    if (!t) return;
+    setHistoryByMode((prev) => {
+      const cur = prev[m] || [];
+      const tl = t.toLowerCase();
+      const filtered = [t, ...cur.filter((x) => String(x).trim().toLowerCase() !== tl)].slice(0, 3);
+      const next = { ...prev, [m]: filtered } as Record<Mode, string[]>;
+      saveHistory(next);
+      return next;
+    });
+  };
+  useEffect(() => {
+    // load once on mount
+    setHistoryByMode(loadHistory());
+  }, []);
+
+  const onSearch = async (overrideQ?: string | unknown) => {
+    const query = (typeof overrideQ === "string" ? overrideQ : q).trim();
+    const can = !!year && !!semester && query.length > 0;
+    if (!can) return;
     setLoading(true);
     setCopied("");
     setDept("");
     setDeptOptions([]);
     setDeptInclude(null);
     setProfFiltered([]);
-    lastSearchRef.current = { q: q.trim(), year, semester, mode };
+    lastSearchRef.current = { q: query, year, semester, mode };
     autoCollapseRef.current = Date.now();
 
     try {
@@ -194,7 +249,7 @@ export default function TimetablePage() {
         const k = nowKst();
         const url = `/api/snutt/free-rooms?year=${encodeURIComponent(
           Number(year)
-        )}&semester=${encodeURIComponent(semester)}&building=${encodeURIComponent(q.trim())}&day=${
+        )}&semester=${encodeURIComponent(semester)}&building=${encodeURIComponent(query)}&day=${
           k.snuttDay
         }&at=${k.hhmm}`;
         const res = await fetch(url);
@@ -206,6 +261,7 @@ export default function TimetablePage() {
           return;
         }
         setFreeRooms(data as FreeRoom[]);
+        addHistory("free", query);
         setEvents([]);
         setActiveLectures([]);
         if (typeof window !== "undefined" && window.innerWidth < 720) setCollapsed(true);
@@ -233,22 +289,24 @@ export default function TimetablePage() {
       }
 
       if (mode === "professor") {
-        const filteredByName = all.filter((lec) => lectureMatchesProfessorExact(lec, q));
+        const filteredByName = all.filter((lec) => lectureMatchesProfessorExact(lec, query));
         setProfFiltered(filteredByName);
+        addHistory("professor", query);
         setFreeRooms([]);
         setEvents([]);
         setActiveLectures([]);
         return;
       }
 
-      const filtered = all.filter((lec) => lectureMatchesRoomExact(lec, q));
+      const filtered = all.filter((lec) => lectureMatchesRoomExact(lec, query));
       const evts = buildEventsFromLectures(filtered, {
         showBy: mode,
-        query: q.trim(),
+        query,
       }) as EventBlock[];
       setFreeRooms([]);
       setEvents(evts);
       setActiveLectures(filtered);
+      addHistory("room", query);
       if (typeof window !== "undefined" && window.innerWidth < 720) setCollapsed(true);
     } catch {
       setFreeRooms([]);
@@ -442,23 +500,41 @@ export default function TimetablePage() {
                 </select>
               </div>
 
-              <div className="tt-field tt-grow">
+              <div className="tt-field tt-mode">
                 <label>
                   {mode === "professor" ? "교수명" : mode === "room" ? "강의실" : "건물 동번호"}
                 </label>
-                <input
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  placeholder={
-                    mode === "professor"
-                      ? "예: 문송기"
-                      : mode === "room"
-                        ? "예: 26-B101"
-                        : "예: 301"
-                  }
-                  inputMode={mode === "free" ? "numeric" : "text"}
-                  onKeyDown={onKeyDownInput}
-                />
+                <div className="tt-searchWrap">
+                  <input
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                    placeholder={
+                      mode === "professor"
+                        ? "예: 문송기"
+                        : mode === "room"
+                          ? "예: 26-B101"
+                          : "예: 301"
+                    }
+                    inputMode={mode === "free" ? "numeric" : "text"}
+                    onKeyDown={onKeyDownInput}
+                  />
+                  <div className="tt-history" aria-label="최근 검색">
+                    {(historyByMode[mode] || []).slice(0, 3).map((h) => (
+                      <button
+                        key={h}
+                        type="button"
+                        className="tt-hChip"
+                        title={`최근 검색: ${h}`}
+                        onClick={() => {
+                          setQ(h);
+                          if (!loading) onSearch(h);
+                        }}
+                      >
+                        {h}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               <div className="tt-field tt-mode">
@@ -504,7 +580,11 @@ export default function TimetablePage() {
                 </div>
               </div>
 
-              <button className="tt-primary" onClick={onSearch} disabled={!canSearch || loading}>
+              <button
+                className="tt-primary"
+                onClick={() => onSearch()}
+                disabled={!canSearch || loading}
+              >
                 {loading ? "불러오는 중…" : "검색"}
               </button>
 

@@ -135,7 +135,8 @@
   color: var(--text);
   border: 1px solid var(--line);
   border-radius: 10px;
-  padding: 9px 10px;
+  padding: 0 10px; /* let height control vertical sizing */
+  height: var(--ctl-h);
   width: 100%;
   box-sizing: border-box;
   outline: none;
@@ -200,6 +201,61 @@
 .tt-primary:active {
   transform: translateY(1px);
   filter: brightness(0.98);
+}
+
+/* ===== Search input + history (mobile) ===== */
+.tt-searchWrap {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.tt-history {
+  display: none; /* mobile only */
+  gap: 6px;
+  flex-shrink: 0;
+}
+.tt-hChip {
+  max-width: 90px;
+  padding: 6px 8px;
+  border-radius: 9999px;
+  border: 1px solid var(--line);
+  background: #f4f7ff;
+  color: #374151;
+  font-weight: 800;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+@media (max-width: 720px) {
+  /* Make input and history split exactly half/half on mobile */
+  .tt-searchWrap {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* 50% / 50% */
+    align-items: center;
+  }
+  .tt-searchWrap input {
+    width: 100%;
+    min-width: 0;
+  }
+  .tt-history {
+    display: flex; /* visible on mobile */
+    justify-content: flex-start;
+    align-items: center;
+    white-space: nowrap; /* keep one line */
+    overflow-x: auto; /* scroll instead of growing */
+    overflow-y: hidden;
+    height: var(--ctl-h); /* match control height */
+  }
+}
+
+/* Make history chips align to control height without jumping rows */
+.tt-hChip {
+  height: calc(var(--ctl-h) - 2px); /* account for border */
+  display: inline-flex;
+  align-items: center;
+  padding: 0 10px;
 }
 
 /* 접힘 요약 바 */
