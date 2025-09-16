@@ -830,3 +830,47 @@ html, body {
     height: 0;
   }
 }
+
+/* === UI 크롬 영역 드래그/선택 방지 === */
+.tt-dayHead,
+.tt-headCell,                 /* 요일 헤더 전반 */
+.tt-collapseBtn,              /* 상단 접기/펼치기 토글 */
+.tt-segbtn,                   /* 검색 유형 세그먼트 버튼 */
+.tt-pillbar, .tt-pill, .tt-pillbtn, /* 접힌 상태 요약바/칩 */
+.tt-history, .tt-hChip,       /* 최근 검색 칩 */
+.tt-hourMark .tt-label,       /* 시간 라벨 숫자 */
+.tt-hLine {                   /* 시간 그리드 라인 */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* === 드래그/텍스트 선택 방지 (폼 컨트롤 제외) === */
+.tt-header,                 /* 상단 헤더 전체 */
+.tt-headRow, .tt-title,     /* 로고/제목 */
+.tt-controls,               /* 필터 패널 래퍼 */
+.tt-field label,            /* 연도/학기/강의실/검색유형 라벨 */
+.tt-collapseBtn,            /* 접기/펼치기 토글 */
+.tt-segment, .tt-segbtn,    /* 검색 유형 토글 */
+.tt-pillbar, .tt-pill, .tt-pillbtn, /* 요약 칩/히스토리 칩 */
+.tt-tableWrap,              /* 시간표 래퍼 */
+.tt-grid, .tt-headerRow,    /* 그리드 자체 + 헤더 행 */
+.tt-timeCol, .tt-dayHead, .tt-headCell, /* “월~토”, 시간축 칸 */
+.tt-hourMark .tt-label, .tt-hLine,      /* 시간 라벨/선 */
+.tt-empty {                 /* “결과가 없습니다” 배너 */
+  -webkit-user-select: none;
+          user-select: none;
+  -webkit-user-drag: none;
+  -webkit-touch-callout: none;
+}
+
+/* 폼 컨트롤은 다시 선택 가능하도록 허용 */
+.tt-wrap input,
+.tt-wrap select,
+.tt-wrap textarea {
+  -webkit-user-select: text;
+          user-select: text;
+  -webkit-touch-callout: default;
+}
