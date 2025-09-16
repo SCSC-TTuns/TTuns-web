@@ -491,7 +491,7 @@ html, body {
 
 .tt-event {
   position: absolute;
-  padding: 5px 7px;
+  padding: 2px 3px;
   box-sizing: border-box;
   border: 2px solid;
   border-radius: 10px;
@@ -815,5 +815,18 @@ html, body {
   }
   .tt-field.tt-grow input {
     width: 100%;
+  }
+}
+
+@media (max-width: 720px) {
+  .tt-searchWrap,
+  .tt-pillbar {
+    -ms-overflow-style: none;  /* IE/Edge(레거시) */
+    scrollbar-width: none;     /* Firefox */
+  }
+  .tt-searchWrap::-webkit-scrollbar,
+  .tt-pillbar::-webkit-scrollbar {
+    display: none;             /* WebKit(iOS/Android/Chrome) */
+    height: 0;
   }
 }
