@@ -1,3 +1,5 @@
+import { Analytics } from "@vercel/analytics/next"
+
 export const metadata = {
   title: 'TTuns',
   description: '서울대학교 시간표 서비스',
@@ -10,6 +12,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <Analytics/>
       <body>{children}</body>
     </html>
   )
