@@ -1,4 +1,6 @@
-import { Analytics } from "@vercel/analytics/next"
+// src/app/layout.tsx
+import { Analytics } from "@vercel/analytics/next";
+import MixpanelProvider from "./provider/MixpanelProvider";
 
 export const metadata = {
   title: 'TTuns',
@@ -12,8 +14,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <Analytics/>
-      <body>{children}</body>
+      <body>
+        <Analytics />
+        <MixpanelProvider />
+        {children}
+      </body>
     </html>
   )
 }
