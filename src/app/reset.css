@@ -1,0 +1,81 @@
+/* Minimal modern CSS reset for a clean baseline */
+
+/* Use a more intuitive box model */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Remove default margins */
+* {
+  margin: 0;
+}
+
+/* Base body setup */
+html,
+body {
+  height: 100%;
+}
+body {
+  line-height: 1.5;
+  text-rendering: optimizeLegibility;
+  background: #fff;
+}
+
+/* Make media easier to work with */
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+/* Inherit fonts for form controls */
+button,
+input,
+select,
+textarea {
+  color: inherit;
+}
+
+/* Remove list styles only when using ARIA list roles */
+ul[role="list"],
+ol[role="list"] {
+  list-style: none;
+  padding-left: 0;
+}
+
+/* Improve link defaults slightly while keeping control */
+a {
+  color: inherit;
+  text-decoration: none;
+  text-decoration-skip-ink: auto;
+}
+
+/* Ensure headings don’t overflow containers */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  overflow-wrap: break-word;
+}
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  html:focus-within {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

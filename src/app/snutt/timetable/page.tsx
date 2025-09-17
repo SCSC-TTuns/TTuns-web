@@ -262,10 +262,31 @@ export default function TimetablePage() {
       return next;
     });
   };
+  const removeHistory = (m: Mode, query: string) => {
+    const t = query.trim();
+    if (!t) return;
+    setHistoryByMode((prev) => {
+      const cur = prev[m] || [];
+      const nextList = cur.filter((x) => String(x).trim() !== t);
+      const next = { ...prev, [m]: nextList } as Record<Mode, string[]>;
+      saveHistory(next);
+      return next;
+    });
+  };
   useEffect(() => {
     // load once on mount
     setHistoryByMode(loadHistory());
   }, []);
+
+  // manage single vs double click on history chips
+  const histClickTimers = useRef<Record<string, number>>({});
+  const clearHistTimer = (key: string) => {
+    const id = histClickTimers.current[key];
+    if (id) {
+      clearTimeout(id);
+      delete histClickTimers.current[key];
+    }
+  };
 
   const onSearch = async (overrideQ?: string | unknown) => {
     const query = (typeof overrideQ === "string" ? overrideQ : q).trim();
@@ -518,7 +539,7 @@ export default function TimetablePage() {
   };
 
   return (
-    <div className="tt-wrap">
+    <main className="tt-wrap">
       <header className="tt-header">
         <div className="tt-headRow">
           <h1 className="tt-title">TTuns</h1>
@@ -617,10 +638,22 @@ export default function TimetablePage() {
                         key={h}
                         type="button"
                         className="tt-hChip"
-                        title={`최근 검색: ${h}`}
+                        title={`최근 검색: ${h} (더블 클릭으로 삭제)`}
                         onClick={() => {
-                          setQ(h);
-                          if (!loading) onSearch(h);
+                          // defer single-click action slightly to detect double-click
+                          clearHistTimer(h);
+                          const t = window.setTimeout(() => {
+                            delete histClickTimers.current[h];
+                            setQ(h);
+                            if (!loading) onSearch(h);
+                          }, 250);
+                          histClickTimers.current[h] = t;
+                        }}
+                        onDoubleClick={() => {
+                          // cancel pending single-click and delete this history item
+                          clearHistTimer(h);
+                          removeHistory(mode, h);
+                          trackEvent("history_item_deleted", { mode, value_len: h.length });
                         }}
                       >
                         {h}
@@ -923,6 +956,6 @@ export default function TimetablePage() {
           </div>
         </div>
       )}
-    </div>
+    </main>
   );
 }
