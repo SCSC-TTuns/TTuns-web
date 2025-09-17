@@ -1,3 +1,24 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;          /* 가로 잔여 스크롤 제거 */
+  overscroll-behavior: none;   /* WebView 바운스 최소화 */
+}
+
+/* 모바일에서 100dvh로 하단바/노치 대응 + 안전영역 */
+@media (max-width: 720px) {
+  .tt-wrap {
+    min-height: 100dvh;
+    padding-left: max(env(safe-area-inset-left), 0px);
+    padding-right: max(env(safe-area-inset-right), 0px);
+    padding-top: max(env(safe-area-inset-top), 0px);
+    padding-bottom: max(env(safe-area-inset-bottom), 0px);
+  }
+}
+
+
 :root {
   --bg: #f7fafc;
   --panel: #ffffff;
@@ -470,7 +491,7 @@
 
 .tt-event {
   position: absolute;
-  padding: 5px 7px;
+  padding: 2px 3px;
   box-sizing: border-box;
   border: 2px solid;
   border-radius: 10px;
@@ -714,5 +735,98 @@
 @media (max-width: 720px) {
   .tt-timeCol .tt-label[data-hour="8"] {
     display: none;
+  }
+}
+
+
+/* 모바일에서 .tt-searchWrap 자체를 가로 스크롤 컨테이너로 */
+@media (max-width: 720px) {
+  .tt-searchWrap {
+    display: flex;                 /* grid -> flex (가로 배치) */
+    gap: 8px;
+    overflow-x: auto;              /* 가로 스크롤 */
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity; /* 스냅은 부드럽게 */
+  }
+  .tt-searchWrap > input {
+    flex: 0 0 72vw;                /* 입력창이 한 화면에 충분히 크게 보이도록 */
+    min-width: 260px;              /* 아주 작은 화면 보호 */
+    scroll-snap-align: start;
+  }
+  .tt-history {
+    display: inline-flex;          /* 칩들이 한줄에 */
+    gap: 6px;
+    flex: 0 0 auto;                /* 내용만큼만 차지 */
+    white-space: nowrap;
+    overflow: visible;             /* 래퍼가 스크롤을 담당하므로 내부는 visible */
+    height: var(--ctl-h);
+  }
+  .tt-hChip {
+    scroll-snap-align: start;
+  }
+}
+
+
+/* 접힌 상태 요약바 자체를 가로 스크롤 컨테이너로 */
+.tt-pillbar {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;                /* 가로 스크롤 */
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  white-space: nowrap;             /* 한 줄 유지 */
+}
+.tt-pill, .tt-pillbtn { flex: 0 0 auto; }  /* 아이템들이 줄바꿈 없이 나열되도록 */
+
+@media (max-width: 720px) {
+  .tt-controls[data-collapsed="1"] .tt-pillbar { display: flex; }
+}
+
+
+/* 아주 작은 화면(웹뷰 등)에서는 좌우 여백/라운드 최소화로 진짜 풀블리드 */
+@media (max-width: 480px) {
+  .tt-wrap { padding: 8px 0 16px; }
+  .tt-header,
+  .tt-freeWrap,
+  .tt-tableWrap,
+  .tt-empty {
+    margin-left: 0;
+    margin-right: 0;
+    border-radius: 0;              /* 양 옆 하얀 여백 느낌 제거 */
+  }
+}
+
+
+@media (max-width: 720px) {
+  .tt-searchWrap > input {
+    flex: 0 0 56vw;   /* 기존 72vw에서 줄임 */
+    min-width: 220px; /* 기존 260px였다면 220px 정도로 */
+  }
+}
+
+
+/* 모바일에서 검색 인풋이 들어있는 그리드 셀 너비 제한 */
+@media (max-width: 720px) {
+  .tt-field.tt-grow {
+    justify-self: start;  /* 그리드 셀을 왼쪽 정렬 */
+    max-width: 56vw;      /* 셀 자체 폭을 줄임 */
+  }
+  .tt-field.tt-grow input {
+    width: 100%;
+  }
+}
+
+@media (max-width: 720px) {
+  .tt-searchWrap,
+  .tt-pillbar {
+    -ms-overflow-style: none;  /* IE/Edge(레거시) */
+    scrollbar-width: none;     /* Firefox */
+  }
+  .tt-searchWrap::-webkit-scrollbar,
+  .tt-pillbar::-webkit-scrollbar {
+    display: none;             /* WebKit(iOS/Android/Chrome) */
+    height: 0;
   }
 }

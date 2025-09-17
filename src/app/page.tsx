@@ -12,7 +12,6 @@ import {
   timeBounds,
 } from "@/lib/lectureSchedule";
 import TrackedButton from "@/components/TrackedButton";
-import { initMixpanel, isReady } from "@/lib/mixpanel/mixpanelClient";
 import { trackEvent, trackUIEvent } from "@/lib/mixpanel/trackEvent";
 import "./page.css";
 
@@ -115,7 +114,6 @@ export default function TimetablePage() {
   const [sel, setSel] = useState<{ ev: EventBlock; lec?: AnyLecture } | null>(null);
 
   const [PPM, setPPM] = useState(1.1);
-  // search history by category (mode)
   const [historyByMode, setHistoryByMode] = useState<Record<Mode, string[]>>({
     professor: [],
     room: [],
@@ -132,32 +130,27 @@ export default function TimetablePage() {
   const viewStartRef = useRef<number | null>(null);
 
   useEffect(() => {
-    initMixpanel();
+    // Mixpanel 초기화 및 페이지뷰 추적은 MixpanelProvider에서 담당하므로 여기서는 제거합니다.
+    // 페이지에 머문 시간(duration) 추적 로직만 남겨둡니다.
     const start = Date.now();
     viewStartRef.current = start;
-    const sendPageView = () => {
-      if (isReady()) {
-        trackUIEvent.pageView("/snutt/timetable", document.title || "TTuns Timetable");
-      } else {
-        setTimeout(sendPageView, 100);
-      }
-    };
-    sendPageView();
+
     const onHide = () => {
       if (viewStartRef.current != null) {
         const dur = Date.now() - viewStartRef.current;
-        trackEvent("page_duration", { page: "/snutt/timetable", duration_ms: dur });
+        trackEvent("page_duration", { page: "/", duration_ms: dur });
         viewStartRef.current = Date.now();
       }
     };
     document.addEventListener("visibilitychange", onHide);
     window.addEventListener("beforeunload", onHide);
+
     return () => {
       document.removeEventListener("visibilitychange", onHide);
       window.removeEventListener("beforeunload", onHide);
       if (viewStartRef.current != null) {
         const dur = Date.now() - viewStartRef.current;
-        trackEvent("page_duration", { page: "/snutt/timetable", duration_ms: dur });
+        trackEvent("page_duration", { page: "/", duration_ms: dur });
         viewStartRef.current = null;
       }
     };
@@ -220,7 +213,6 @@ export default function TimetablePage() {
     setSel(null);
   }, [mode, year, semester]);
 
-  // ===== Search History (localStorage) =====
   const HIST_KEY = "ttuns.searchHistory.v1";
   const loadHistory = (): Record<Mode, string[]> => {
     if (typeof window === "undefined") return { professor: [], room: [], free: [] };
@@ -274,7 +266,6 @@ export default function TimetablePage() {
     });
   };
   useEffect(() => {
-    // load once on mount
     setHistoryByMode(loadHistory());
   }, []);
 
@@ -513,6 +504,7 @@ export default function TimetablePage() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+
   const openDetail = (ev: EventBlock) => {
     let lec: AnyLecture | undefined;
 
