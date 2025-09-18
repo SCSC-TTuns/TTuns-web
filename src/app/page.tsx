@@ -78,16 +78,48 @@ function lectureHasTime(lec: any, ev: EventBlock) {
 const JOINT_RE = /(연계|연합|협동)/;
 
 function groupDepts(uniqueDepts: string[]) {
+  // 1) normalize input
   const list = Array.from(new Set(uniqueDepts.map((s) => s.trim()).filter(Boolean)));
-  const joint = list.filter((d) => JOINT_RE.test(d));
-  const base = list.filter((d) => !JOINT_RE.test(d));
-  if (list.length === 0) return { mode: "dropdown" as const, options: [] as string[] };
+
+  // 2) If a detailed label like "산업공학(산업공학전공)" exists,
+  //    drop a generic sibling like "산업공학과" or "산업공학학과".
+  const baseKey = (s: string) =>
+    s
+      // strip anything from the first parenthesis to the end
+      .replace(/\(.*$/u, "")
+      .replace(/\s+/g, "")
+      // drop common generic suffixes
+      .replace(/학과$/u, "")
+      .replace(/과$/u, "")
+      .trim();
+
+  const detailedBases = new Set<string>();
+  for (const d of list) {
+    if (d.includes("(")) detailedBases.add(baseKey(d));
+  }
+
+  const filteredForDetail = list.filter((d) => {
+    const hasParen = d.includes("(");
+    if (hasParen) return true; // always keep detailed labels
+    const bk = baseKey(d);
+    // Drop generic label if a detailed one with the same base exists
+    if (detailedBases.has(bk)) return false;
+    return true;
+  });
+
+  // 3) Handle joint programs labeling/auto-collapse
+  const joint = filteredForDetail.filter((d) => JOINT_RE.test(d));
+  const base = filteredForDetail.filter((d) => !JOINT_RE.test(d));
+
+  if (filteredForDetail.length === 0) return { mode: "dropdown" as const, options: [] as string[] };
+
   if (base.length === 1) {
     const label = base[0];
     const include = new Set<string>([label, ...joint]);
     return { mode: "collapsed" as const, label, include };
   }
-  return { mode: "dropdown" as const, options: list };
+
+  return { mode: "dropdown" as const, options: filteredForDetail };
 }
 
 export default function TimetablePage() {
@@ -469,7 +501,9 @@ export default function TimetablePage() {
       return;
     }
 
-    const filteredByDept = profFiltered.filter((lec) => String(extractDept(lec)).trim() === dept);
+    const filteredByDept = profFiltered.filter((lec) =>
+      String(extractDept(lec)).trim().includes(dept)
+    );
 
     const evts = buildEventsFromLectures(filteredByDept, {
       showBy: "professor",
