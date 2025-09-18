@@ -3,9 +3,15 @@ export type AnyLecture = Record<string, any>;
 export type DayIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 export const DAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"] as const;
 
-/** String equality ignoring only surrounding whitespace */
+const normalizeSearchTerm = (value?: unknown) =>
+  String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "");
+
+/** String equality ignoring whitespace and casing */
 export const strictEq = (a?: unknown, b?: unknown) =>
-  String(a ?? "").trim() === String(b ?? "").trim();
+  normalizeSearchTerm(a) === normalizeSearchTerm(b);
 
 export function extractProfessor(lec: AnyLecture): string {
   if (typeof lec?.instructor === "string") return lec.instructor;

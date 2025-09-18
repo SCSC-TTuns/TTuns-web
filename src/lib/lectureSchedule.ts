@@ -4,8 +4,14 @@ export type DayIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 export const DAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"] as const;
 const DAYS = [0, 1, 2, 3, 4, 5, 6] as const;
 
-/** 완전 일치: 양끝 공백만 무시(대소문자/하이픈은 그대로 비교) */
-const strictEq = (a?: any, b?: any) => String(a ?? "").trim() === String(b ?? "").trim();
+const normalizeSearchTerm = (value?: unknown) =>
+  String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "");
+
+/** 완전 일치: 공백/대소문자 무시 */
+const strictEq = (a?: any, b?: any) => normalizeSearchTerm(a) === normalizeSearchTerm(b);
 
 export function extractProfessor(lec: AnyLecture): string {
   if (typeof lec?.instructor === "string") return lec.instructor;
