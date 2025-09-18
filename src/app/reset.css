@@ -41,6 +41,21 @@ textarea {
   color: inherit;
 }
 
+/* Prevent iOS Safari auto-zoom on focus by ensuring 16px minimum */
+@media (hover: none) and (pointer: coarse) {
+  input[type="text"],
+  input[type="search"],
+  input[type="email"],
+  input[type="password"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="number"],
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
 /* Remove list styles only when using ARIA list roles */
 ul[role="list"],
 ol[role="list"] {
