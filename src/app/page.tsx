@@ -15,6 +15,8 @@ import TrackedButton from "@/components/TrackedButton";
 import { trackEvent, trackUIEvent } from "@/lib/mixpanel/trackEvent";
 import "./page.css";
 
+import ReactDOM from "react-dom";
+
 type Mode = "professor" | "room" | "free";
 type FreeRoom = { room: string; until: number };
 
@@ -160,6 +162,7 @@ export default function TimetablePage() {
   );
   const autoCollapseRef = useRef<number>(0);
   const viewStartRef = useRef<number | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     // Mixpanel 초기화 및 페이지뷰 추적은 MixpanelProvider에서 담당하므로 여기서는 제거합니다.
@@ -564,6 +567,111 @@ export default function TimetablePage() {
     });
   };
 
+   const [suggestions, setSuggestions] = useState<string[]>([]);
+
+  // Suggestion logic
+  useEffect(() => {
+    if (!q.trim() || loading) {
+      setSuggestions([]);
+      return;
+    }
+    const key = `${Number(year)}-${semester}`;
+    const all = semesterCacheRef.current.get(key);
+    if (!all) {
+      setSuggestions([]);
+      return;
+    }
+    let list: string[] = [];
+    const input = q.trim();
+    if (mode === "professor") {
+      const professors = Array.from(
+        new Set(
+          all
+            .map((lec) => String(lec?.instructor || lec?.professor || "").trim())
+            .filter((v) => v.length > 0 && v.includes(input))
+        )
+      );
+      list = professors.sort((a, b) => {
+        const aPrefix = a.startsWith(input);
+        const bPrefix = b.startsWith(input);
+        if (aPrefix && !bPrefix) return -1;
+        if (!aPrefix && bPrefix) return 1;
+        return a.localeCompare(b);
+      });
+    } else if (mode === "room") {
+      let matcher: (room: string) => boolean;
+      if (!input.includes("-")) {
+        // Only match rooms that start with input + '-'
+        matcher = (room: string) => room.startsWith(input + "-");
+      } else {
+        // Only match rooms in the same building (prefix before '-'), and input is contained
+        const building = input.split("-")[0];
+        matcher = (room: string) => room.startsWith(building + "-") && room.includes(input);
+      }
+      list = Array.from(
+        new Set(
+          all
+            .map((lec) =>
+              Array.isArray(lec?.class_time_json)
+                ? lec.class_time_json.map((t: any) => String(t?.place ?? t?.room ?? "").trim())
+                : []
+            )
+            .flat()
+            .filter((v) => v.length > 0 && matcher(v))
+        )
+      );
+      // Sort: prefix match first, then alphabetically
+      list = list.sort((a, b) => {
+        const aPrefix = a.startsWith(input) ? -1 : 1;
+        const bPrefix = b.startsWith(input) ? -1 : 1;
+        if (aPrefix !== bPrefix) return aPrefix - bPrefix;
+        return a.localeCompare(b);
+      });
+    }else if (mode === "free") {
+      // Extract building numbers from all rooms
+      const buildings = Array.from(
+        new Set(
+          all
+            .map((lec) =>
+              Array.isArray(lec?.class_time_json)
+                ? lec.class_time_json.map((t: any) => {
+                    const room = String(t?.place ?? t?.room ?? "").trim();
+                    return room.split("-")[0]; // building number
+                  })
+                : []
+            )
+            .flat()
+            .filter((v) => v.length > 0 && v.includes(input))
+        )
+      );
+      // Sort: prefix match first, then alphabetically
+      list = buildings.sort((a, b) => {
+        const aPrefix = a.startsWith(input);
+        const bPrefix = b.startsWith(input);
+        if (aPrefix && !bPrefix) return -1;
+        if (!aPrefix && bPrefix) return 1;
+        return a.localeCompare(b);
+      });
+    }
+    setSuggestions(list);
+  }, [q, mode, year, semester, loading]);
+
+  useEffect(() => {
+    const key = `${Number(year)}-${semester}`;
+    if (semesterCacheRef.current.has(key)) return;
+    const url = `/api/snutt/search?year=${encodeURIComponent(
+      Number(year)
+    )}&semester=${encodeURIComponent(semester)}`;
+    fetch(url)
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          semesterCacheRef.current.set(key, data);
+        }
+      })
+      .catch(() => {});
+  }, [year, semester]);
+
   return (
     <main className="tt-wrap">
       <header className="tt-header">
@@ -645,19 +753,45 @@ export default function TimetablePage() {
                   {mode === "professor" ? "교수명" : mode === "room" ? "강의실" : "건물 동번호"}
                 </label>
                 <div className="tt-searchWrap">
-                  <input
-                    value={q}
-                    onChange={(e) => setQ(e.target.value)}
-                    placeholder={
-                      mode === "professor"
-                        ? "예: 문송기"
-                        : mode === "room"
-                          ? "예: 26-B101"
-                          : "예: 301"
-                    }
-                    inputMode={mode === "free" ? "numeric" : "text"}
-                    onKeyDown={onKeyDownInput}
-                  />
+                    <input
+                      ref={inputRef}
+                      value={q}
+                      onChange={(e) => setQ(e.target.value)}
+                      placeholder={
+                        mode === "professor"
+                          ? "예: 문송기"
+                          : mode === "room"
+                            ? "예: 26-B101"
+                            : "예: 301"
+                      }
+                      inputMode={mode === "free" ? "numeric" : "text"}
+                      onKeyDown={onKeyDownInput}
+                      autoComplete="off"
+                    />
+                    {suggestions.length > 0 && inputRef.current && ReactDOM.createPortal(
+                      <div
+                        className="tt-suggestList"
+                        style={{
+                          position: "absolute",
+                          left: inputRef.current.getBoundingClientRect().left,
+                          top: inputRef.current.getBoundingClientRect().bottom + window.scrollY,
+                          width: inputRef.current.offsetWidth,
+                          zIndex: 9999
+                        }}
+                      >
+                        {suggestions.map((s) => (
+                          <button
+                            key={s}
+                            type="button"
+                            className="tt-suggestItem"
+                            onClick={() => setQ(s)}
+                          >
+                            {s}
+                          </button>
+                        ))}
+                      </div>,
+                      document.body
+                  )}
                   <div className="tt-history" aria-label="최근 검색">
                     {(historyByMode[mode] || []).slice(0, 3).map((h) => (
                       <button
