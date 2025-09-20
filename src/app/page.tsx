@@ -162,7 +162,10 @@ export default function TimetablePage() {
   );
   const autoCollapseRef = useRef<number>(0);
   const viewStartRef = useRef<number | null>(null);
+  
   const inputRef = useRef<HTMLInputElement>(null);
+  const [inputFocused, setInputFocused] = useState(false);
+  const blurTimeout = useRef<number | null>(null);
 
   useEffect(() => {
     // Mixpanel 초기화 및 페이지뷰 추적은 MixpanelProvider에서 담당하므로 여기서는 제거합니다.
@@ -753,44 +756,59 @@ export default function TimetablePage() {
                   {mode === "professor" ? "교수명" : mode === "room" ? "강의실" : "건물 동번호"}
                 </label>
                 <div className="tt-searchWrap">
-                    <input
-                      ref={inputRef}
-                      value={q}
-                      onChange={(e) => setQ(e.target.value)}
-                      placeholder={
-                        mode === "professor"
-                          ? "예: 문송기"
-                          : mode === "room"
-                            ? "예: 26-B101"
-                            : "예: 301"
+                  <input
+                    ref={inputRef}
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                    placeholder={
+                      mode === "professor"
+                        ? "예: 문송기"
+                        : mode === "room"
+                          ? "예: 26-B101"
+                          : "예: 301"
+                    }
+                    inputMode={mode === "free" ? "numeric" : "text"}
+                    onKeyDown={onKeyDownInput}
+                    autoComplete="off"
+                    onFocus={() => {
+                      if (blurTimeout.current) {
+                        clearTimeout(blurTimeout.current);
+                        blurTimeout.current = null;
                       }
-                      inputMode={mode === "free" ? "numeric" : "text"}
-                      onKeyDown={onKeyDownInput}
-                      autoComplete="off"
-                    />
-                    {suggestions.length > 0 && inputRef.current && ReactDOM.createPortal(
-                      <div
-                        className="tt-suggestList"
-                        style={{
-                          position: "absolute",
-                          left: inputRef.current.getBoundingClientRect().left,
-                          top: inputRef.current.getBoundingClientRect().bottom + window.scrollY,
-                          width: inputRef.current.offsetWidth,
-                          zIndex: 9999
-                        }}
-                      >
-                        {suggestions.map((s) => (
-                          <button
-                            key={s}
-                            type="button"
-                            className="tt-suggestItem"
-                            onClick={() => setQ(s)}
-                          >
-                            {s}
-                          </button>
-                        ))}
-                      </div>,
-                      document.body
+                      setInputFocused(true);
+                    }}
+                    onBlur={() => {
+                      blurTimeout.current = window.setTimeout(() => {
+                        setInputFocused(false);
+                      }, 150); // Delay to allow button click
+                    }}
+                  />
+                  {suggestions.length > 0 && inputFocused && inputRef.current && ReactDOM.createPortal(
+                    <div
+                      className="tt-suggestList"
+                      style={{
+                        position: "absolute",
+                        left: inputRef.current.getBoundingClientRect().left,
+                        top: inputRef.current.getBoundingClientRect().bottom + window.scrollY,
+                        width: inputRef.current.offsetWidth,
+                        zIndex: 9999
+                      }}
+                    >
+                      {suggestions.map((s) => (
+                        <button
+                          key={s}
+                          type="button"
+                          className="tt-suggestItem"
+                          onClick={() => {
+                            setQ(s);
+                            if (inputRef.current) inputRef.current.focus();
+                          }}
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>,
+                    document.body
                   )}
                   <div className="tt-history" aria-label="최근 검색">
                     {(historyByMode[mode] || []).slice(0, 3).map((h) => (
