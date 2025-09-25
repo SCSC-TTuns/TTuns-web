@@ -306,6 +306,32 @@ export default function TimetablePage() {
     }
   };
 
+  //reset app to initial state
+  const resetToInitial = () => {
+    setQ("");
+    setEvents([]);
+    setFreeRooms([]);
+    setActiveLectures([]);
+    setProfFiltered([]);
+    setDeptOptions([]);
+    setDept("");
+    setSel(null);
+    //reset other if needed
+  };
+
+  //reset state when go back button is pressed
+  useEffect(() => {
+    const handlePopState = () => {
+      resetToInitial();
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
+
   const onSearch = async (overrideQ?: string | unknown) => {
     const query = (typeof overrideQ === "string" ? overrideQ : q).trim();
     const can = !!year && !!semester && query.length > 0;
@@ -437,6 +463,7 @@ export default function TimetablePage() {
       alert("불러오기 실패");
     } finally {
       setLoading(false);
+      window.history.pushState(null, ''); //to stay on the app
     }
   };
 
