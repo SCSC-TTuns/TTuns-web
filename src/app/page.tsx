@@ -15,6 +15,8 @@ import TrackedButton from "@/components/TrackedButton";
 import { trackEvent, trackUIEvent } from "@/lib/mixpanel/trackEvent";
 import "./page.css";
 
+import ReactDOM from "react-dom";
+
 type Mode = "professor" | "room" | "free";
 type FreeRoom = { room: string; until: number };
 
@@ -79,15 +81,39 @@ const JOINT_RE = /(연계|연합|협동)/;
 
 function groupDepts(uniqueDepts: string[]) {
   const list = Array.from(new Set(uniqueDepts.map((s) => s.trim()).filter(Boolean)));
-  const joint = list.filter((d) => JOINT_RE.test(d));
-  const base = list.filter((d) => !JOINT_RE.test(d));
-  if (list.length === 0) return { mode: "dropdown" as const, options: [] as string[] };
+  const baseKey = (s: string) =>
+    s
+      .replace(/\(.*$/u, "")
+      .replace(/\s+/g, "")
+      .replace(/학과$/u, "")
+      .replace(/과$/u, "")
+      .trim();
+
+  const detailedBases = new Set<string>();
+  for (const d of list) {
+    if (d.includes("(")) detailedBases.add(baseKey(d));
+  }
+
+  const filteredForDetail = list.filter((d) => {
+    const hasParen = d.includes("(");
+    if (hasParen) return true;
+    const bk = baseKey(d);
+    if (detailedBases.has(bk)) return false;
+    return true;
+  });
+
+  const joint = filteredForDetail.filter((d) => JOINT_RE.test(d));
+  const base = filteredForDetail.filter((d) => !JOINT_RE.test(d));
+
+  if (filteredForDetail.length === 0) return { mode: "dropdown" as const, options: [] as string[] };
+
   if (base.length === 1) {
     const label = base[0];
     const include = new Set<string>([label, ...joint]);
     return { mode: "collapsed" as const, label, include };
   }
-  return { mode: "dropdown" as const, options: list };
+
+  return { mode: "dropdown" as const, options: filteredForDetail };
 }
 
 export default function TimetablePage() {
@@ -129,9 +155,11 @@ export default function TimetablePage() {
   const autoCollapseRef = useRef<number>(0);
   const viewStartRef = useRef<number | null>(null);
 
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [inputFocused, setInputFocused] = useState(false);
+  const blurTimeout = useRef<number | null>(null);
+
   useEffect(() => {
-    // Mixpanel 초기화 및 페이지뷰 추적은 MixpanelProvider에서 담당하므로 여기서는 제거합니다.
-    // 페이지에 머문 시간(duration) 추적 로직만 남겨둡니다.
     const start = Date.now();
     viewStartRef.current = start;
 
@@ -254,14 +282,39 @@ export default function TimetablePage() {
       return next;
     });
   };
+  const removeHistory = (m: Mode, query: string) => {
+    const t = query.trim();
+    if (!t) return;
+    setHistoryByMode((prev) => {
+      const cur = prev[m] || [];
+      const nextList = cur.filter((x) => String(x).trim() !== t);
+      const next = { ...prev, [m]: nextList } as Record<Mode, string[]>;
+      saveHistory(next);
+      return next;
+    });
+  };
   useEffect(() => {
     setHistoryByMode(loadHistory());
   }, []);
+
+  const histClickTimers = useRef<Record<string, number>>({});
+  const clearHistTimer = (key: string) => {
+    const id = histClickTimers.current[key];
+    if (id) {
+      clearTimeout(id);
+      delete histClickTimers.current[key];
+    }
+  };
 
   const onSearch = async (overrideQ?: string | unknown) => {
     const query = (typeof overrideQ === "string" ? overrideQ : q).trim();
     const can = !!year && !!semester && query.length > 0;
     if (!can) return;
+
+    setInputFocused(false);
+    if (inputRef.current) inputRef.current.blur();
+    setSuggestions([]);
+
     setLoading(true);
     setCopied("");
     setDept("");
@@ -448,7 +501,9 @@ export default function TimetablePage() {
       return;
     }
 
-    const filteredByDept = profFiltered.filter((lec) => String(extractDept(lec)).trim() === dept);
+    const filteredByDept = profFiltered.filter((lec) =>
+      String(extractDept(lec)).trim().includes(dept)
+    );
 
     const evts = buildEventsFromLectures(filteredByDept, {
       showBy: "professor",
@@ -509,8 +564,115 @@ export default function TimetablePage() {
     });
   };
 
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!q.trim() || loading) {
+      setSuggestions([]);
+      return;
+    }
+    const key = `${Number(year)}-${semester}`;
+    const all = semesterCacheRef.current.get(key);
+    if (!all) {
+      setSuggestions([]);
+      return;
+    }
+    let list: string[] = [];
+    const input = q.trim();
+    if (mode === "professor") {
+      const professors = Array.from(
+        new Set(
+          all
+            .map((lec) => String(lec?.instructor || lec?.professor || "").trim())
+            .filter((v) => v.length > 0 && v.includes(input))
+        )
+      );
+      list = professors.sort((a, b) => {
+        const aPrefix = a.startsWith(input);
+        const bPrefix = b.startsWith(input);
+        if (aPrefix && !bPrefix) return -1;
+        if (!aPrefix && bPrefix) return 1;
+        return a.localeCompare(b);
+      });
+    } else if (mode === "room") {
+      let matcher: (room: string) => boolean;
+      if (!input.includes("-")) {
+        matcher = (room: string) => room.startsWith(input + "-");
+      } else {
+        const building = input.split("-")[0];
+        matcher = (room: string) => room.startsWith(building + "-") && room.includes(input);
+      }
+      list = Array.from(
+        new Set(
+          all
+            .map((lec) =>
+              Array.isArray(lec?.class_time_json)
+                ? lec.class_time_json.map((t: any) => String(t?.place ?? t?.room ?? "").trim())
+                : []
+            )
+            .flat()
+            .filter((v) => v.length > 0 && matcher(v))
+        )
+      );
+      list = list.sort((a, b) => {
+        const aPrefix = a.startsWith(input) ? -1 : 1;
+        const bPrefix = b.startsWith(input) ? -1 : 1;
+        if (aPrefix !== bPrefix) return aPrefix - bPrefix;
+        return a.localeCompare(b);
+      });
+    } else if (mode === "free") {
+      const buildings = Array.from(
+        new Set(
+          all
+            .map((lec) =>
+              Array.isArray(lec?.class_time_json)
+                ? lec.class_time_json.map((t: any) => {
+                    const room = String(t?.place ?? t?.room ?? "").trim();
+                    return room.split("-")[0];
+                  })
+                : []
+            )
+            .flat()
+            .filter((v) => v.length > 0 && v.includes(input))
+        )
+      );
+      list = buildings.sort((a, b) => {
+        const aPrefix = a.startsWith(input);
+        const bPrefix = b.startsWith(input);
+        if (aPrefix && !bPrefix) return -1;
+        if (!aPrefix && bPrefix) return 1;
+        return a.localeCompare(b);
+      });
+    }
+    setSuggestions(list);
+  }, [q, mode, year, semester, loading]);
+
+  useEffect(() => {
+    const key = `${Number(year)}-${semester}`;
+    if (semesterCacheRef.current.has(key)) return;
+    const url = `/api/snutt/search?year=${encodeURIComponent(
+      Number(year)
+    )}&semester=${encodeURIComponent(semester)}`;
+    fetch(url)
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          semesterCacheRef.current.set(key, data);
+        }
+      })
+      .catch(() => {});
+  }, [year, semester]);
+
+  const handleSuggestionSelect = (value: string) => {
+    setQ(value);
+    setInputFocused(false);
+    if (inputRef.current) inputRef.current.blur();
+    setSuggestions([]);
+    onSearch(value);
+  };
+
   return (
-    <div className="tt-wrap">
+    <main className="tt-wrap">
       <header className="tt-header">
         <div className="tt-headRow">
           <h1 className="tt-title">TTuns</h1>
@@ -591,28 +753,82 @@ export default function TimetablePage() {
                 </label>
                 <div className="tt-searchWrap">
                   <input
+                    ref={inputRef}
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
                     placeholder={
                       mode === "professor"
                         ? "예: 문송기"
                         : mode === "room"
-                          ? "예: 26-B101"
-                          : "예: 301"
+                        ? "예: 26-B101"
+                        : "예: 301"
                     }
                     inputMode={mode === "free" ? "numeric" : "text"}
                     onKeyDown={onKeyDownInput}
+                    autoComplete="off"
+                    onFocus={() => {
+                      if (blurTimeout.current) {
+                        clearTimeout(blurTimeout.current);
+                        blurTimeout.current = null;
+                      }
+                      setInputFocused(true);
+                    }}
+                    onBlur={() => {
+                      blurTimeout.current = window.setTimeout(() => {
+                        setInputFocused(false);
+                      }, 150);
+                    }}
                   />
+                  {suggestions.length > 0 &&
+                    inputFocused &&
+                    inputRef.current &&
+                    ReactDOM.createPortal(
+                      <div
+                        className="tt-suggestList"
+                        style={{
+                          position: "absolute",
+                          left: inputRef.current.getBoundingClientRect().left,
+                          top: inputRef.current.getBoundingClientRect().bottom + window.scrollY,
+                          width: inputRef.current.offsetWidth,
+                          zIndex: 9999,
+                        }}
+                      >
+                        {suggestions.map((s) => (
+                          <button
+                            key={s}
+                            type="button"
+                            className="tt-suggestItem"
+                            onClick={() => handleSuggestionSelect(s)}
+                          >
+                            {s}
+                          </button>
+                        ))}
+                      </div>,
+                      document.body
+                    )}
                   <div className="tt-history" aria-label="최근 검색">
                     {(historyByMode[mode] || []).slice(0, 3).map((h) => (
                       <button
                         key={h}
                         type="button"
                         className="tt-hChip"
-                        title={`최근 검색: ${h}`}
+                        title={`최근 검색: ${h} (더블 클릭으로 삭제)`}
                         onClick={() => {
-                          setQ(h);
-                          if (!loading) onSearch(h);
+                          clearHistTimer(h);
+                          const t = window.setTimeout(() => {
+                            delete histClickTimers.current[h];
+                            setQ(h);
+                            setInputFocused(false);
+                            if (inputRef.current) inputRef.current.blur();
+                            setSuggestions([]);
+                            if (!loading) onSearch(h);
+                          }, 250);
+                          histClickTimers.current[h] = t;
+                        }}
+                        onDoubleClick={() => {
+                          clearHistTimer(h);
+                          removeHistory(mode, h);
+                          trackEvent("history_item_deleted", { mode, value_len: h.length });
                         }}
                       >
                         {h}
@@ -915,6 +1131,6 @@ export default function TimetablePage() {
           </div>
         </div>
       )}
-    </div>
+    </main>
   );
 }
