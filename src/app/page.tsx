@@ -1026,11 +1026,13 @@ export default function TimetablePage() {
                   {list.map((e, i) => {
                     const top = (e.start - startMin) * PPM;
                     const height = Math.max(22, (e.end - e.start) * PPM - 2);
-                    // Determine dynamic lane count among events that overlap at this event's start instant
-                    // Use a tiny epsilon so an event ending exactly at e.start is not treated as overlapping.
-                    const t = e.start + 0.5; // minutes
-                    const overlapsAtStart = list.filter((o) => o !== e && o.start < t && o.end > t);
-                    const activeCols = Array.from(new Set([...overlapsAtStart.map((o) => o.col), e.col])).sort((a, b) => a - b);
+                    // Determine dynamic lane count among events that overlap with this event's interval
+                    const overlaps = list.filter(
+                      (o) => o !== e && o.start < e.end && o.end > e.start
+                    );
+                    const activeCols = Array.from(
+                      new Set([...overlaps.map((o) => o.col), e.col])
+                    ).sort((a, b) => a - b);
                     const localColCount = Math.max(1, activeCols.length);
                     const localIndex = Math.max(0, activeCols.indexOf(e.col));
                     const widthPct = 100 / localColCount;
