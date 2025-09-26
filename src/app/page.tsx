@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState, useRef, useLayoutEffect } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { DayIndex } from "@/lib/lectureSchedule";
 import {
   AnyLecture,
+  buildEventsFromLectures,
   DAY_LABELS,
+  layoutByDay,
   lectureMatchesProfessorExact,
   lectureMatchesRoomExact,
-  buildEventsFromLectures,
-  layoutByDay,
   timeBounds,
 } from "@/lib/lectureSchedule";
 import TrackedButton from "@/components/TrackedButton";
@@ -82,12 +82,7 @@ const JOINT_RE = /(연계|연합|협동)/;
 function groupDepts(uniqueDepts: string[]) {
   const list = Array.from(new Set(uniqueDepts.map((s) => s.trim()).filter(Boolean)));
   const baseKey = (s: string) =>
-    s
-      .replace(/\(.*$/u, "")
-      .replace(/\s+/g, "")
-      .replace(/학과$/u, "")
-      .replace(/과$/u, "")
-      .trim();
+    s.replace(/\(.*$/u, "").replace(/\s+/g, "").replace(/학과$/u, "").replace(/과$/u, "").trim();
 
   const detailedBases = new Set<string>();
   for (const d of list) {
@@ -98,8 +93,7 @@ function groupDepts(uniqueDepts: string[]) {
     const hasParen = d.includes("(");
     if (hasParen) return true;
     const bk = baseKey(d);
-    if (detailedBases.has(bk)) return false;
-    return true;
+    return !detailedBases.has(bk);
   });
 
   const joint = filteredForDetail.filter((d) => JOINT_RE.test(d));
@@ -160,8 +154,7 @@ export default function TimetablePage() {
   const blurTimeout = useRef<number | null>(null);
 
   useEffect(() => {
-    const start = Date.now();
-    viewStartRef.current = start;
+    viewStartRef.current = Date.now();
 
     const onHide = () => {
       if (viewStartRef.current != null) {
@@ -325,10 +318,10 @@ export default function TimetablePage() {
       resetToInitial();
     };
 
-    window.addEventListener('popstate', handlePopState);
+    window.addEventListener("popstate", handlePopState);
 
     return () => {
-      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener("popstate", handlePopState);
     };
   }, []);
 
@@ -463,7 +456,7 @@ export default function TimetablePage() {
       alert("불러오기 실패");
     } finally {
       setLoading(false);
-      window.history.pushState(null, ''); //to stay on the app
+      window.history.pushState(null, ""); //to stay on the app
     }
   };
 
@@ -787,8 +780,8 @@ export default function TimetablePage() {
                       mode === "professor"
                         ? "예: 문송기"
                         : mode === "room"
-                        ? "예: 26-B101"
-                        : "예: 301"
+                          ? "예: 26-B101"
+                          : "예: 301"
                     }
                     inputMode={mode === "free" ? "numeric" : "text"}
                     onKeyDown={onKeyDownInput}
@@ -842,7 +835,7 @@ export default function TimetablePage() {
                         title={`최근 검색: ${h} (더블 클릭으로 삭제)`}
                         onClick={() => {
                           clearHistTimer(h);
-                          const t = window.setTimeout(() => {
+                          histClickTimers.current[h] = window.setTimeout(() => {
                             delete histClickTimers.current[h];
                             setQ(h);
                             setInputFocused(false);
@@ -850,7 +843,6 @@ export default function TimetablePage() {
                             setSuggestions([]);
                             if (!loading) onSearch(h);
                           }, 250);
-                          histClickTimers.current[h] = t;
                         }}
                         onDoubleClick={() => {
                           clearHistTimer(h);
