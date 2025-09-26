@@ -951,7 +951,7 @@ export default function TimetablePage() {
           </div>
 
           {freeRooms.length === 0 ? (
-            <div className="tt-empty">결과가 없습니다. 동번호/학기를 확인해 주세요.</div>
+            <div className="tt-empty">결과가 없습니다. 동번호와 학기를 확인해 주세요.</div>
           ) : (
             <div className="tt-freeList">
               {freeRooms.map(({ room, until }) => (
@@ -975,7 +975,7 @@ export default function TimetablePage() {
         <div className="tt-empty">
           {mode === "professor" && profFiltered.length > 0 && deptOptions.length > 1 && !dept
             ? "소속을 선택해 주세요."
-            : "결과가 없습니다. 입력값과 학기를 확인해 주세요."}
+            : `결과가 없습니다. ${mode === "professor" ? "교수명" : "강의실"}과 학기를 확인해 주세요.`}
         </div>
       )}
 
@@ -1026,8 +1026,15 @@ export default function TimetablePage() {
                   {list.map((e, i) => {
                     const top = (e.start - startMin) * PPM;
                     const height = Math.max(22, (e.end - e.start) * PPM - 2);
-                    const widthPct = 100 / e.colCount;
-                    const leftPct = widthPct * e.col;
+                    // Determine dynamic lane count among events that overlap at this event's start instant
+                    // Use a tiny epsilon so an event ending exactly at e.start is not treated as overlapping.
+                    const t = e.start + 0.5; // minutes
+                    const overlapsAtStart = list.filter((o) => o !== e && o.start < t && o.end > t);
+                    const activeCols = Array.from(new Set([...overlapsAtStart.map((o) => o.col), e.col])).sort((a, b) => a - b);
+                    const localColCount = Math.max(1, activeCols.length);
+                    const localIndex = Math.max(0, activeCols.indexOf(e.col));
+                    const widthPct = 100 / localColCount;
+                    const leftPct = widthPct * localIndex;
                     const { fill, stroke } = colorForTitle(e.title || "");
                     return (
                       <div
