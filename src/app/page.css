@@ -430,18 +430,21 @@ html, body {
   display: grid;
   grid-template-columns: 36px repeat(6, 1fr);
 }
+.tt-grid[no-saturday="true"] {
+  display: grid;
+  grid-template-columns: 36px repeat(5, 1fr);
+}
 .tt-headCell {
   padding: 7px 4px;
   text-align: center;
   font-weight: 800;
   color: #0f172a;
-  border-bottom: 1px solid var(--line);
   background: #f3f6ff;
   letter-spacing: 0.2px;
   font-size: 13.5px;
 }
-.tt-headerRow .tt-dayHead:not(:last-child) {
-  border-right: 1px solid var(--line);
+.tt-headerRow .tt-dayHead {
+  border-left: 1px solid var(--line);
 }
 .tt-body {
   position: relative;
@@ -637,6 +640,9 @@ html, body {
   .tt-grid {
     grid-template-columns: 30px repeat(6, 1fr);
   } /* 모바일 시간축 더 좁게 */
+  .tt-grid[no-saturday="true"] {
+    grid-template-columns: 30px repeat(5, 1fr);
+  }
 
   /* 모바일에서 강의명 2줄까지 */
   .tt-evTitle {

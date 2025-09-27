@@ -16,6 +16,7 @@ import { trackEvent, trackUIEvent } from "@/lib/mixpanel/trackEvent";
 import "./page.css";
 
 import ReactDOM from "react-dom";
+import { list } from "postcss";
 
 type Mode = "professor" | "room" | "free";
 type FreeRoom = { room: string; until: number };
@@ -32,8 +33,6 @@ type EventBlock = {
 };
 
 type Laid = Partial<Record<DayIndex, EventBlock[]>>;
-
-const VISIBLE_DAYS: DayIndex[] = [0, 1, 2, 3, 4, 5];
 
 function colorForTitle(title: string) {
   let h = 0;
@@ -140,6 +139,8 @@ export default function TimetablePage() {
     free: [],
   });
   const laid = layoutByDay(events) as Laid;
+  const VISIBLE_DAYS: DayIndex[] =
+    (laid[5] ?? []).length > 0 ? [0, 1, 2, 3, 4, 5] : [0, 1, 2, 3, 4];
   const { startMin, endMin } = timeBounds(events);
 
   const semesterCacheRef = useRef(new Map<string, AnyLecture[]>());
@@ -981,7 +982,10 @@ export default function TimetablePage() {
 
       {mode !== "free" && (
         <div className="tt-tableWrap">
-          <div className="tt-grid tt-headerRow">
+          <div
+            className="tt-grid tt-headerRow"
+            no-saturday={((laid[5] ?? []).length == 0).toString()}
+          >
             <div className="tt-timeCol tt-headCell" aria-hidden="true" />
             {VISIBLE_DAYS.map((d) => (
               <div key={d} className="tt-dayHead tt-headCell">
@@ -992,6 +996,7 @@ export default function TimetablePage() {
 
           <div
             className="tt-grid tt-body"
+            no-saturday={((laid[5] ?? []).length == 0).toString()}
             style={{ height: Math.max(380, (endMin - startMin) * PPM) }}
           >
             <div className="tt-timeCol">
@@ -1027,8 +1032,12 @@ export default function TimetablePage() {
                     const top = (e.start - startMin) * PPM;
                     const height = Math.max(22, (e.end - e.start) * PPM - 2);
                     // Determine dynamic lane count among events that overlap with this event's interval
-                    const overlaps = list.filter((o) => o !== e && o.start < e.end && o.end > e.start);
-                    const activeCols = Array.from(new Set([...overlaps.map((o) => o.col), e.col])).sort((a, b) => a - b);
+                    const overlaps = list.filter(
+                      (o) => o !== e && o.start < e.end && o.end > e.start
+                    );
+                    const activeCols = Array.from(
+                      new Set([...overlaps.map((o) => o.col), e.col])
+                    ).sort((a, b) => a - b);
                     const localColCount = Math.max(1, activeCols.length);
                     const localIndex = Math.max(0, activeCols.indexOf(e.col));
                     const widthPct = 100 / localColCount;
