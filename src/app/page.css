@@ -44,7 +44,7 @@ html, body {
 
 .tt-header {
   max-width: 1100px;
-  margin: 0 auto 8px;
+  margin: 0 auto; /* 불필요한 여백 제거 */
   padding: 10px 12px 12px;
   border-radius: 12px;
   background: var(--panel);
@@ -452,6 +452,7 @@ html, body {
 } /* 내부 y-스크롤 차단 */
 .tt-timeCol {
   position: relative;
+  width: 100%;
   background: #f7f9ff;
 }
 .tt-dayCol {
@@ -496,8 +497,8 @@ html, body {
   position: absolute;
   padding: 2px 3px;
   box-sizing: border-box;
-  border: 2px solid;
-  border-radius: 10px;
+  /* border: 2px solid;
+  border-radius: 10px; */
   overflow: hidden;
   box-shadow: 0 3px 10px rgba(15, 23, 42, 0.06);
   cursor: pointer;
@@ -509,7 +510,7 @@ html, body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #0f172a;
+  color: #fff ;
 }
 .tt-evMeta {
   margin-top: 1px;
@@ -518,12 +519,12 @@ html, body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #334155;
+  color: #eee;
 }
 .tt-evTime {
   margin-top: 3px;
   font-size: 11px;
-  color: #64748b;
+  color: #ddd;
 }
 
 /* ===== 상세 정보 모달 ===== */
@@ -531,11 +532,11 @@ html, body {
   position: fixed;
   inset: 0;
   z-index: 10;
-  background: rgba(15, 23, 42, 0.4);
+  background: rgba(27, 31, 40, 0.6);
   display: grid;
   place-items: center;
   padding: 16px;
-  /* backdrop-filter: blur(4px); */
+  /* backdrop-filter: blur(4px); */ /* blur 자체도 시각 정보가 되므로 주의를 분산함. */
 }
 .tt-modalCard {
   background: var(--panel);
