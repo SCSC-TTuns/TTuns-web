@@ -13,10 +13,14 @@ import {
 } from "@/lib/lectureSchedule";
 import TrackedButton from "@/components/TrackedButton";
 import { trackEvent, trackUIEvent } from "@/lib/mixpanel/trackEvent";
-import "./page.css";
-
 import ReactDOM from "react-dom";
-import { list } from "postcss";
+import "./globals.css";
+import "./page.css";
+import { clsx } from "clsx";
+import localFont from "next/font/local";
+import { Label } from "@/components/ui/label";
+import { DarkModeToggle } from "@/components/DarkModeToggle";
+import { Card } from "@/components/ui/card";
 
 type Mode = "professor" | "room" | "free";
 type FreeRoom = { room: string; until: number };
@@ -37,13 +41,15 @@ type Laid = Partial<Record<DayIndex, EventBlock[]>>;
 function colorForTitle(title: string) {
   let h = 0;
   for (let i = 0; i < title.length; i++) h = (h * 31 + title.charCodeAt(i)) % 360;
-  return { fill: `hsla(${h}, 85%, 96%, 1)`, stroke: `hsl(${h}, 70%, 42%)` };
+  return { fill: `hsl(${h}, 70%, 68%)`, stroke: `hsla(${h}, 85%, 96%, 1)` };
 }
+
 function fmtTime(min: number) {
   const h = Math.floor(min / 60),
     m = min % 60;
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
+
 function fmtHHMM(min: number) {
   return fmtTime(min);
 }
@@ -108,6 +114,10 @@ function groupDepts(uniqueDepts: string[]) {
 
   return { mode: "dropdown" as const, options: filteredForDetail };
 }
+
+const rootFont = localFont({
+  src: "./fonts/NanumSquareNeo-Variable.woff2",
+});
 
 export default function TimetablePage() {
   const [year, setYear] = useState("2025");
@@ -693,32 +703,35 @@ export default function TimetablePage() {
   };
 
   return (
-    <main className="tt-wrap">
-      <header className="tt-header">
-        <div className="tt-headRow">
-          <h1 className="tt-title">TTuns</h1>
-          <TrackedButton
-            button_type="toggle_filter_collapse"
-            className="tt-collapseBtn"
-            aria-expanded={!collapsed}
-            aria-controls="tt-filter-panel"
-            onClick={() => setCollapsed((v) => !v)}
-            title={collapsed ? "필터 펼치기" : "필터 접기"}
-          >
-            <svg
-              className="tt-chevron"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
+    <main className={clsx("tt-wrap", "bg-gray-50 dark:bg-gray-900", rootFont.className)}>
+      <Card className="tt-header- p-4">
+        <div className="tt-headRow p-2">
+          <h1 className="tt-title text-2xl">TTuns</h1>
+          <div className="tt-buttons absolute right-7 flex gap-2">
+            <DarkModeToggle />
+            <TrackedButton
+              button_type="toggle_filter_collapse"
+              className="tt-collapseBtn"
+              aria-expanded={!collapsed}
+              aria-controls="tt-filter-panel"
+              onClick={() => setCollapsed((v) => !v)}
+              title={collapsed ? "필터 펼치기" : "필터 접기"}
             >
-              <polyline points="6 15 12 9 18 15"></polyline>
-            </svg>
-            <span className="sr-only">{collapsed ? "필터 펼치기" : "필터 접기"}</span>
-          </TrackedButton>
+              <svg
+                className="tt-chevron"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <polyline points="6 15 12 9 18 15"></polyline>
+              </svg>
+              <span className="sr-only">{collapsed ? "필터 펼치기" : "필터 접기"}</span>
+            </TrackedButton>
+          </div>
         </div>
 
         <div className="tt-controls" data-collapsed={collapsed ? "1" : "0"}>
@@ -748,7 +761,7 @@ export default function TimetablePage() {
           >
             <div className="tt-row">
               <div className="tt-field tt-year">
-                <label>연도</label>
+                <Label>연도</Label>
                 <input
                   value={year}
                   onChange={(e) => setYear(e.target.value)}
@@ -759,7 +772,7 @@ export default function TimetablePage() {
               </div>
 
               <div className="tt-field tt-sem">
-                <label>학기</label>
+                <Label>학기</Label>
                 <select value={semester} onChange={(e) => setSemester(e.target.value)}>
                   <option value="1">1학기</option>
                   <option value="2">여름학기</option>
@@ -769,9 +782,9 @@ export default function TimetablePage() {
               </div>
 
               <div className="tt-field tt-mode">
-                <label>
+                <Label>
                   {mode === "professor" ? "교수명" : mode === "room" ? "강의실" : "건물 동번호"}
-                </label>
+                </Label>
                 <div className="tt-searchWrap">
                   <input
                     ref={inputRef}
@@ -859,11 +872,11 @@ export default function TimetablePage() {
               </div>
 
               <div className="tt-field tt-mode">
-                <label>검색 유형</label>
+                <Label>검색 유형</Label>
                 <div className="tt-segment" role="tablist" aria-label="검색 유형 선택">
                   <TrackedButton
                     button_type="mode_professor"
-                    className={`tt-segbtn ${mode === "professor" ? "on" : ""}`}
+                    className={clsx("tt-segbtn", mode === "professor" ? "on" : "", "text-xs")}
                     aria-pressed={mode === "professor"}
                     onClick={() => {
                       setMode("professor");
@@ -876,7 +889,7 @@ export default function TimetablePage() {
                   </TrackedButton>
                   <TrackedButton
                     button_type="mode_room"
-                    className={`tt-segbtn ${mode === "room" ? "on" : ""}`}
+                    className={clsx("tt-segbtn", mode === "room" ? "on" : "", "text-xs")}
                     aria-pressed={mode === "room"}
                     onClick={() => {
                       setMode("room");
@@ -889,7 +902,7 @@ export default function TimetablePage() {
                   </TrackedButton>
                   <TrackedButton
                     button_type="mode_free"
-                    className={`tt-segbtn ${mode === "free" ? "on" : ""}`}
+                    className={clsx("tt-segbtn", mode === "free" ? "on" : "", "text-xs")}
                     aria-pressed={mode === "free"}
                     onClick={() => {
                       setMode("free");
@@ -942,7 +955,7 @@ export default function TimetablePage() {
             </div>
           </div>
         </div>
-      </header>
+      </Card>
 
       {mode === "free" && !loading && (
         <div className="tt-freeWrap">
