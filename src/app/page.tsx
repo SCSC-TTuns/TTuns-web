@@ -21,6 +21,15 @@ import localFont from "next/font/local";
 import { Label } from "@/components/ui/label";
 import { DarkModeToggle } from "@/components/DarkModeToggle";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type Mode = "professor" | "room" | "free";
 type FreeRoom = { room: string; until: number };
@@ -39,9 +48,24 @@ type EventBlock = {
 type Laid = Partial<Record<DayIndex, EventBlock[]>>;
 
 function colorForTitle(title: string) {
-  let h = 0;
-  for (let i = 0; i < title.length; i++) h = (h * 31 + title.charCodeAt(i)) % 360;
-  return { fill: `hsl(${h}, 70%, 68%)`, stroke: `hsla(${h}, 85%, 96%, 1)` };
+  let hue = 0;
+  for (let i = 0; i < title.length; i++) hue = (hue * 31 + title.charCodeAt(i)) % 360;
+  const smax = 65;
+  const smin = 40;
+  const saturation =
+    hue < 120
+      ? (smax * (120 - hue) + smin * hue) / 120
+      : (smax * (hue - 120) + smin * (240 - hue)) / 120;
+  const lmax = 59;
+  const lmin = 40;
+  const lightness =
+    hue < 120
+      ? (lmax * (120 - hue) + lmin * hue) / 120
+      : (lmax * (hue - 120) + lmin * (240 - hue)) / 120;
+  return {
+    fill: `hsl(${hue}, ${saturation}%, ${lightness}%)`,
+    stroke: `hsla(${hue}, 85%, 96%, 1)`,
+  };
 }
 
 function fmtTime(min: number) {
@@ -703,11 +727,11 @@ export default function TimetablePage() {
   };
 
   return (
-    <main className={clsx("tt-wrap", "bg-gray-50 dark:bg-gray-900", rootFont.className)}>
-      <Card className="tt-header- p-4">
+    <main className={clsx("tt-wrap", rootFont.className)}>
+      <Card className="tt-header p-4">
         <div className="tt-headRow p-2">
           <h1 className="tt-title text-2xl">TTuns</h1>
-          <div className="tt-buttons absolute right-7 flex gap-2">
+          <div className="tt-buttons absolute right-3 flex gap-2">
             <DarkModeToggle />
             <TrackedButton
               button_type="toggle_filter_collapse"
@@ -737,7 +761,7 @@ export default function TimetablePage() {
         <div className="tt-controls" data-collapsed={collapsed ? "1" : "0"}>
           <div className="tt-pillbar" aria-hidden={!collapsed}>
             <span className="tt-pill">
-              {year} • {semesterLabel}
+              {year}년 {semesterLabel}
             </span>
             <span className="tt-pill">{modeLabel}</span>
             <span className="tt-pill tt-pill-q" title={q}>
@@ -762,7 +786,7 @@ export default function TimetablePage() {
             <div className="tt-row">
               <div className="tt-field tt-year">
                 <Label>연도</Label>
-                <input
+                <Input
                   value={year}
                   onChange={(e) => setYear(e.target.value)}
                   placeholder="예: 2025"
@@ -773,12 +797,17 @@ export default function TimetablePage() {
 
               <div className="tt-field tt-sem">
                 <Label>학기</Label>
-                <select value={semester} onChange={(e) => setSemester(e.target.value)}>
-                  <option value="1">1학기</option>
-                  <option value="2">여름학기</option>
-                  <option value="3">2학기</option>
-                  <option value="4">겨울학기</option>
-                </select>
+                <Select value={semester} onValueChange={(value) => setSemester(value)}>
+                  <SelectTrigger className="w-[100%]">
+                    <SelectValue placeholder="학기" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1학기</SelectItem>
+                    <SelectItem value="2">여름학기</SelectItem>
+                    <SelectItem value="3">2학기</SelectItem>
+                    <SelectItem value="4">겨울학기</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="tt-field tt-mode">
@@ -786,7 +815,7 @@ export default function TimetablePage() {
                   {mode === "professor" ? "교수명" : mode === "room" ? "강의실" : "건물 동번호"}
                 </Label>
                 <div className="tt-searchWrap">
-                  <input
+                  <Input
                     ref={inputRef}
                     value={q}
                     onChange={(e) => setQ(e.target.value)}

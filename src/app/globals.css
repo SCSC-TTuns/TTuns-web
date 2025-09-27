@@ -5,8 +5,8 @@
 
 :root {
     --bg: #f7fafc;
-    /*--panel: #ffffff;*/
-    /*--text: #0f172a;*/
+    --panel: #ffffff;
+    --text: #0f172a;
     --muted: oklch(0.967 0.003 264.542);
     --line: #e5e7eb;
     --line-soft: #eef2f7;
@@ -84,6 +84,15 @@
 }
 
 .dark {
+    --bg: #0b1220;
+    --panel: #0f172a;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --line: #233047;
+    --line-soft: #1b2538;
+    --primary: #8b93ff;
+    --primary-2: #6f78ff;
+    --shadow: 0 8px 24px rgba(2, 6, 23, 0.45);
     --background: oklch(0.13 0.028 261.692);
     --foreground: oklch(0.985 0.002 247.839);
     --card: oklch(0.21 0.034 264.665);
@@ -125,9 +134,3 @@
         @apply bg-background text-foreground;
     }
 }
-@media (prefers-color-scheme: dark) {
-    :root {
-        --bg: #0a0a0a;
-    }
-}
-

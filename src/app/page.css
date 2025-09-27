@@ -21,7 +21,8 @@
     }
 
     .tt-wrap {
-        color: var(--text);
+        /*color: var(--text);*/
+        background: var(--bg);
         /*background: radial-gradient(1200px 800px at 20% -10%, #f1f5ff 10%, transparent 60%),*/
         /*radial-gradient(1200px 800px at 100% 0%, #f0f9ff 10%, transparent 60%), var(--bg);*/
         min-height: 100vh;
@@ -31,17 +32,29 @@
     }
 
     .tt-header {
-        max-width: 1100px;
-        margin: 0 auto 8px; /* 불필요한 여백 제거 */
-        padding: 10px 12px 12px;
-        border-radius: 12px;
+        /*max-width: 1100px;*/
+        /*margin: 0 auto 8px; !* 불필요한 여백 제거 *!*/
+        /*padding: 10px 12px 12px;*/
+        /*border-radius: 12px;*/
+        /*background: var(--panel);*/
+        /*border: 1px solid var(--line);*/
+        /*box-shadow: var(--shadow);*/
+        /*position: sticky;*/
+        /*top: 0;*/
+        /*z-index: 5;*/
+        overflow: hidden; /* 태블릿 overflow 방지 */
+        /* restore sticky header */
+        position: sticky;
+        top: 0; /* or use env(safe-area-inset-top) if needed */
+        z-index: 10;
         background: var(--panel);
         border: 1px solid var(--line);
+        border-radius: 12px;
         box-shadow: var(--shadow);
-        position: sticky;
-        top: 0;
-        z-index: 5;
-        overflow: hidden; /* 태블릿 overflow 방지 */
+        padding: 10px 12px 12px;
+        /* optional: center and limit width if desired */
+        max-width: 1100px;
+        margin: 0 auto 8px;
     }
 
     .tt-headRow {
@@ -60,12 +73,7 @@
 
     /* 아이콘 전용 접힘 버튼 */
     .tt-collapseBtn {
-        border: 1px solid var(--line);
-        background: #f8fafc;
-        border-radius: 10px;
         padding: 6px 10px;
-        font-weight: 800;
-        color: #334155;
         cursor: pointer;
         display: inline-flex;
         align-items: center;
@@ -137,24 +145,23 @@
     }
 
     .tt-field label {
-        font-size: 12px;
-        color: var(--muted);
-        font-weight: 600;
+        font-size: small;
+        font-weight: bold;
     }
 
     .tt-field input,
     .tt-field select {
-        background: #fbfdff;
-        color: var(--text);
-        border: 1px solid var(--line);
-        border-radius: 10px;
-        padding: 0 10px; /* let height control vertical sizing */
-        height: var(--ctl-h);
-        width: 100%;
-        box-sizing: border-box;
-        outline: none;
-        transition: border-color 0.15s ease,
-        box-shadow 0.15s ease;
+        /*background: #fbfdff;*/
+        /*color: var(--text);*/
+        /*border: 1px solid var(--line);*/
+        /*border-radius: 10px;*/
+        /*padding: 0 10px; !* let height control vertical sizing *!*/
+        /*height: var(--ctl-h);*/
+        /*width: 100%;*/
+        /*box-sizing: border-box;*/
+        /*outline: none;*/
+        /*transition: border-color 0.15s ease,*/
+        /*box-shadow 0.15s ease;*/
     }
 
     .tt-field input:focus,
@@ -167,20 +174,20 @@
     .tt-segment {
         display: flex;
         justify-content: space-between;
-        background: #f3f4f6;
-        border: 1px solid var(--line);
+        /*background: #f3f4f6;*/
+        /*border: 1px solid var(--line);*/
         border-radius: 10px;
         padding: 2px;
     }
 
     .tt-segbtn {
-        border: none;
-        background: transparent;
-        padding: 8px 10px;
-        border-radius: 8px;
-        width: 100%;
-        font-weight: 800;
-        color: #334155;
+        /*border: none;*/
+        /*background: transparent;*/
+        /*padding: 8px 10px;*/
+        /*border-radius: 8px;*/
+        /*width: 100%;*/
+        /*font-weight: 800;*/
+        color: var(--muted-foreground);
         cursor: pointer;
         transition: background 0.12s,
         color 0.12s,
@@ -188,7 +195,7 @@
     }
 
     .tt-segbtn.on {
-        background: white;
+        background: var(--color-accent);
         color: var(--primary);
         box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03);
     }
@@ -197,28 +204,28 @@
         transform: translateY(1px);
     }
 
-    .tt-primary {
-        height: 36px;
-        border: none;
-        border-radius: 10px;
-        background: linear-gradient(180deg, var(--primary-2) 0%, var(--primary) 100%);
-        color: #fff;
-        font-weight: 900;
-        letter-spacing: 0.2px;
-        cursor: pointer;
-        transition: filter 0.15s ease,
-        transform 0.06s ease;
-    }
+    /*.tt-primary {*/
+    /*    height: 36px;*/
+    /*    border: none;*/
+    /*    border-radius: 10px;*/
+    /*    background: linear-gradient(180deg, var(--primary-2) 0%, var(--primary) 100%);*/
+    /*    color: #fff;*/
+    /*    font-weight: 900;*/
+    /*    letter-spacing: 0.2px;*/
+    /*    cursor: pointer;*/
+    /*    transition: filter 0.15s ease,*/
+    /*    transform 0.06s ease;*/
+    /*}*/
 
-    .tt-primary:disabled {
-        opacity: 0.55;
-        cursor: not-allowed;
-    }
+    /*.tt-primary:disabled {*/
+    /*    opacity: 0.55;*/
+    /*    cursor: not-allowed;*/
+    /*}*/
 
-    .tt-primary:active {
-        transform: translateY(1px);
-        filter: brightness(0.98);
-    }
+    /*.tt-primary:active {*/
+    /*    transform: translateY(1px);*/
+    /*    filter: brightness(0.98);*/
+    /*}*/
 
     /* ===== Search input + history (mobile) ===== */
     .tt-searchWrap {
@@ -238,8 +245,6 @@
         padding: 6px 8px;
         border-radius: 9999px;
         border: 1px solid var(--line);
-        background: #f4f7ff;
-        color: #374151;
         font-weight: 800;
         font-size: 12px;
         white-space: nowrap;
@@ -297,8 +302,8 @@
         padding: 6px 10px;
         border-radius: 9999px;
         border: 1px solid var(--line);
-        background: #f9fafb;
-        font-weight: 800;
+        /*background: #f9fafb;*/
+        font-weight: normal;
         font-size: 12px;
         color: #374151;
     }
@@ -310,7 +315,7 @@
     .tt-pillbtn {
         margin-left: auto;
         border: 1px solid var(--line);
-        background: #eef2ff;
+        /*background: #eef2ff;*/
         color: #374151;
         border-radius: 9999px;
         padding: 6px 10px;
@@ -343,11 +348,16 @@
     .tt-empty {
         max-width: 1100px;
         margin: 8px auto 6px;
-        color: var(--muted);
-        background: #ffffffcc;
+        color: var(--muted-foreground);
+        /*background: #ffffffcc;*/
         border: 1px dashed var(--line);
         border-radius: 10px;
         padding: 9px 11px;
+        /* make empty-result banner sticky under the header */
+        position: sticky;
+        top: 8px; /* adjust if the header is taller */
+        z-index: 9;
+        background: var(--panel);
     }
 
     /* ===== 빈 강의실 ===== */
@@ -456,8 +466,8 @@
         padding: 7px 4px;
         text-align: center;
         font-weight: 800;
-        color: #0f172a;
-        background: #f3f6ff;
+        /*color: #0f172a;*/
+        background: var(--color-muted);
         letter-spacing: 0.2px;
         font-size: 13.5px;
     }
@@ -474,8 +484,8 @@
     /* 내부 y-스크롤 차단 */
     .tt-timeCol {
         position: relative;
+        background: var(--color-muted);
         width: 100%;
-        background: #f7f9ff;
     }
 
     .tt-dayCol {
@@ -505,8 +515,8 @@
         left: 6px;
         top: 2px;
         font-size: 12px;
-        color: var(--muted);
-        background: #f7f9ff;
+        /*color: var(--muted);*/
+        /*background: #f7f9ff;*/
         padding: 0 2px;
         border-radius: 3px;
     }
@@ -554,7 +564,7 @@
         margin-top: 3px;
         font-weight: lighter;
         font-size: 11px;
-        color: #ddd;
+        color: #eee;
     }
 
     /* ===== 상세 정보 모달 ===== */
@@ -696,7 +706,7 @@
         .tt-evTitle {
             white-space: normal;
             display: -webkit-box;
-            -webkit-line-clamp: 2;
+            -webkit-line-clamp: 3;
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
@@ -739,7 +749,7 @@
         grid-template-columns: repeat(3, 1fr);
         height: var(--ctl-h);
         padding: 2px;
-        background: #f3f4f6;
+        /*background: #f3f4f6;*/
         border: 1px solid var(--line);
         border-radius: 10px;
     }
@@ -754,25 +764,24 @@
         padding: 0 10px; /* 수평 패딩만 */
         border-radius: 8px;
         font-weight: 800;
-        color: #334155;
         cursor: pointer;
         transition: background 0.12s,
         color 0.12s,
         transform 0.06s;
     }
 
-    .tt-primary {
-        height: var(--ctl-h); /* 검색 버튼도 동일 높이 */
-        border: none;
-        border-radius: 10px;
-        background: linear-gradient(180deg, var(--primary-2) 0%, var(--primary) 100%);
-        color: #fff;
-        font-weight: 900;
-        letter-spacing: 0.2px;
-        cursor: pointer;
-        transition: filter 0.15s ease,
-        transform 0.06s ease;
-    }
+    /*.tt-primary {*/
+    /*    height: var(--ctl-h); !* 검색 버튼도 동일 높이 *!*/
+    /*    border: none;*/
+    /*    border-radius: 10px;*/
+    /*    background: linear-gradient(180deg, var(--primary-2) 0%, var(--primary) 100%);*/
+    /*    color: #fff;*/
+    /*    font-weight: 900;*/
+    /*    letter-spacing: 0.2px;*/
+    /*    cursor: pointer;*/
+    /*    transition: filter 0.15s ease,*/
+    /*    transform 0.06s ease;*/
+    /*}*/
 
     /* 모바일에선 살짝 낮게 */
     @media (max-width: 720px) {
@@ -787,12 +796,6 @@
         }
 
         /* 살짝 더 위로 */
-    }
-
-    @media (max-width: 720px) {
-        .tt-timeCol .tt-label[data-hour="8"] {
-            display: none;
-        }
     }
 
     /* 모바일에서 .tt-searchWrap 자체를 가로 스크롤 컨테이너로 */
