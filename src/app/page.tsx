@@ -206,6 +206,17 @@ export default function TimetablePage() {
     )}&semester=${encodeURIComponent(semester)}`;
     fetch(url).catch(() => {});
   }, [year, semester]);
+// 뒤로가기(popstate) 시 필터 자동 펼침
+useEffect(() => {
+  const onPop = () => setCollapsed(false);
+  window.addEventListener("popstate", onPop);
+  return () => window.removeEventListener("popstate", onPop);
+}, []);
+
+// 검색어가 비어(초기화)지면 필터 자동 펼침
+useEffect(() => {
+  if (!loading && q.trim() === "") setCollapsed(false);
+}, [q, loading]);
 
   const canSearch = useMemo(() => !!year && !!semester && q.trim().length > 0, [year, semester, q]);
 
