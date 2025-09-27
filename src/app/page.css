@@ -384,7 +384,7 @@
     }
 
     .tt-freeMeta {
-        color: var(--muted);
+        color: var(--muted-foreground);
         font-size: 12px;
     }
 
@@ -402,7 +402,7 @@
         padding: 10px 12px;
         border-radius: 10px;
         border: 1px solid var(--line);
-        background: #fbfdff;
+        /*background: #fbfdff;*/
         cursor: pointer;
         transition: transform 0.06s,
         box-shadow 0.15s,
@@ -411,7 +411,7 @@
 
     .tt-roomBtn:hover {
         box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
-        border-color: #d9def0;
+        border-color: var(--primary);
     }
 
     .tt-roomBtn:active {
@@ -420,7 +420,7 @@
 
     .tt-roomName {
         font-weight: 800;
-        color: #111827;
+        /*color: #111827;*/
     }
 
     .tt-copy {
@@ -434,8 +434,8 @@
         margin-right: 8px;
         font-weight: 800;
         font-size: 12px;
-        color: #374151;
-        background: #eef2ff;
+        /*color: #374151;*/
+        /*background: #eef2ff;*/
         border: 1px solid #e5e7eb;
         padding: 2px 8px;
         border-radius: 9999px;
