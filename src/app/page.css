@@ -456,7 +456,7 @@ html, body {
   border-left: 1px solid var(--line);
 }
 
-/* 시간 눈금과 라벨 – 라벨을 선에서 살짝 위로 띄움 */
+/* 시간 눈금과 라벨 – 라벨을 선에서 살짝 아래로 띄움 */
 .tt-hourMark {
   position: absolute;
   left: 0;
@@ -474,7 +474,7 @@ html, body {
 .tt-hourMark .tt-label {
   position: absolute;
   left: 6px;
-  top: -14px;
+  top: 2px;
   font-size: 12px;
   color: var(--muted);
   background: #f7f9ff;
@@ -528,11 +528,11 @@ html, body {
   position: fixed;
   inset: 0;
   z-index: 10;
-  background: rgba(15, 23, 42, 0.3);
+  background: rgba(15, 23, 42, 0.4);
   display: grid;
   place-items: center;
   padding: 16px;
-  backdrop-filter: blur(4px);
+  /* backdrop-filter: blur(4px); */
 }
 .tt-modalCard {
   background: var(--panel);
@@ -728,7 +728,7 @@ html, body {
 
 @media (max-width: 720px) {
   .tt-hourMark .tt-label {
-    top: -16px;
+    top: 0px;
   } /* 살짝 더 위로 */
 }
 
