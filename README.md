@@ -4,7 +4,7 @@
 
 1. How to format on save
 
-- Install prettier plugin on your computer.
+- Install prettier plugin on your computer. //`https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode`
 - Please add following setup on your `.vscode/settings.json`.
 
 ```json
