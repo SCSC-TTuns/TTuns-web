@@ -871,30 +871,36 @@ export default function TimetablePage() {
                     )}
                   <div className="tt-history" aria-label="최근 검색">
                     {(historyByMode[mode] || []).slice(0, 3).map((h) => (
-                      <button
-                        key={h}
-                        type="button"
-                        className="tt-hChip"
-                        title={`최근 검색: ${h} (더블 클릭으로 삭제)`}
-                        onClick={() => {
-                          clearHistTimer(h);
-                          histClickTimers.current[h] = window.setTimeout(() => {
-                            delete histClickTimers.current[h];
+                      <div key={h} className="tt-hChip">
+                        <button
+                          key={h}
+                          type="button"
+                          className="tt-hChip-text"
+                          title={`최근 검색: ${h}`}
+                          onClick={() => {
                             setQ(h);
                             setInputFocused(false);
                             if (inputRef.current) inputRef.current.blur();
                             setSuggestions([]);
                             if (!loading) onSearch(h);
-                          }, 250);
-                        }}
-                        onDoubleClick={() => {
-                          clearHistTimer(h);
-                          removeHistory(mode, h);
-                          trackEvent("history_item_deleted", { mode, value_len: h.length });
-                        }}
-                      >
-                        {h}
-                      </button>
+                          }}
+                        >
+                          {h}
+                        </button>
+
+                        <button
+                          type="button"
+                          className="tt-hChip-delete"
+                          aria-label={`최근 검색 ${h} 삭제`}
+                          title="삭제"
+                          onClick={() => {
+                            removeHistory(mode, h);
+                            trackEvent("history_item_deleted", { mode, value_len: h.length });
+                          }}
+                        >
+                          &times;
+                        </button>
+                      </div>
                     ))}
                   </div>
                 </div>
