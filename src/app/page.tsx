@@ -143,41 +143,6 @@ const rootFont = localFont({
   src: "./fonts/NanumSquareNeo-Variable.woff2",
 });
 
-const chosungList = [
-  "ㄱ", "ㄲ", "ㄴ", "ㄷ", "ㄸ", "ㄹ", "ㅁ", "ㅂ", "ㅃ", "ㅅ", "ㅆ",
-  "ㅇ", "ㅈ", "ㅉ", "ㅊ", "ㅋ", "ㅌ", "ㅍ", "ㅎ",
-];
-function getChosung(ch: string): string {
-  if (!ch) return "";
-  const code = ch.charCodeAt(0);
-  if (code >= 0xac00 && code <= 0xd7a3) {
-    return chosungList[Math.floor((code - 0xac00) / 588)] || ch;
-  }
-  return ch;
-}
-
-function isFuzzyMatch(input: string, target: string): boolean {
-  const normalizedInput = input.toLowerCase().replace(/\s/g, '');
-  const normalizedTarget = target.toLowerCase().replace(/\s/g, '');
-
-  let input_point = 0; // input ("홍ㄱㄷ") 포인터
-  let target_point = 0; // target ("홍길동") 포인터
-
-  while (input_point < normalizedInput.length && target_point < normalizedTarget.length) {
-    const inputChar = normalizedInput[input_point];
-    const targetSyllable = normalizedTarget[target_point];
-
-    if (inputChar === targetSyllable ||inputChar === getChosung(targetSyllable)) {
-      input_point++;
-      target_point++;
-    } else {
-      target_point++;
-    }
-  }
-
-  return input_point === normalizedInput.length;
-}
-
 export default function TimetablePage() {
   const [year, setYear] = useState("2025");
   const [semester, setSemester] = useState("3");
@@ -674,7 +639,7 @@ export default function TimetablePage() {
         new Set(
           all
             .map((lec) => String(lec?.instructor || lec?.professor || "").trim())
-            .filter((v) => v.length > 0 && isFuzzyMatch(input, v))
+            .filter((v) => v.length > 0 && v.includes(input))
         )
       );
       list = professors.sort((a, b) => {
@@ -906,36 +871,30 @@ export default function TimetablePage() {
                     )}
                   <div className="tt-history" aria-label="최근 검색">
                     {(historyByMode[mode] || []).slice(0, 3).map((h) => (
-                      <div key={h} className="tt-hChip">
-                        <button
-                          key={h}
-                          type="button"
-                          className="tt-hChip-text"
-                          title={`최근 검색: ${h}`}
-                          onClick={() => {
+                      <button
+                        key={h}
+                        type="button"
+                        className="tt-hChip"
+                        title={`최근 검색: ${h} (더블 클릭으로 삭제)`}
+                        onClick={() => {
+                          clearHistTimer(h);
+                          histClickTimers.current[h] = window.setTimeout(() => {
+                            delete histClickTimers.current[h];
                             setQ(h);
                             setInputFocused(false);
                             if (inputRef.current) inputRef.current.blur();
                             setSuggestions([]);
                             if (!loading) onSearch(h);
-                          }}
-                        >
-                          {h}
-                        </button>
-
-                        <button
-                          type="button"
-                          className="tt-hChip-delete"
-                          aria-label={`최근 검색 ${h} 삭제`}
-                          title="삭제"
-                          onClick={() => {
-                            removeHistory(mode, h);
-                            trackEvent("history_item_deleted", { mode, value_len: h.length });
-                          }}
-                        >
-                          &times;
-                        </button>
-                      </div>
+                          }, 250);
+                        }}
+                        onDoubleClick={() => {
+                          clearHistTimer(h);
+                          removeHistory(mode, h);
+                          trackEvent("history_item_deleted", { mode, value_len: h.length });
+                        }}
+                      >
+                        {h}
+                      </button>
                     ))}
                   </div>
                 </div>

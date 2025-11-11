@@ -242,17 +242,15 @@
 
     .tt-hChip {
         max-width: 90px;
+        padding: 6px 8px;
         border-radius: 9999px;
         border: 1px solid var(--line);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        height: calc(var(--ctl-h) - 2px); /* account for border */
-        display: inline-flex;
-        align-items: center;
-
         font-weight: 800;
         font-size: 12px;
         white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        cursor: pointer;
     }
 
     @media (max-width: 720px) {
@@ -279,44 +277,12 @@
         }
     }
 
-    /* text part in chip */
-    .tt-hChip-text {
-        background: none;
-        border: none;
-        display: flex;
-        color: inherit;
-        font: inherit; 
-        
+    /* Make history chips align to control height without jumping rows */
+    .tt-hChip {
+        height: calc(var(--ctl-h) - 2px); /* account for border */
+        display: inline-flex;
+        align-items: center;
         padding: 0 10px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis; 
-        cursor: pointer;
-        
-        flex-shrink: 1; 
-        min-width: 0;
-        align-items: center;
-    }
-
-    /* 'X' button in chip */
-    .tt-hChip-delete {
-        background: none;
-        border: none;
-        flex-shrink: 0; 
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        align-self: stretch;
-        cursor: pointer;
-        
-        padding: 0 8px 0 4px; 
-        
-        color: var(--text);
-        opacity: 0.7;
-        font-weight: 900;
-        font-size: 15px; 
-        line-height: 1;
-        transition: opacity 0.15s ease;
     }
 
     /* 접힘 요약 바 */
