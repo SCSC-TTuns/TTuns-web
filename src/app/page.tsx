@@ -140,8 +140,8 @@ function groupDepts(uniqueDepts: string[]) {
 }
 
 const rootFont = localFont({
-  src: "./fonts/NanumSquareNeo-Variable.woff2",
-});
+  src: "./fonts/PretendardVariable.ttf",
+}); 
 
 const chosungList = [
   "ㄱ", "ㄲ", "ㄴ", "ㄷ", "ㄸ", "ㄹ", "ㅁ", "ㅂ", "ㅃ", "ㅅ", "ㅆ",
