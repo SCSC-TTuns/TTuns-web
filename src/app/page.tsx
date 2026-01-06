@@ -13,9 +13,23 @@ import {
 } from "@/lib/lectureSchedule";
 import TrackedButton from "@/components/TrackedButton";
 import { trackEvent, trackUIEvent } from "@/lib/mixpanel/trackEvent";
-import "./page.css";
-
 import ReactDOM from "react-dom";
+import "./globals.css";
+import "./page.css";
+import { clsx } from "clsx";
+import localFont from "next/font/local";
+import { Label } from "@/components/ui/label";
+import { DarkModeToggle } from "@/components/DarkModeToggle";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type Mode = "professor" | "room" | "free";
 type FreeRoom = { room: string; until: number };
@@ -33,18 +47,33 @@ type EventBlock = {
 
 type Laid = Partial<Record<DayIndex, EventBlock[]>>;
 
-const VISIBLE_DAYS: DayIndex[] = [0, 1, 2, 3, 4, 5];
-
 function colorForTitle(title: string) {
-  let h = 0;
-  for (let i = 0; i < title.length; i++) h = (h * 31 + title.charCodeAt(i)) % 360;
-  return { fill: `hsla(${h}, 85%, 96%, 1)`, stroke: `hsl(${h}, 70%, 42%)` };
+  let hue = 0;
+  for (let i = 0; i < title.length; i++) hue = (hue * 31 + title.charCodeAt(i)) % 360;
+  const smax = 65;
+  const smin = 40;
+  const saturation =
+    hue < 120
+      ? (smax * (120 - hue) + smin * hue) / 120
+      : (smax * (hue - 120) + smin * (240 - hue)) / 120;
+  const lmax = 59;
+  const lmin = 40;
+  const lightness =
+    hue < 120
+      ? (lmax * (120 - hue) + lmin * hue) / 120
+      : (lmax * (hue - 120) + lmin * (240 - hue)) / 120;
+  return {
+    fill: `hsl(${hue}, ${saturation}%, ${lightness}%)`,
+    stroke: `hsla(${hue}, 85%, 96%, 1)`,
+  };
 }
+
 function fmtTime(min: number) {
   const h = Math.floor(min / 60),
     m = min % 60;
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
+
 function fmtHHMM(min: number) {
   return fmtTime(min);
 }
@@ -110,6 +139,45 @@ function groupDepts(uniqueDepts: string[]) {
   return { mode: "dropdown" as const, options: filteredForDetail };
 }
 
+const rootFont = localFont({
+  src: "./fonts/PretendardVariable.ttf",
+}); 
+
+const chosungList = [
+  "ㄱ", "ㄲ", "ㄴ", "ㄷ", "ㄸ", "ㄹ", "ㅁ", "ㅂ", "ㅃ", "ㅅ", "ㅆ",
+  "ㅇ", "ㅈ", "ㅉ", "ㅊ", "ㅋ", "ㅌ", "ㅍ", "ㅎ",
+];
+function getChosung(ch: string): string {
+  if (!ch) return "";
+  const code = ch.charCodeAt(0);
+  if (code >= 0xac00 && code <= 0xd7a3) {
+    return chosungList[Math.floor((code - 0xac00) / 588)] || ch;
+  }
+  return ch;
+}
+
+function isFuzzyMatch(input: string, target: string): boolean {
+  const normalizedInput = input.toLowerCase().replace(/\s/g, '');
+  const normalizedTarget = target.toLowerCase().replace(/\s/g, '');
+
+  let input_point = 0; // input ("홍ㄱㄷ") 포인터
+  let target_point = 0; // target ("홍길동") 포인터
+
+  while (input_point < normalizedInput.length && target_point < normalizedTarget.length) {
+    const inputChar = normalizedInput[input_point];
+    const targetSyllable = normalizedTarget[target_point];
+
+    if (inputChar === targetSyllable ||inputChar === getChosung(targetSyllable)) {
+      input_point++;
+      target_point++;
+    } else {
+      target_point++;
+    }
+  }
+
+  return input_point === normalizedInput.length;
+}
+
 export default function TimetablePage() {
   const [year, setYear] = useState("2025");
   const [semester, setSemester] = useState("3");
@@ -140,6 +208,8 @@ export default function TimetablePage() {
     free: [],
   });
   const laid = layoutByDay(events) as Laid;
+  const VISIBLE_DAYS: DayIndex[] =
+    (laid[5] ?? []).length > 0 ? [0, 1, 2, 3, 4, 5] : [0, 1, 2, 3, 4];
   const { startMin, endMin } = timeBounds(events);
 
   const semesterCacheRef = useRef(new Map<string, AnyLecture[]>());
@@ -615,7 +685,7 @@ useEffect(() => {
         new Set(
           all
             .map((lec) => String(lec?.instructor || lec?.professor || "").trim())
-            .filter((v) => v.length > 0 && v.includes(input))
+            .filter((v) => v.length > 0 && isFuzzyMatch(input, v))
         )
       );
       list = professors.sort((a, b) => {
@@ -703,38 +773,41 @@ useEffect(() => {
   };
 
   return (
-    <main className="tt-wrap">
-      <header className="tt-header">
-        <div className="tt-headRow">
-          <h1 className="tt-title">TTuns</h1>
-          <TrackedButton
-            button_type="toggle_filter_collapse"
-            className="tt-collapseBtn"
-            aria-expanded={!collapsed}
-            aria-controls="tt-filter-panel"
-            onClick={() => setCollapsed((v) => !v)}
-            title={collapsed ? "필터 펼치기" : "필터 접기"}
-          >
-            <svg
-              className="tt-chevron"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
+    <main className={clsx("tt-wrap", rootFont.className)}>
+      <Card className="tt-header p-4">
+        <div className="tt-headRow p-2">
+          <h1 className="tt-title text-2xl">TTuns</h1>
+          <div className="tt-buttons absolute right-3 flex gap-2">
+            <DarkModeToggle />
+            <TrackedButton
+              button_type="toggle_filter_collapse"
+              className="tt-collapseBtn"
+              aria-expanded={!collapsed}
+              aria-controls="tt-filter-panel"
+              onClick={() => setCollapsed((v) => !v)}
+              title={collapsed ? "필터 펼치기" : "필터 접기"}
             >
-              <polyline points="6 15 12 9 18 15"></polyline>
-            </svg>
-            <span className="sr-only">{collapsed ? "필터 펼치기" : "필터 접기"}</span>
-          </TrackedButton>
+              <svg
+                className="tt-chevron"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <polyline points="6 15 12 9 18 15"></polyline>
+              </svg>
+              <span className="sr-only">{collapsed ? "필터 펼치기" : "필터 접기"}</span>
+            </TrackedButton>
+          </div>
         </div>
 
         <div className="tt-controls" data-collapsed={collapsed ? "1" : "0"}>
           <div className="tt-pillbar" aria-hidden={!collapsed}>
             <span className="tt-pill">
-              {year} • {semesterLabel}
+              {year}년 {semesterLabel}
             </span>
             <span className="tt-pill">{modeLabel}</span>
             <span className="tt-pill tt-pill-q" title={q}>
@@ -758,8 +831,8 @@ useEffect(() => {
           >
             <div className="tt-row">
               <div className="tt-field tt-year">
-                <label>연도</label>
-                <input
+                <Label>연도</Label>
+                <Input
                   value={year}
                   onChange={(e) => setYear(e.target.value)}
                   placeholder="예: 2025"
@@ -769,21 +842,26 @@ useEffect(() => {
               </div>
 
               <div className="tt-field tt-sem">
-                <label>학기</label>
-                <select value={semester} onChange={(e) => setSemester(e.target.value)}>
-                  <option value="1">1학기</option>
-                  <option value="2">여름학기</option>
-                  <option value="3">2학기</option>
-                  <option value="4">겨울학기</option>
-                </select>
+                <Label>학기</Label>
+                <Select value={semester} onValueChange={(value) => setSemester(value)}>
+                  <SelectTrigger className="w-[100%]">
+                    <SelectValue placeholder="학기" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1학기</SelectItem>
+                    <SelectItem value="2">여름학기</SelectItem>
+                    <SelectItem value="3">2학기</SelectItem>
+                    <SelectItem value="4">겨울학기</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="tt-field tt-mode">
-                <label>
+                <Label>
                   {mode === "professor" ? "교수명" : mode === "room" ? "강의실" : "건물 동번호"}
-                </label>
+                </Label>
                 <div className="tt-searchWrap">
-                  <input
+                  <Input
                     ref={inputRef}
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
@@ -839,41 +917,47 @@ useEffect(() => {
                     )}
                   <div className="tt-history" aria-label="최근 검색">
                     {(historyByMode[mode] || []).slice(0, 3).map((h) => (
-                      <button
-                        key={h}
-                        type="button"
-                        className="tt-hChip"
-                        title={`최근 검색: ${h} (더블 클릭으로 삭제)`}
-                        onClick={() => {
-                          clearHistTimer(h);
-                          histClickTimers.current[h] = window.setTimeout(() => {
-                            delete histClickTimers.current[h];
+                      <div key={h} className="tt-hChip">
+                        <button
+                          key={h}
+                          type="button"
+                          className="tt-hChip-text"
+                          title={`최근 검색: ${h}`}
+                          onClick={() => {
                             setQ(h);
                             setInputFocused(false);
                             if (inputRef.current) inputRef.current.blur();
                             setSuggestions([]);
                             if (!loading) onSearch(h);
-                          }, 250);
-                        }}
-                        onDoubleClick={() => {
-                          clearHistTimer(h);
-                          removeHistory(mode, h);
-                          trackEvent("history_item_deleted", { mode, value_len: h.length });
-                        }}
-                      >
-                        {h}
-                      </button>
+                          }}
+                        >
+                          {h}
+                        </button>
+
+                        <button
+                          type="button"
+                          className="tt-hChip-delete"
+                          aria-label={`최근 검색 ${h} 삭제`}
+                          title="삭제"
+                          onClick={() => {
+                            removeHistory(mode, h);
+                            trackEvent("history_item_deleted", { mode, value_len: h.length });
+                          }}
+                        >
+                          &times;
+                        </button>
+                      </div>
                     ))}
                   </div>
                 </div>
               </div>
 
               <div className="tt-field tt-mode">
-                <label>검색 유형</label>
+                <Label>검색 유형</Label>
                 <div className="tt-segment" role="tablist" aria-label="검색 유형 선택">
                   <TrackedButton
                     button_type="mode_professor"
-                    className={`tt-segbtn ${mode === "professor" ? "on" : ""}`}
+                    className={clsx("tt-segbtn", mode === "professor" ? "on" : "", "text-xs")}
                     aria-pressed={mode === "professor"}
                     onClick={() => {
                       setMode("professor");
@@ -886,7 +970,7 @@ useEffect(() => {
                   </TrackedButton>
                   <TrackedButton
                     button_type="mode_room"
-                    className={`tt-segbtn ${mode === "room" ? "on" : ""}`}
+                    className={clsx("tt-segbtn", mode === "room" ? "on" : "", "text-xs")}
                     aria-pressed={mode === "room"}
                     onClick={() => {
                       setMode("room");
@@ -899,7 +983,7 @@ useEffect(() => {
                   </TrackedButton>
                   <TrackedButton
                     button_type="mode_free"
-                    className={`tt-segbtn ${mode === "free" ? "on" : ""}`}
+                    className={clsx("tt-segbtn", mode === "free" ? "on" : "", "text-xs")}
                     aria-pressed={mode === "free"}
                     onClick={() => {
                       setMode("free");
@@ -952,7 +1036,7 @@ useEffect(() => {
             </div>
           </div>
         </div>
-      </header>
+      </Card>
 
       {mode === "free" && !loading && (
         <div className="tt-freeWrap">
@@ -992,7 +1076,10 @@ useEffect(() => {
 
       {mode !== "free" && (
         <div className="tt-tableWrap">
-          <div className="tt-grid tt-headerRow">
+          <div
+            className="tt-grid tt-headerRow"
+            no-saturday={((laid[5] ?? []).length == 0).toString()}
+          >
             <div className="tt-timeCol tt-headCell" aria-hidden="true" />
             {VISIBLE_DAYS.map((d) => (
               <div key={d} className="tt-dayHead tt-headCell">
@@ -1003,6 +1090,7 @@ useEffect(() => {
 
           <div
             className="tt-grid tt-body"
+            no-saturday={((laid[5] ?? []).length == 0).toString()}
             style={{ height: Math.max(380, (endMin - startMin) * PPM) }}
           >
             <div className="tt-timeCol">
@@ -1038,8 +1126,12 @@ useEffect(() => {
                     const top = (e.start - startMin) * PPM;
                     const height = Math.max(22, (e.end - e.start) * PPM - 2);
                     // Determine dynamic lane count among events that overlap with this event's interval
-                    const overlaps = list.filter((o) => o !== e && o.start < e.end && o.end > e.start);
-                    const activeCols = Array.from(new Set([...overlaps.map((o) => o.col), e.col])).sort((a, b) => a - b);
+                    const overlaps = list.filter(
+                      (o) => o !== e && o.start < e.end && o.end > e.start
+                    );
+                    const activeCols = Array.from(
+                      new Set([...overlaps.map((o) => o.col), e.col])
+                    ).sort((a, b) => a - b);
                     const localColCount = Math.max(1, activeCols.length);
                     const localIndex = Math.max(0, activeCols.indexOf(e.col));
                     const widthPct = 100 / localColCount;

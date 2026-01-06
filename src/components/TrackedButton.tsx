@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { trackUIEvent } from "@/lib/mixpanel/trackEvent";
+import { Button } from "@/components/ui/button";
 
 type Props = React.ButtonHTMLAttributes<HTMLButtonElement> &
   React.AnchorHTMLAttributes<HTMLAnchorElement> & {
@@ -27,7 +28,8 @@ export default function TrackedButton(props: Props) {
   }
 
   return (
-    <button
+    <Button
+      variant="outline"
       type={type || "button"}
       onClick={handleClick}
       className={className}
@@ -35,6 +37,6 @@ export default function TrackedButton(props: Props) {
       {...(rest as any)}
     >
       {children}
-    </button>
+    </Button>
   );
 }
