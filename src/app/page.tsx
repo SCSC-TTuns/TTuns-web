@@ -89,6 +89,42 @@ function nowKst() {
   return { snuttDay, minute, hhmm: `${hh}:${mm}` };
 }
 
+function currentYearSemesterKst(): { year: string; semester: string } {
+  // KST 기준 날짜(연/월/일) 추출
+  const kst = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
+  const y = kst.getFullYear();
+  const m = kst.getMonth() + 1; // 1~12
+  const d = kst.getDate(); // 1~31
+
+  // 규칙:
+  // n년 12/25 ~ n+1년 1/31 => n년 겨울학기(4)
+  // n년 2/1 ~ 6/18 => n년 1학기(1)
+  // n년 6/19 ~ 8/5 => n년 여름학기(2)
+  // 나머지 => n년 2학기(3)
+
+  // 1월(1/1~1/31)은 "전년도 겨울학기"
+  if (m === 1) return { year: String(y - 1), semester: "4" };
+
+  // 12월 25일~31일은 "당해 겨울학기"
+  if (m === 12 && d >= 25) return { year: String(y), semester: "4" };
+
+  // 2/1~6/18: 1학기
+  if (m >= 2 && (m < 6 || (m === 6 && d <= 18))) return { year: String(y), semester: "1" };
+
+  // 6/19~8/5: 여름학기
+  if (
+    (m === 6 && d >= 19) ||
+    m === 7 ||
+    (m === 8 && d <= 5)
+  ) {
+    return { year: String(y), semester: "2" };
+  }
+
+  // 나머지: 2학기
+  return { year: String(y), semester: "3" };
+}
+
+
 function extractDept(lec: any): string {
   return (
     lec?.department || lec?.dept || lec?.college || lec?.collegeName || lec?.major || lec?.org || ""
@@ -179,8 +215,10 @@ function isFuzzyMatch(input: string, target: string): boolean {
 }
 
 export default function TimetablePage() {
-  const [year, setYear] = useState("2025");
-  const [semester, setSemester] = useState("3");
+  const initialYS = useMemo(() => currentYearSemesterKst(), []);
+  const [year, setYear] = useState(initialYS.year);
+  const [semester, setSemester] = useState(initialYS.semester);
+
   const [mode, setMode] = useState<Mode>("room");
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(false);
