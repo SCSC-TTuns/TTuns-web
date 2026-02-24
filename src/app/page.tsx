@@ -163,18 +163,13 @@ function currentYearSemesterKst(): { year: string; semester: string } {
   if (m >= 2 && (m < 6 || (m === 6 && d <= 18))) return { year: String(y), semester: "1" };
 
   // 6/19~8/5: 여름학기
-  if (
-    (m === 6 && d >= 19) ||
-    m === 7 ||
-    (m === 8 && d <= 5)
-  ) {
+  if ((m === 6 && d >= 19) || m === 7 || (m === 8 && d <= 5)) {
     return { year: String(y), semester: "2" };
   }
 
   // 나머지: 2학기
   return { year: String(y), semester: "3" };
 }
-
 
 function extractDept(lec: any): string {
   return (
@@ -228,11 +223,28 @@ function groupDepts(uniqueDepts: string[]) {
 
 const rootFont = localFont({
   src: "./fonts/PretendardVariable.ttf",
-}); 
+});
 
 const chosungList = [
-  "ㄱ", "ㄲ", "ㄴ", "ㄷ", "ㄸ", "ㄹ", "ㅁ", "ㅂ", "ㅃ", "ㅅ", "ㅆ",
-  "ㅇ", "ㅈ", "ㅉ", "ㅊ", "ㅋ", "ㅌ", "ㅍ", "ㅎ",
+  "ㄱ",
+  "ㄲ",
+  "ㄴ",
+  "ㄷ",
+  "ㄸ",
+  "ㄹ",
+  "ㅁ",
+  "ㅂ",
+  "ㅃ",
+  "ㅅ",
+  "ㅆ",
+  "ㅇ",
+  "ㅈ",
+  "ㅉ",
+  "ㅊ",
+  "ㅋ",
+  "ㅌ",
+  "ㅍ",
+  "ㅎ",
 ];
 function getChosung(ch: string): string {
   if (!ch) return "";
@@ -244,8 +256,8 @@ function getChosung(ch: string): string {
 }
 
 function isFuzzyMatch(input: string, target: string): boolean {
-  const normalizedInput = input.toLowerCase().replace(/\s/g, '');
-  const normalizedTarget = target.toLowerCase().replace(/\s/g, '');
+  const normalizedInput = input.toLowerCase().replace(/\s/g, "");
+  const normalizedTarget = target.toLowerCase().replace(/\s/g, "");
 
   let input_point = 0; // input ("홍ㄱㄷ") 포인터
   let target_point = 0; // target ("홍길동") 포인터
@@ -254,7 +266,7 @@ function isFuzzyMatch(input: string, target: string): boolean {
     const inputChar = normalizedInput[input_point];
     const targetSyllable = normalizedTarget[target_point];
 
-    if (inputChar === targetSyllable ||inputChar === getChosung(targetSyllable)) {
+    if (inputChar === targetSyllable || inputChar === getChosung(targetSyllable)) {
       input_point++;
       target_point++;
     } else {
@@ -373,17 +385,17 @@ export default function TimetablePage() {
     )}&semester=${encodeURIComponent(semester)}`;
     fetch(url).catch(() => {});
   }, [year, semester]);
-// 뒤로가기(popstate) 시 필터 자동 펼침
-useEffect(() => {
-  const onPop = () => setCollapsed(false);
-  window.addEventListener("popstate", onPop);
-  return () => window.removeEventListener("popstate", onPop);
-}, []);
+  // 뒤로가기(popstate) 시 필터 자동 펼침
+  useEffect(() => {
+    const onPop = () => setCollapsed(false);
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
 
-// 검색어가 비어(초기화)지면 필터 자동 펼침
-useEffect(() => {
-  if (!loading && q.trim() === "") setCollapsed(false);
-}, [q, loading]);
+  // 검색어가 비어(초기화)지면 필터 자동 펼침
+  useEffect(() => {
+    if (!loading && q.trim() === "") setCollapsed(false);
+  }, [q, loading]);
 
   const canSearch = useMemo(
     () => !!year && !!semester && (mode === "free" || q.trim().length > 0),
@@ -806,14 +818,6 @@ useEffect(() => {
         reject(new Error("navigator unavailable"));
         return;
       }
-      if (!window.isSecureContext) {
-        if (cached) {
-          resolve(cached);
-          return;
-        }
-        reject(new Error("insecure context"));
-        return;
-      }
       if (!navigator.geolocation) {
         if (cached) {
           resolve(cached);
@@ -822,21 +826,29 @@ useEffect(() => {
         reject(new Error("geolocation unsupported"));
         return;
       }
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const next = { lat: pos.coords.latitude, lon: pos.coords.longitude };
-          writeCachedGeo(next);
-          resolve(next);
-        },
-        (err) => {
-          if (cached) {
-            resolve(cached);
-            return;
-          }
-          reject(err);
-        },
-        { enableHighAccuracy: true, timeout: 12_000, maximumAge: 60_000 }
-      );
+      try {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const next = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+            writeCachedGeo(next);
+            resolve(next);
+          },
+          (err) => {
+            if (cached) {
+              resolve(cached);
+              return;
+            }
+            reject(err);
+          },
+          { enableHighAccuracy: true, timeout: 12_000, maximumAge: 60_000 }
+        );
+      } catch (err) {
+        if (cached) {
+          resolve(cached);
+          return;
+        }
+        reject(err);
+      }
     });
 
   const loadNearbyAirdrop = async (preset?: { lat: number; lon: number }) => {
@@ -1291,11 +1303,7 @@ useEffect(() => {
 
               <div className="tt-field tt-mode">
                 <Label>
-                  {mode === "professor"
-                    ? "교수명"
-                    : mode === "room"
-                      ? "강의실"
-                      : "건물 동번호 (선택)"}
+                  {mode === "professor" ? "교수명" : mode === "room" ? "강의실" : "건물 동번호"}
                 </Label>
                 <div className="tt-searchWrap">
                   <Input
@@ -1307,7 +1315,7 @@ useEffect(() => {
                         ? "예: 문송기"
                         : mode === "room"
                           ? "예: 26-B101"
-                          : "예: 301 (비우면 내 주변)"
+                          : "예: 301"
                     }
                     inputMode={mode === "free" ? "numeric" : "text"}
                     onKeyDown={onKeyDownInput}
@@ -1386,11 +1394,6 @@ useEffect(() => {
                       </div>
                     ))}
                   </div>
-                  {mode === "free" && (
-                    <div className="tt-freeHint">
-                      동번호를 비워두고 검색하면 현재 위치 기준으로 가까운 빈 강의실을 찾아요.
-                    </div>
-                  )}
                 </div>
               </div>
 
@@ -1446,7 +1449,11 @@ useEffect(() => {
                 onClick={() => onSearch()}
                 disabled={!canSearch || loading}
               >
-                {loading ? "불러오는 중…" : mode === "free" && q.trim().length === 0 ? "내 주변 검색" : "검색"}
+                {loading
+                  ? "불러오는 중…"
+                  : mode === "free" && q.trim().length === 0
+                    ? "내 주변 검색"
+                    : "검색"}
               </TrackedButton>
 
               {mode === "professor" && deptOptions.length > 1 && (
@@ -1494,16 +1501,6 @@ useEffect(() => {
                     : "· 내 주변"}
               </div>
             </div>
-            {q.trim().length === 0 && (
-              <TrackedButton
-                button_type="nearby_airdrop_search"
-                className="tt-nearbyAction"
-                onClick={() => void loadNearbyAirdrop(userPos ?? undefined)}
-                disabled={nearbyLoading}
-              >
-                {nearbyLoading ? "탐색 중…" : "주변 동 새로고침"}
-              </TrackedButton>
-            )}
           </div>
 
           {q.trim().length === 0 && (
@@ -1517,7 +1514,9 @@ useEffect(() => {
                   aria-label="내 주변 빈 강의실 건물 레이더"
                 />
                 {nearbyScaleMeters > 0 && (
-                  <div className="tt-nearbyScale">한 칸 50m · 반경 ±{fmtDistance(nearbyScaleMeters)}</div>
+                  <div className="tt-nearbyScale">
+                    한 칸 50m · 반경 ±{fmtDistance(nearbyScaleMeters)}
+                  </div>
                 )}
               </div>
 
