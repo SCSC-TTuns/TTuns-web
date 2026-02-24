@@ -1,0 +1,94 @@
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e4]:
+        - heading "TTuns" [level=1] [ref=e5]
+        - generic [ref=e6]:
+          - button "Toggle theme" [ref=e7]:
+            - img
+            - img
+            - generic [ref=e8]: Toggle theme
+          - button "필터 접기" [expanded] [ref=e9] [cursor=pointer]:
+            - img
+            - generic [ref=e10]: 필터 접기
+      - generic [ref=e13]:
+        - generic [ref=e14]:
+          - generic [ref=e15]: 연도
+          - 'textbox "예: 2025" [ref=e16]': "2026"
+        - generic [ref=e17]:
+          - generic [ref=e18]: 학기
+          - combobox [ref=e19]:
+            - generic: 1학기
+            - img
+        - generic [ref=e21]:
+          - generic [ref=e22]: 건물 동번호
+          - 'textbox "예: 301" [ref=e177]'
+        - generic [ref=e25]:
+          - generic [ref=e26]: 검색 유형
+          - tablist "검색 유형 선택" [ref=e27]:
+            - button "교수명" [ref=e28] [cursor=pointer]
+            - button "강의실" [ref=e29] [cursor=pointer]
+            - button "빈 강의실" [pressed] [ref=e30] [cursor=pointer]
+        - button "내 주변 검색" [ref=e178]
+    - generic [ref=e188]:
+      - generic [ref=e190]:
+        - generic [ref=e191]: 현재 빈 강의실
+        - generic [ref=e192]: "기준 시각(KST): 15:22 · 선택 동 1"
+      - generic [ref=e193]:
+        - generic [ref=e194]:
+          - img "내 주변 빈 강의실 건물 레이더" [ref=e195] [cursor=pointer]
+          - generic [ref=e196]: 한 칸 50m · 반경 ±250m
+        - generic [ref=e197]:
+          - button "1 56m · 8개" [ref=e198] [cursor=pointer]:
+            - generic [ref=e199]: "1"
+            - generic [ref=e200]: 56m · 8개
+          - button "62 72m · 2개" [ref=e201] [cursor=pointer]:
+            - generic [ref=e202]: "62"
+            - generic [ref=e203]: 72m · 2개
+          - button "2 107m · 11개" [ref=e204] [cursor=pointer]:
+            - generic [ref=e205]: "2"
+            - generic [ref=e206]: 107m · 11개
+          - button "61 151m · 8개" [ref=e207] [cursor=pointer]:
+            - generic [ref=e208]: "61"
+            - generic [ref=e209]: 151m · 8개
+          - button "25 162m · 8개" [ref=e210] [cursor=pointer]:
+            - generic [ref=e211]: "25"
+            - generic [ref=e212]: 162m · 8개
+          - button "25-1 162m · 6개" [ref=e213] [cursor=pointer]:
+            - generic [ref=e214]: 25-1
+            - generic [ref=e215]: 162m · 6개
+          - button "4 163m · 4개" [ref=e216] [cursor=pointer]:
+            - generic [ref=e217]: "4"
+            - generic [ref=e218]: 163m · 4개
+          - button "20 164m · 3개" [ref=e219] [cursor=pointer]:
+            - generic [ref=e220]: "20"
+            - generic [ref=e221]: 164m · 3개
+      - generic [ref=e222]: 1동 기준 현재 빈 강의실 · 56m · 8개
+      - generic [ref=e223]:
+        - button "1-204 ~ 16:00 복사" [ref=e224] [cursor=pointer]:
+          - generic [ref=e225]: 1-204
+          - generic [ref=e226]: ~ 16:00
+          - generic [ref=e227]: 복사
+        - button "1-101 ~ 15:30 복사" [ref=e228] [cursor=pointer]:
+          - generic [ref=e229]: 1-101
+          - generic [ref=e230]: ~ 15:30
+          - generic [ref=e231]: 복사
+        - button "1-102 ~ 15:30 복사" [ref=e232] [cursor=pointer]:
+          - generic [ref=e233]: 1-102
+          - generic [ref=e234]: ~ 15:30
+          - generic [ref=e235]: 복사
+        - button "1-103 ~ 15:30 복사" [ref=e236] [cursor=pointer]:
+          - generic [ref=e237]: 1-103
+          - generic [ref=e238]: ~ 15:30
+          - generic [ref=e239]: 복사
+        - button "1-203 ~ 15:30 복사" [ref=e240] [cursor=pointer]:
+          - generic [ref=e241]: 1-203
+          - generic [ref=e242]: ~ 15:30
+          - generic [ref=e243]: 복사
+        - button "1-207 ~ 15:30 복사" [ref=e244] [cursor=pointer]:
+          - generic [ref=e245]: 1-207
+          - generic [ref=e246]: ~ 15:30
+          - generic [ref=e247]: 복사
+  - button "Open Next.js Dev Tools" [ref=e172] [cursor=pointer]:
+    - img [ref=e173]
+  - alert [ref=e176]

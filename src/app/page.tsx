@@ -45,6 +45,21 @@ type NearbyBuildingPoint = {
   rooms: FreeRoom[];
 };
 
+type LabelRect = {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+};
+
+type PlotNode = {
+  building: string;
+  item: NearbyBuildingPoint;
+  x: number;
+  y: number;
+  labelRect: LabelRect;
+};
+
 type EventBlock = {
   start: number;
   end: number;
@@ -116,6 +131,10 @@ function writeCachedGeo(pos: { lat: number; lon: number }) {
   try {
     localStorage.setItem(LAST_GEO_KEY, JSON.stringify(pos));
   } catch {}
+}
+
+function pointInRect(x: number, y: number, rect: LabelRect) {
+  return x >= rect.x && x <= rect.x + rect.w && y >= rect.y && y <= rect.y + rect.h;
 }
 
 function geoErrorMessage(err: unknown): string {
@@ -290,13 +309,12 @@ export default function TimetablePage() {
   const [freeRooms, setFreeRooms] = useState<FreeRoom[]>([]);
   const [copied, setCopied] = useState<string>("");
   const [nearbyBuildings, setNearbyBuildings] = useState<NearbyBuildingPoint[]>([]);
-  const [nearbyLoading, setNearbyLoading] = useState(false);
   const [nearbyError, setNearbyError] = useState("");
   const [nearbyScaleMeters, setNearbyScaleMeters] = useState(0);
   const [selectedNearbyBuilding, setSelectedNearbyBuilding] = useState<string>("");
   const [userPos, setUserPos] = useState<{ lat: number; lon: number } | null>(null);
   const nearbyCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const nearbyPlotRef = useRef<Array<{ building: string; x: number; y: number; r: number }>>([]);
+  const nearbyPlotRef = useRef<PlotNode[]>([]);
 
   const [collapsed, setCollapsed] = useState(false);
   const panelRef = useRef<HTMLDivElement | null>(null);
@@ -852,7 +870,6 @@ export default function TimetablePage() {
     });
 
   const loadNearbyAirdrop = async (preset?: { lat: number; lon: number }) => {
-    setNearbyLoading(true);
     setNearbyError("");
 
     try {
@@ -919,14 +936,34 @@ export default function TimetablePage() {
       setNearbyError(msg);
       trackEvent("nearby_airdrop_failed", { reason: geo?.message || "unknown" });
       return [] as NearbyBuildingPoint[];
-    } finally {
-      setNearbyLoading(false);
     }
   };
 
   useEffect(() => {
     const canvas = nearbyCanvasRef.current;
     if (!canvas) return;
+
+    const drawRoundRectPath = (
+      ctx: CanvasRenderingContext2D,
+      x: number,
+      y: number,
+      w: number,
+      h: number,
+      r: number
+    ) => {
+      const rr = Math.min(r, w / 2, h / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + rr, y);
+      ctx.lineTo(x + w - rr, y);
+      ctx.arcTo(x + w, y, x + w, y + rr, rr);
+      ctx.lineTo(x + w, y + h - rr);
+      ctx.arcTo(x + w, y + h, x + w - rr, y + h, rr);
+      ctx.lineTo(x + rr, y + h);
+      ctx.arcTo(x, y + h, x, y + h - rr, rr);
+      ctx.lineTo(x, y + rr);
+      ctx.arcTo(x, y, x + rr, y, rr);
+      ctx.closePath();
+    };
 
     const draw = () => {
       const ctx = canvas.getContext("2d");
@@ -935,9 +972,10 @@ export default function TimetablePage() {
       const rect = canvas.getBoundingClientRect();
       const width = Math.max(280, Math.round(rect.width));
       const height = Math.max(260, Math.round(rect.height));
-      const dpr = window.devicePixelRatio || 1;
-      const realW = Math.round(width * dpr);
-      const realH = Math.round(height * dpr);
+      const dprRaw = window.devicePixelRatio || 1;
+      const dpr = Math.min(Math.max(dprRaw, 1), 2);
+      const realW = Math.max(1, Math.round(width * dpr));
+      const realH = Math.max(1, Math.round(height * dpr));
 
       if (canvas.width !== realW || canvas.height !== realH) {
         canvas.width = realW;
@@ -949,162 +987,251 @@ export default function TimetablePage() {
 
       const root = getComputedStyle(document.documentElement);
       const line = (root.getPropertyValue("--line") || "#d1d5db").trim();
-      const lineSoft = (root.getPropertyValue("--line-soft") || "#e5e7eb").trim();
+      const lineSoft = (root.getPropertyValue("--line-soft") || "#eef2f7").trim();
       const primary = (root.getPropertyValue("--primary") || "#4f46e5").trim();
-      const muted = (root.getPropertyValue("--muted-foreground") || "#6b7280").trim();
+      const primary2 = (root.getPropertyValue("--primary-2") || "#6366f1").trim();
       const panel = (root.getPropertyValue("--panel") || "#ffffff").trim();
-      const accent = (root.getPropertyValue("--color-accent") || "#f8fafc").trim();
+      const mutedForeground = (root.getPropertyValue("--muted-foreground") || "#6b7280").trim();
+      const isDark = document.documentElement.classList.contains("dark");
+      const radialCardinalStroke = line;
+      const radialMinorStroke = lineSoft;
+      const ringMajorStroke = line;
+      const ringMinorStroke = lineSoft;
+      const radarBoundaryStroke = line;
+      const labelStroke = isDark ? mutedForeground : line;
 
       ctx.fillStyle = panel;
       ctx.fillRect(0, 0, width, height);
 
       const cx = width / 2;
       const cy = height / 2;
+      const centerX = Math.round(cx) + 0.5;
+      const centerY = Math.round(cy) + 0.5;
       const RADAR_CELL_METERS = 50;
-      const padding = 14;
+      const padding = 12;
       const minHalf = Math.min(width, height) / 2;
       const maxCells = Math.max(3, Math.floor((minHalf - padding) / 20));
-      const cellPx = Math.max(12, Math.min(22, (minHalf - padding) / maxCells));
-      const halfSpanPx = maxCells * cellPx;
+      const rawCellPx = Math.max(12, Math.min(22, (minHalf - padding) / maxCells));
+      const cellPx = Math.max(12, Math.min(22, Math.round(rawCellPx * 2) / 2));
+      const ringRadiusAt = (index: number) => Math.max(0.5, Math.round(index * cellPx) + 0.5);
+      const radarRadius = ringRadiusAt(maxCells);
       const viewMeters = maxCells * RADAR_CELL_METERS;
 
-      // Plot background: timetable-like muted panel
-      ctx.fillStyle = accent;
-      ctx.fillRect(cx - halfSpanPx, cy - halfSpanPx, halfSpanPx * 2, halfSpanPx * 2);
+      // Polar-only radar body.
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radarRadius, 0, Math.PI * 2);
+      ctx.clip();
 
-      ctx.lineWidth = 1;
-      for (let i = -maxCells; i <= maxCells; i++) {
-        const axis = i === 0;
-        const major = Math.abs(i) % 2 === 0;
+      // Keep radar tone identical with nearby panel.
+      ctx.fillStyle = panel;
+      ctx.fillRect(
+        Math.round(centerX - radarRadius),
+        Math.round(centerY - radarRadius),
+        Math.round(radarRadius * 2),
+        Math.round(radarRadius * 2)
+      );
 
+      const radialCount = 12;
+
+      // Polar grid: alternate sector tint to improve cell separation at a glance.
+      const sectorFill = lineSoft;
+      const sectorAlpha = isDark ? 0.44 : 0.6;
+      for (let i = 0; i < radialCount; i += 2) {
+        const start = (i * Math.PI * 2) / radialCount;
+        const end = ((i + 1) * Math.PI * 2) / radialCount;
         ctx.save();
-        ctx.globalAlpha = axis ? 1 : major ? 0.9 : 0.55;
-        ctx.strokeStyle = axis ? line : lineSoft;
-        ctx.lineWidth = axis ? 1.2 : 1;
-
-        const x = cx + i * cellPx;
-        const y = cy + i * cellPx;
-
+        ctx.globalAlpha = sectorAlpha;
+        ctx.fillStyle = sectorFill;
         ctx.beginPath();
-        ctx.moveTo(x, cy - halfSpanPx);
-        ctx.lineTo(x, cy + halfSpanPx);
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.moveTo(cx - halfSpanPx, y);
-        ctx.lineTo(cx + halfSpanPx, y);
-        ctx.stroke();
-
+        ctx.moveTo(centerX, centerY);
+        ctx.arc(centerX, centerY, radarRadius, start, end);
+        ctx.closePath();
+        ctx.fill();
         ctx.restore();
       }
 
-      // Distance rings every 100m
-      ctx.save();
-      ctx.strokeStyle = lineSoft;
-      ctx.globalAlpha = 0.8;
-      ctx.lineWidth = 1;
-      for (let i = 2; i <= maxCells; i += 2) {
+      // Polar grid: alternating ring bands to make each 50m cell separation clearer.
+      const ringBandFill = lineSoft;
+      const ringBandAlpha = isDark ? 0.5 : 0.42;
+      for (let i = 1; i <= maxCells; i += 2) {
+        ctx.save();
+        ctx.globalAlpha = ringBandAlpha;
+        ctx.fillStyle = ringBandFill;
         ctx.beginPath();
-        ctx.arc(cx, cy, i * cellPx, 0, Math.PI * 2);
+        ctx.arc(centerX, centerY, ringRadiusAt(i), 0, Math.PI * 2);
+        ctx.arc(centerX, centerY, ringRadiusAt(i - 1), 0, Math.PI * 2, true);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // Polar grid: 12 radial lines (30-degree step), cardinal emphasized.
+      const radialCardinalAlpha = isDark ? 0.9 : 0.88;
+      const radialMinorAlpha = isDark ? 0.64 : 0.58;
+      for (let i = 0; i < radialCount; i++) {
+        const angle = (i * Math.PI * 2) / radialCount;
+        const cardinal = i % 3 === 0;
+        const endX = Math.round(centerX + Math.cos(angle) * radarRadius) + 0.5;
+        const endY = Math.round(centerY + Math.sin(angle) * radarRadius) + 0.5;
+        ctx.save();
+        ctx.globalAlpha = cardinal ? radialCardinalAlpha : radialMinorAlpha;
+        ctx.strokeStyle = cardinal ? radialCardinalStroke : radialMinorStroke;
+        ctx.lineWidth = cardinal ? 1.35 : 1.05;
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.lineTo(endX, endY);
         ctx.stroke();
+        ctx.restore();
+      }
+
+      // Polar grid: rings every 50m, emphasized every 250m.
+      const ringMajorAlpha = isDark ? 0.92 : 0.88;
+      const ringMinorAlpha = isDark ? 0.7 : 0.62;
+      for (let i = 1; i <= maxCells; i++) {
+        const major = i % 5 === 0;
+        ctx.save();
+        ctx.globalAlpha = major ? ringMajorAlpha : ringMinorAlpha;
+        ctx.strokeStyle = major ? ringMajorStroke : ringMinorStroke;
+        ctx.lineWidth = major ? 1.35 : 1.05;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, ringRadiusAt(i), 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
       }
       ctx.restore();
 
-      // Plot border
-      ctx.strokeStyle = line;
-      ctx.lineWidth = 1;
-      ctx.strokeRect(cx - halfSpanPx, cy - halfSpanPx, halfSpanPx * 2, halfSpanPx * 2);
-
-      ctx.fillStyle = muted;
-      ctx.font = "11px sans-serif";
-      ctx.textAlign = "center";
-      ctx.fillText(`+${viewMeters}m`, cx, cy - halfSpanPx - 8);
-      ctx.fillText(`-${viewMeters}m`, cx, cy + halfSpanPx + 14);
-      ctx.fillText(`-${viewMeters}m`, cx - halfSpanPx - 22, cy + 4);
-      ctx.fillText(`+${viewMeters}m`, cx + halfSpanPx + 22, cy + 4);
-
-      ctx.fillStyle = primary;
+      // Radar boundary
+      ctx.save();
+      ctx.globalAlpha = isDark ? 0.96 : 0.92;
+      ctx.strokeStyle = radarBoundaryStroke;
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.arc(cx, cy, 4, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = muted;
-      ctx.fillText("ME", cx, cy - 10);
+      ctx.arc(centerX, centerY, radarRadius, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
 
-      const drawRoundRect = (x: number, y: number, w: number, h: number, r: number) => {
-        const rr = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rr, y);
-        ctx.lineTo(x + w - rr, y);
-        ctx.arcTo(x + w, y, x + w, y + rr, rr);
-        ctx.lineTo(x + w, y + h - rr);
-        ctx.arcTo(x + w, y + h, x + w - rr, y + h, rr);
-        ctx.lineTo(x + rr, y + h);
-        ctx.arcTo(x, y + h, x, y + h - rr, rr);
-        ctx.lineTo(x, y + rr);
-        ctx.arcTo(x, y, x + rr, y, rr);
-        ctx.closePath();
-      };
+      ctx.save();
+      ctx.globalAlpha = isDark ? 0.92 : 0.86;
+      ctx.fillStyle = primary2;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = panel;
+      ctx.stroke();
+      ctx.restore();
 
       nearbyPlotRef.current = [];
 
       if (!nearbyBuildings.length) {
         setNearbyScaleMeters((prev) => (prev === 0 ? prev : 0));
-        ctx.fillStyle = muted;
-        ctx.font = "13px sans-serif";
-        ctx.fillText("내 위치로 주변 빈 강의실 건물을 찾아보세요.", cx, cy + 24);
         return;
       }
 
+      const labelPaddingX = 6;
+      const labelPaddingY = 3;
+      const labelHeight = 11 + labelPaddingY * 2;
+      ctx.font = `11px "${rootFont.style.fontFamily}", "Pretendard Variable", sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
       setNearbyScaleMeters((prev) => (prev === viewMeters ? prev : viewMeters));
-      const plotItems = nearbyBuildings
+      const plotItems: PlotNode[] = nearbyBuildings
         .map((item) => {
           const gx = item.dxMeters / RADAR_CELL_METERS;
           const gy = item.dyMeters / RADAR_CELL_METERS;
-          if (Math.abs(gx) > maxCells || Math.abs(gy) > maxCells) return null;
-          return { item, gx, gy };
+          if (Math.hypot(gx, gy) > maxCells) return null;
+          const x = cx + gx * cellPx;
+          const y = cy - gy * cellPx;
+          const textWidth = Math.ceil(ctx.measureText(item.building).width);
+          const labelWidth = Math.max(18, textWidth + labelPaddingX * 2);
+          return {
+            building: item.building,
+            item,
+            x,
+            y,
+            labelRect: {
+              x: x - labelWidth / 2,
+              y: y - labelHeight / 2,
+              w: labelWidth,
+              h: labelHeight,
+            },
+          };
         })
-        .filter(
-          (v): v is { item: NearbyBuildingPoint; gx: number; gy: number } => v !== null
-        )
-        .sort((a, b) =>
-          a.item.building === selectedNearbyBuilding
-            ? 1
-            : b.item.building === selectedNearbyBuilding
-              ? -1
-              : 0
+        .filter((v): v is PlotNode => v !== null);
+
+      if (!plotItems.length) {
+        return;
+      }
+
+      const labelDrawOrder = [...plotItems].sort((a, b) => {
+        const aSelected = a.building === selectedNearbyBuilding ? 1 : 0;
+        const bSelected = b.building === selectedNearbyBuilding ? 1 : 0;
+        if (aSelected !== bSelected) return aSelected - bSelected;
+        if (a.item.distanceMeters !== b.item.distanceMeters) {
+          return b.item.distanceMeters - a.item.distanceMeters;
+        }
+        return a.building.localeCompare(b.building);
+      });
+
+      for (const node of labelDrawOrder) {
+        const isSelected = node.building === selectedNearbyBuilding;
+        ctx.save();
+        drawRoundRectPath(
+          ctx,
+          node.labelRect.x,
+          node.labelRect.y,
+          node.labelRect.w,
+          node.labelRect.h,
+          4
         );
-
-      for (const { item, gx, gy } of plotItems) {
-        const px = cx + gx * cellPx;
-        const py = cy - gy * cellPx;
-        const isSelected = item.building === selectedNearbyBuilding;
-        const label = item.building;
-        const bw = Math.max(30, Math.min(54, 16 + label.length * 8));
-        const bh = 20;
-        const bx = px - bw / 2;
-        const by = py - bh / 2;
-        const hitR = Math.max(bw, bh) * 0.62;
-
-        drawRoundRect(bx, by, bw, bh, 6);
         ctx.fillStyle = isSelected ? primary : panel;
         ctx.fill();
-        ctx.strokeStyle = isSelected ? primary : line;
-        ctx.lineWidth = isSelected ? 1.5 : 1;
+        ctx.globalAlpha = isSelected ? 1 : isDark ? 0.45 : 1;
+        ctx.strokeStyle = isSelected ? primary : labelStroke;
+        ctx.lineWidth = isSelected ? 1.4 : 1;
         ctx.stroke();
-
-        ctx.fillStyle = isSelected ? panel : muted;
-        ctx.font = "11px sans-serif";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(label, px, py + 0.5);
-
-        nearbyPlotRef.current.push({ building: item.building, x: px, y: py, r: hitR });
+        ctx.restore();
+        ctx.fillStyle = isSelected ? panel : primary;
+        ctx.fillText(node.building, Math.round(node.x), Math.round(node.y));
       }
+
+      nearbyPlotRef.current = labelDrawOrder;
+    };
+
+    let rafId = 0;
+    const scheduleDraw = () => {
+      if (rafId) return;
+      rafId = window.requestAnimationFrame(() => {
+        rafId = 0;
+        draw();
+      });
     };
 
     draw();
-    window.addEventListener("resize", draw);
-    return () => window.removeEventListener("resize", draw);
+
+    let observer: ResizeObserver | null = null;
+    let themeObserver: MutationObserver | null = null;
+    if (typeof ResizeObserver !== "undefined") {
+      observer = new ResizeObserver(() => scheduleDraw());
+      observer.observe(canvas);
+    }
+    if (typeof MutationObserver !== "undefined") {
+      themeObserver = new MutationObserver(() => scheduleDraw());
+      themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ["class", "style"],
+      });
+    }
+    window.addEventListener("resize", scheduleDraw);
+
+    return () => {
+      observer?.disconnect();
+      themeObserver?.disconnect();
+      window.removeEventListener("resize", scheduleDraw);
+      if (rafId) window.cancelAnimationFrame(rafId);
+    };
   }, [nearbyBuildings, selectedNearbyBuilding]);
 
   const onNearbyCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -1113,17 +1240,14 @@ export default function TimetablePage() {
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    let winner = "";
-    let best = Infinity;
-    for (const p of nearbyPlotRef.current) {
-      const d = Math.hypot(x - p.x, y - p.y);
-      const hitR = Math.max(12, p.r + 4);
-      if (d <= hitR && d < best) {
-        winner = p.building;
-        best = d;
+    for (let i = nearbyPlotRef.current.length - 1; i >= 0; i--) {
+      const p = nearbyPlotRef.current[i];
+      const labelRect = p.labelRect;
+      if (pointInRect(x, y, labelRect)) {
+        setSelectedNearbyBuilding(p.building);
+        return;
       }
     }
-    if (winner) setSelectedNearbyBuilding(winner);
   };
 
   useEffect(() => {
@@ -1554,17 +1678,6 @@ export default function TimetablePage() {
 
           {q.trim().length === 0 && (
             <div className="tt-freeRadarSection">
-              <div className="tt-radarHead">
-                <div className="tt-radarTitle">주변 동 레이더</div>
-                <TrackedButton
-                  button_type="nearby_airdrop_refresh"
-                  className="tt-radarRefresh"
-                  onClick={() => void loadNearbyAirdrop(userPos ?? undefined)}
-                  disabled={nearbyLoading}
-                >
-                  {nearbyLoading ? "갱신 중…" : "새로고침"}
-                </TrackedButton>
-              </div>
               <div className="tt-nearbyCanvasBox">
                 <canvas
                   ref={nearbyCanvasRef}
@@ -1602,18 +1715,6 @@ export default function TimetablePage() {
                       </button>
                     ))}
                   </div>
-
-                  {selectedNearby && (
-                    <div className="tt-nearbyDetail">
-                      <div className="tt-nearbyDetailTitle">
-                        {selectedNearby.building} {selectedNearby.buildingName}
-                      </div>
-                      <div className="tt-nearbyDetailMeta">
-                        거리 {fmtDistance(selectedNearby.distanceMeters)} · 현재 빈 강의실{" "}
-                        {selectedNearby.freeRoomCount}개 · 최장 ~ {fmtHHMM(selectedNearby.topUntil)}
-                      </div>
-                    </div>
-                  )}
                 </>
               )}
             </div>
@@ -1629,7 +1730,8 @@ export default function TimetablePage() {
             <>
               {q.trim().length === 0 && selectedNearby && (
                 <div className="tt-freeSubhead">
-                  {selectedNearby.building}동 기준 현재 빈 강의실
+                  {selectedNearby.building}동 기준 현재 빈 강의실 ·{" "}
+                  {fmtDistance(selectedNearby.distanceMeters)} · {selectedNearby.freeRoomCount}개
                 </div>
               )}
               <div className="tt-freeList">
