@@ -21,7 +21,6 @@ import localFont from "next/font/local";
 import { Label } from "@/components/ui/label";
 import { DarkModeToggle } from "@/components/DarkModeToggle";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -33,6 +32,35 @@ import {
 
 type Mode = "professor" | "room" | "free";
 type FreeRoom = { room: string; until: number };
+type GeoPoint = { lat: number; lon: number };
+type ResolvedGeoPosition = GeoPoint & { source: "gps" | "cached" };
+type NearbyBuildingPoint = {
+  building: string;
+  buildingName: string;
+  lat: number;
+  lon: number;
+  distanceMeters: number;
+  dxMeters: number;
+  dyMeters: number;
+  freeRoomCount: number;
+  topUntil: number;
+  rooms: FreeRoom[];
+};
+
+type LabelRect = {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+};
+
+type PlotNode = {
+  building: string;
+  item: NearbyBuildingPoint;
+  x: number;
+  y: number;
+  labelRect: LabelRect;
+};
 
 type EventBlock = {
   start: number;
@@ -78,6 +106,50 @@ function fmtHHMM(min: number) {
   return fmtTime(min);
 }
 
+function fmtDistance(meters: number) {
+  if (meters >= 1000) return `${(meters / 1000).toFixed(2)}km`;
+  return `${Math.round(meters)}m`;
+}
+
+const LAST_GEO_KEY = "ttuns.lastGeo.v1";
+
+function readCachedGeo(): GeoPoint | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(LAST_GEO_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { lat?: unknown; lon?: unknown };
+    const lat = Number(parsed?.lat);
+    const lon = Number(parsed?.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+    return { lat, lon };
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedGeo(pos: GeoPoint) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(LAST_GEO_KEY, JSON.stringify(pos));
+  } catch {}
+}
+
+function pointInRect(x: number, y: number, rect: LabelRect) {
+  return x >= rect.x && x <= rect.x + rect.w && y >= rect.y && y <= rect.y + rect.h;
+}
+
+function geoErrorMessage(err: unknown): string {
+  const geo = err as { code?: number; message?: string };
+  if (geo?.code === 1) return "위치 권한이 필요해요. 브라우저에서 위치 접근을 허용해 주세요.";
+  if (geo?.code === 2) return "현재 위치를 확인할 수 없어요. 잠시 후 다시 시도해 주세요.";
+  if (geo?.code === 3) return "위치 확인 시간이 초과됐어요. 다시 시도해 주세요.";
+  if (typeof window !== "undefined" && !window.isSecureContext) {
+    return "위치 기반 검색은 HTTPS 환경에서만 사용할 수 있어요.";
+  }
+  return "내 위치를 가져오지 못했어요. 동번호를 입력하거나 잠시 후 다시 시도해 주세요.";
+}
+
 function nowKst() {
   const now = new Date();
   const kst = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
@@ -112,18 +184,13 @@ function currentYearSemesterKst(): { year: string; semester: string } {
   if (m >= 2 && (m < 6 || (m === 6 && d <= 18))) return { year: String(y), semester: "1" };
 
   // 6/19~8/5: 여름학기
-  if (
-    (m === 6 && d >= 19) ||
-    m === 7 ||
-    (m === 8 && d <= 5)
-  ) {
+  if ((m === 6 && d >= 19) || m === 7 || (m === 8 && d <= 5)) {
     return { year: String(y), semester: "2" };
   }
 
   // 나머지: 2학기
   return { year: String(y), semester: "3" };
 }
-
 
 function extractDept(lec: any): string {
   return (
@@ -177,11 +244,28 @@ function groupDepts(uniqueDepts: string[]) {
 
 const rootFont = localFont({
   src: "./fonts/PretendardVariable.ttf",
-}); 
+});
 
 const chosungList = [
-  "ㄱ", "ㄲ", "ㄴ", "ㄷ", "ㄸ", "ㄹ", "ㅁ", "ㅂ", "ㅃ", "ㅅ", "ㅆ",
-  "ㅇ", "ㅈ", "ㅉ", "ㅊ", "ㅋ", "ㅌ", "ㅍ", "ㅎ",
+  "ㄱ",
+  "ㄲ",
+  "ㄴ",
+  "ㄷ",
+  "ㄸ",
+  "ㄹ",
+  "ㅁ",
+  "ㅂ",
+  "ㅃ",
+  "ㅅ",
+  "ㅆ",
+  "ㅇ",
+  "ㅈ",
+  "ㅉ",
+  "ㅊ",
+  "ㅋ",
+  "ㅌ",
+  "ㅍ",
+  "ㅎ",
 ];
 function getChosung(ch: string): string {
   if (!ch) return "";
@@ -193,8 +277,8 @@ function getChosung(ch: string): string {
 }
 
 function isFuzzyMatch(input: string, target: string): boolean {
-  const normalizedInput = input.toLowerCase().replace(/\s/g, '');
-  const normalizedTarget = target.toLowerCase().replace(/\s/g, '');
+  const normalizedInput = input.toLowerCase().replace(/\s/g, "");
+  const normalizedTarget = target.toLowerCase().replace(/\s/g, "");
 
   let input_point = 0; // input ("홍ㄱㄷ") 포인터
   let target_point = 0; // target ("홍길동") 포인터
@@ -203,7 +287,7 @@ function isFuzzyMatch(input: string, target: string): boolean {
     const inputChar = normalizedInput[input_point];
     const targetSyllable = normalizedTarget[target_point];
 
-    if (inputChar === targetSyllable ||inputChar === getChosung(targetSyllable)) {
+    if (inputChar === targetSyllable || inputChar === getChosung(targetSyllable)) {
       input_point++;
       target_point++;
     } else {
@@ -226,6 +310,13 @@ export default function TimetablePage() {
   const [events, setEvents] = useState<EventBlock[]>([]);
   const [freeRooms, setFreeRooms] = useState<FreeRoom[]>([]);
   const [copied, setCopied] = useState<string>("");
+  const [nearbyBuildings, setNearbyBuildings] = useState<NearbyBuildingPoint[]>([]);
+  const [nearbyError, setNearbyError] = useState("");
+  const [nearbyScaleMeters, setNearbyScaleMeters] = useState(0);
+  const [selectedNearbyBuilding, setSelectedNearbyBuilding] = useState<string>("");
+  const [userPos, setUserPos] = useState<ResolvedGeoPosition | null>(null);
+  const nearbyCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const nearbyPlotRef = useRef<PlotNode[]>([]);
 
   const [collapsed, setCollapsed] = useState(false);
   const panelRef = useRef<HTMLDivElement | null>(null);
@@ -314,19 +405,22 @@ export default function TimetablePage() {
     )}&semester=${encodeURIComponent(semester)}`;
     fetch(url).catch(() => {});
   }, [year, semester]);
-// 뒤로가기(popstate) 시 필터 자동 펼침
-useEffect(() => {
-  const onPop = () => setCollapsed(false);
-  window.addEventListener("popstate", onPop);
-  return () => window.removeEventListener("popstate", onPop);
-}, []);
+  // 뒤로가기(popstate) 시 필터 자동 펼침
+  useEffect(() => {
+    const onPop = () => setCollapsed(false);
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
 
-// 검색어가 비어(초기화)지면 필터 자동 펼침
-useEffect(() => {
-  if (!loading && q.trim() === "") setCollapsed(false);
-}, [q, loading]);
+  // 검색어가 비어(초기화)지면 필터 자동 펼침
+  useEffect(() => {
+    if (!loading && q.trim() === "") setCollapsed(false);
+  }, [q, loading]);
 
-  const canSearch = useMemo(() => !!year && !!semester && q.trim().length > 0, [year, semester, q]);
+  const canSearch = useMemo(
+    () => !!year && !!semester && (mode === "free" || q.trim().length > 0),
+    [mode, year, semester, q]
+  );
 
   const semesterLabel = useMemo(() => {
     const m: Record<string, string> = {
@@ -350,6 +444,10 @@ useEffect(() => {
     setActiveLectures([]);
     setEvents([]);
     setFreeRooms([]);
+    setNearbyBuildings([]);
+    setNearbyError("");
+    setNearbyScaleMeters(0);
+    setSelectedNearbyBuilding("");
     setSel(null);
   }, [mode, year, semester]);
 
@@ -446,7 +544,7 @@ useEffect(() => {
 
   const onSearch = async (overrideQ?: string | unknown) => {
     const query = (typeof overrideQ === "string" ? overrideQ : q).trim();
-    const can = !!year && !!semester && query.length > 0;
+    const can = !!year && !!semester && (mode === "free" || query.length > 0);
     if (!can) return;
 
     setInputFocused(false);
@@ -465,6 +563,50 @@ useEffect(() => {
     try {
       if (mode === "free") {
         const k = nowKst();
+        const isNearbyMode = query.length === 0;
+
+        if (isNearbyMode) {
+          let pos: ResolvedGeoPosition;
+          try {
+            pos = userPos ?? (await requestCurrentPosition());
+          } catch (err) {
+            const msg = geoErrorMessage(err);
+            setFreeRooms([]);
+            setNearbyError(msg);
+            trackEvent("search_failed", {
+              search_type: mode,
+              year,
+              semester,
+              query: "__nearby__",
+              reason: "geolocation_error",
+            });
+            return;
+          }
+
+          setUserPos(pos);
+          const points = await loadNearbyAirdrop(pos);
+          const nearest = points[0] ?? null;
+          setSelectedNearbyBuilding(nearest?.building ?? "");
+          setFreeRooms(nearest?.rooms ?? []);
+          setEvents([]);
+          setActiveLectures([]);
+          if (!nearest) {
+            setNearbyError("주변에서 빈 강의실이 있는 동을 찾지 못했어요.");
+          } else {
+            setNearbyError("");
+          }
+          trackEvent("search_performed", {
+            search_type: mode,
+            year,
+            semester,
+            query: "__nearby__",
+            query_len: 0,
+            result_count: nearest?.rooms.length ?? 0,
+          });
+          if (typeof window !== "undefined" && window.innerWidth < 720) setCollapsed(true);
+          return;
+        }
+
         const url = `/api/snutt/free-rooms?year=${encodeURIComponent(
           Number(year)
         )}&semester=${encodeURIComponent(semester)}&building=${encodeURIComponent(query)}&day=${
@@ -488,6 +630,7 @@ useEffect(() => {
         addHistory("free", query);
         setEvents([]);
         setActiveLectures([]);
+        setNearbyError("");
         trackEvent("search_performed", {
           search_type: mode,
           year,
@@ -668,6 +811,445 @@ useEffect(() => {
       trackEvent("room_copied", { room_prefix: room.split("-")[0] || "", label_len: room.length });
       setTimeout(() => setCopied(""), 1500);
     } catch {}
+  };
+
+  const selectedNearby = useMemo(
+    () =>
+      nearbyBuildings.find((b) => b.building === selectedNearbyBuilding) ??
+      nearbyBuildings[0] ??
+      null,
+    [nearbyBuildings, selectedNearbyBuilding]
+  );
+
+  useEffect(() => {
+    if (mode !== "free") return;
+    if (q.trim().length !== 0) return;
+    setFreeRooms(selectedNearby?.rooms ?? []);
+  }, [mode, q, selectedNearby]);
+
+  const requestCurrentPosition = () =>
+    new Promise<ResolvedGeoPosition>((resolve, reject) => {
+      const cached = readCachedGeo();
+      if (typeof navigator === "undefined") {
+        if (cached) {
+          resolve({ ...cached, source: "cached" });
+          return;
+        }
+        reject(new Error("navigator unavailable"));
+        return;
+      }
+      if (!navigator.geolocation) {
+        if (cached) {
+          resolve({ ...cached, source: "cached" });
+          return;
+        }
+        reject(new Error("geolocation unsupported"));
+        return;
+      }
+      try {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const next = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+            writeCachedGeo(next);
+            resolve({ ...next, source: "gps" });
+          },
+          (err) => {
+            if (cached) {
+              resolve({ ...cached, source: "cached" });
+              return;
+            }
+            reject(err);
+          },
+          { enableHighAccuracy: true, timeout: 12_000, maximumAge: 60_000 }
+        );
+      } catch (err) {
+        if (cached) {
+          resolve({ ...cached, source: "cached" });
+          return;
+        }
+        reject(err);
+      }
+    });
+
+  const loadNearbyAirdrop = async (preset?: ResolvedGeoPosition) => {
+    setNearbyError("");
+
+    try {
+      const pos = preset ?? (await requestCurrentPosition());
+      setUserPos(pos);
+
+      const url = `/api/snutt/recommendation/location?year=${encodeURIComponent(
+        Number(year)
+      )}&semester=${encodeURIComponent(semester)}&lat=${encodeURIComponent(
+        pos.lat
+      )}&lon=${encodeURIComponent(pos.lon)}&limit=24&radiusMeters=600&format=buildings`;
+      const res = await fetch(url);
+      const data: unknown = await res.json();
+
+      if (!res.ok || !Array.isArray(data)) {
+        setNearbyBuildings([]);
+        setSelectedNearbyBuilding("");
+        setNearbyError((data as { error?: string })?.error || "내 주변 정보를 불러오지 못했어요.");
+        return [] as NearbyBuildingPoint[];
+      }
+
+      const parsed = (data as unknown[])
+        .map((item) => {
+          const row = item as Partial<NearbyBuildingPoint>;
+          if (
+            typeof row?.building !== "string" ||
+            typeof row?.buildingName !== "string" ||
+            typeof row?.lat !== "number" ||
+            typeof row?.lon !== "number" ||
+            typeof row?.distanceMeters !== "number" ||
+            typeof row?.dxMeters !== "number" ||
+            typeof row?.dyMeters !== "number" ||
+            typeof row?.freeRoomCount !== "number" ||
+            typeof row?.topUntil !== "number" ||
+            !Array.isArray(row?.rooms)
+          ) {
+            return null;
+          }
+          const rooms = row.rooms
+            .filter(
+              (r): r is FreeRoom =>
+                !!r &&
+                typeof (r as FreeRoom).room === "string" &&
+                typeof (r as FreeRoom).until === "number"
+            )
+            .slice(0, 6);
+          return { ...row, rooms } as NearbyBuildingPoint;
+        })
+        .filter((row): row is NearbyBuildingPoint => row !== null);
+
+      setNearbyBuildings(parsed);
+      setSelectedNearbyBuilding(parsed[0]?.building ?? "");
+      trackEvent("nearby_airdrop_loaded", {
+        count: parsed.length,
+        year,
+        semester,
+      });
+      return parsed;
+    } catch (err) {
+      const geo = err as { message?: string };
+      const msg = geoErrorMessage(err);
+      setNearbyBuildings([]);
+      setSelectedNearbyBuilding("");
+      setNearbyError(msg);
+      trackEvent("nearby_airdrop_failed", { reason: geo?.message || "unknown" });
+      return [] as NearbyBuildingPoint[];
+    }
+  };
+
+  useEffect(() => {
+    const canvas = nearbyCanvasRef.current;
+    if (!canvas) return;
+
+    const drawRoundRectPath = (
+      ctx: CanvasRenderingContext2D,
+      x: number,
+      y: number,
+      w: number,
+      h: number,
+      r: number
+    ) => {
+      const rr = Math.min(r, w / 2, h / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + rr, y);
+      ctx.lineTo(x + w - rr, y);
+      ctx.arcTo(x + w, y, x + w, y + rr, rr);
+      ctx.lineTo(x + w, y + h - rr);
+      ctx.arcTo(x + w, y + h, x + w - rr, y + h, rr);
+      ctx.lineTo(x + rr, y + h);
+      ctx.arcTo(x, y + h, x, y + h - rr, rr);
+      ctx.lineTo(x, y + rr);
+      ctx.arcTo(x, y, x + rr, y, rr);
+      ctx.closePath();
+    };
+
+    const draw = () => {
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const width = Math.max(280, Math.round(rect.width));
+      const height = Math.max(260, Math.round(rect.height));
+      const dprRaw = window.devicePixelRatio || 1;
+      const dpr = Math.min(Math.max(dprRaw, 1), 2);
+      const realW = Math.max(1, Math.round(width * dpr));
+      const realH = Math.max(1, Math.round(height * dpr));
+
+      if (canvas.width !== realW || canvas.height !== realH) {
+        canvas.width = realW;
+        canvas.height = realH;
+      }
+
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+
+      const root = getComputedStyle(document.documentElement);
+      const line = (root.getPropertyValue("--line") || "#d1d5db").trim();
+      const lineSoft = (root.getPropertyValue("--line-soft") || "#eef2f7").trim();
+      const primary = (root.getPropertyValue("--primary") || "#4f46e5").trim();
+      const primary2 = (root.getPropertyValue("--primary-2") || "#6366f1").trim();
+      const panel = (root.getPropertyValue("--panel") || "#ffffff").trim();
+      const mutedForeground = (root.getPropertyValue("--muted-foreground") || "#6b7280").trim();
+      const isDark = document.documentElement.classList.contains("dark");
+      const radialCardinalStroke = line;
+      const radialMinorStroke = lineSoft;
+      const ringMajorStroke = line;
+      const ringMinorStroke = lineSoft;
+      const radarBoundaryStroke = line;
+      const labelStroke = isDark ? mutedForeground : line;
+
+      ctx.fillStyle = panel;
+      ctx.fillRect(0, 0, width, height);
+
+      const cx = width / 2;
+      const cy = height / 2;
+      const centerX = Math.round(cx) + 0.5;
+      const centerY = Math.round(cy) + 0.5;
+      const RADAR_CELL_METERS = 50;
+      const padding = 12;
+      const minHalf = Math.min(width, height) / 2;
+      const maxCells = Math.max(3, Math.floor((minHalf - padding) / 20));
+      const rawCellPx = Math.max(12, Math.min(22, (minHalf - padding) / maxCells));
+      const cellPx = Math.max(12, Math.min(22, Math.round(rawCellPx * 2) / 2));
+      const ringRadiusAt = (index: number) => Math.max(0.5, Math.round(index * cellPx) + 0.5);
+      const radarRadius = ringRadiusAt(maxCells);
+      const viewMeters = maxCells * RADAR_CELL_METERS;
+
+      // Polar-only radar body.
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radarRadius, 0, Math.PI * 2);
+      ctx.clip();
+
+      // Keep radar tone identical with nearby panel.
+      ctx.fillStyle = panel;
+      ctx.fillRect(
+        Math.round(centerX - radarRadius),
+        Math.round(centerY - radarRadius),
+        Math.round(radarRadius * 2),
+        Math.round(radarRadius * 2)
+      );
+
+      const radialCount = 12;
+
+      // Polar grid: alternate sector tint to improve cell separation at a glance.
+      const sectorFill = lineSoft;
+      const sectorAlpha = isDark ? 0.44 : 0.6;
+      for (let i = 0; i < radialCount; i += 2) {
+        const start = (i * Math.PI * 2) / radialCount;
+        const end = ((i + 1) * Math.PI * 2) / radialCount;
+        ctx.save();
+        ctx.globalAlpha = sectorAlpha;
+        ctx.fillStyle = sectorFill;
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.arc(centerX, centerY, radarRadius, start, end);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // Polar grid: alternating ring bands to make each 50m cell separation clearer.
+      const ringBandFill = lineSoft;
+      const ringBandAlpha = isDark ? 0.5 : 0.42;
+      for (let i = 1; i <= maxCells; i += 2) {
+        ctx.save();
+        ctx.globalAlpha = ringBandAlpha;
+        ctx.fillStyle = ringBandFill;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, ringRadiusAt(i), 0, Math.PI * 2);
+        ctx.arc(centerX, centerY, ringRadiusAt(i - 1), 0, Math.PI * 2, true);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // Polar grid: 12 radial lines (30-degree step), cardinal emphasized.
+      const radialCardinalAlpha = isDark ? 0.9 : 0.88;
+      const radialMinorAlpha = isDark ? 0.64 : 0.58;
+      for (let i = 0; i < radialCount; i++) {
+        const angle = (i * Math.PI * 2) / radialCount;
+        const cardinal = i % 3 === 0;
+        const endX = Math.round(centerX + Math.cos(angle) * radarRadius) + 0.5;
+        const endY = Math.round(centerY + Math.sin(angle) * radarRadius) + 0.5;
+        ctx.save();
+        ctx.globalAlpha = cardinal ? radialCardinalAlpha : radialMinorAlpha;
+        ctx.strokeStyle = cardinal ? radialCardinalStroke : radialMinorStroke;
+        ctx.lineWidth = cardinal ? 1.35 : 1.05;
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.lineTo(endX, endY);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Polar grid: rings every 50m, emphasized every 250m.
+      const ringMajorAlpha = isDark ? 0.92 : 0.88;
+      const ringMinorAlpha = isDark ? 0.7 : 0.62;
+      for (let i = 1; i <= maxCells; i++) {
+        const major = i % 5 === 0;
+        ctx.save();
+        ctx.globalAlpha = major ? ringMajorAlpha : ringMinorAlpha;
+        ctx.strokeStyle = major ? ringMajorStroke : ringMinorStroke;
+        ctx.lineWidth = major ? 1.35 : 1.05;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, ringRadiusAt(i), 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+      ctx.restore();
+
+      // Radar boundary
+      ctx.save();
+      ctx.globalAlpha = isDark ? 0.96 : 0.92;
+      ctx.strokeStyle = radarBoundaryStroke;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radarRadius, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+
+      ctx.save();
+      ctx.globalAlpha = isDark ? 0.92 : 0.86;
+      ctx.fillStyle = primary2;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = panel;
+      ctx.stroke();
+      ctx.restore();
+
+      nearbyPlotRef.current = [];
+
+      if (!nearbyBuildings.length) {
+        setNearbyScaleMeters((prev) => (prev === 0 ? prev : 0));
+        return;
+      }
+
+      const labelPaddingX = 6;
+      const labelPaddingY = 3;
+      const labelHeight = 11 + labelPaddingY * 2;
+      ctx.font = `11px "${rootFont.style.fontFamily}", "Pretendard Variable", sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
+      setNearbyScaleMeters((prev) => (prev === viewMeters ? prev : viewMeters));
+      const plotItems: PlotNode[] = nearbyBuildings
+        .map((item) => {
+          const gx = item.dxMeters / RADAR_CELL_METERS;
+          const gy = item.dyMeters / RADAR_CELL_METERS;
+          if (Math.hypot(gx, gy) > maxCells) return null;
+          const x = cx + gx * cellPx;
+          const y = cy - gy * cellPx;
+          const textWidth = Math.ceil(ctx.measureText(item.building).width);
+          const labelWidth = Math.max(18, textWidth + labelPaddingX * 2);
+          return {
+            building: item.building,
+            item,
+            x,
+            y,
+            labelRect: {
+              x: x - labelWidth / 2,
+              y: y - labelHeight / 2,
+              w: labelWidth,
+              h: labelHeight,
+            },
+          };
+        })
+        .filter((v): v is PlotNode => v !== null);
+
+      if (!plotItems.length) {
+        return;
+      }
+
+      const labelDrawOrder = [...plotItems].sort((a, b) => {
+        const aSelected = a.building === selectedNearbyBuilding ? 1 : 0;
+        const bSelected = b.building === selectedNearbyBuilding ? 1 : 0;
+        if (aSelected !== bSelected) return aSelected - bSelected;
+        if (a.item.distanceMeters !== b.item.distanceMeters) {
+          return b.item.distanceMeters - a.item.distanceMeters;
+        }
+        return a.building.localeCompare(b.building);
+      });
+
+      for (const node of labelDrawOrder) {
+        const isSelected = node.building === selectedNearbyBuilding;
+        ctx.save();
+        drawRoundRectPath(
+          ctx,
+          node.labelRect.x,
+          node.labelRect.y,
+          node.labelRect.w,
+          node.labelRect.h,
+          4
+        );
+        ctx.fillStyle = isSelected ? primary : panel;
+        ctx.fill();
+        ctx.globalAlpha = isSelected ? 1 : isDark ? 0.45 : 1;
+        ctx.strokeStyle = isSelected ? primary : labelStroke;
+        ctx.lineWidth = isSelected ? 1.4 : 1;
+        ctx.stroke();
+        ctx.restore();
+        ctx.fillStyle = isSelected ? panel : primary;
+        ctx.fillText(node.building, Math.round(node.x), Math.round(node.y));
+      }
+
+      nearbyPlotRef.current = labelDrawOrder;
+    };
+
+    let rafId = 0;
+    const scheduleDraw = () => {
+      if (rafId) return;
+      rafId = window.requestAnimationFrame(() => {
+        rafId = 0;
+        draw();
+      });
+    };
+
+    draw();
+
+    let observer: ResizeObserver | null = null;
+    let themeObserver: MutationObserver | null = null;
+    if (typeof ResizeObserver !== "undefined") {
+      observer = new ResizeObserver(() => scheduleDraw());
+      observer.observe(canvas);
+    }
+    if (typeof MutationObserver !== "undefined") {
+      themeObserver = new MutationObserver(() => scheduleDraw());
+      themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ["class", "style"],
+      });
+    }
+    window.addEventListener("resize", scheduleDraw);
+
+    return () => {
+      observer?.disconnect();
+      themeObserver?.disconnect();
+      window.removeEventListener("resize", scheduleDraw);
+      if (rafId) window.cancelAnimationFrame(rafId);
+    };
+  }, [nearbyBuildings, selectedNearbyBuilding]);
+
+  const onNearbyCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!nearbyPlotRef.current.length) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    for (let i = nearbyPlotRef.current.length - 1; i >= 0; i--) {
+      const p = nearbyPlotRef.current[i];
+      const labelRect = p.labelRect;
+      if (pointInRect(x, y, labelRect)) {
+        setSelectedNearbyBuilding(p.building);
+        return;
+      }
+    }
   };
 
   useEffect(() => {
@@ -1042,7 +1624,11 @@ useEffect(() => {
                 onClick={() => onSearch()}
                 disabled={!canSearch || loading}
               >
-                {loading ? "불러오는 중…" : "검색"}
+                {loading
+                  ? "불러오는 중…"
+                  : mode === "free" && q.trim().length === 0
+                    ? "내 주변 검색"
+                    : "검색"}
               </TrackedButton>
 
               {mode === "professor" && deptOptions.length > 1 && (
@@ -1079,27 +1665,95 @@ useEffect(() => {
       {mode === "free" && !loading && (
         <div className="tt-freeWrap">
           <div className="tt-freeHead">
-            <div className="tt-freeTitle">현재 빈 강의실</div>
-            <div className="tt-freeMeta">기준 시각(KST): {nowKst().hhmm}</div>
+            <div>
+              <div className="tt-freeTitle">현재 빈 강의실</div>
+              <div className="tt-freeMeta">
+                기준 시각(KST): {nowKst().hhmm}{" "}
+                {q.trim().length > 0
+                  ? `· ${q.trim()}동`
+                  : selectedNearby
+                    ? `· 선택 동 ${selectedNearby.building}`
+                    : "· 내 주변"}
+                {q.trim().length === 0 && userPos?.source === "cached" && (
+                  <span className="tt-geoApprox"> · 대략적 위치</span>
+                )}
+              </div>
+            </div>
           </div>
 
-          {freeRooms.length === 0 ? (
-            <div className="tt-empty">결과가 없습니다. 동번호와 학기를 확인해 주세요.</div>
-          ) : (
-            <div className="tt-freeList">
-              {freeRooms.map(({ room, until }) => (
-                <TrackedButton
-                  key={room}
-                  button_type="free_room_copy"
-                  className="tt-roomBtn"
-                  onClick={() => copyRoom(room)}
-                >
-                  <span className="tt-roomName">{room}</span>
-                  <span className="tt-until">~ {fmtHHMM(until)}</span>
-                  <span className="tt-copy">{copied === room ? "복사됨" : "복사"}</span>
-                </TrackedButton>
-              ))}
+          {q.trim().length === 0 && (
+            <div className="tt-freeRadarSection">
+              <div className="tt-nearbyCanvasBox">
+                <canvas
+                  ref={nearbyCanvasRef}
+                  className="tt-nearbyCanvas"
+                  onClick={onNearbyCanvasClick}
+                  role="img"
+                  aria-label="내 주변 빈 강의실 건물 레이더"
+                />
+                {nearbyScaleMeters > 0 && (
+                  <div className="tt-nearbyScale">
+                    한 칸 50m · 반경 ±{fmtDistance(nearbyScaleMeters)}
+                  </div>
+                )}
+              </div>
+
+              {nearbyError && <div className="tt-nearbyError">{nearbyError}</div>}
+
+              {!!nearbyBuildings.length && (
+                <>
+                  <div className="tt-nearbyList">
+                    {nearbyBuildings.slice(0, 8).map((b) => (
+                      <button
+                        key={b.building}
+                        type="button"
+                        className={clsx(
+                          "tt-nearbyChip",
+                          selectedNearby?.building === b.building && "on"
+                        )}
+                        onClick={() => setSelectedNearbyBuilding(b.building)}
+                      >
+                        <span className="tt-nearbyChipTitle">{b.building}</span>
+                        <span className="tt-nearbyChipMeta">
+                          {fmtDistance(b.distanceMeters)} · {b.freeRoomCount}개
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
+          )}
+
+          {freeRooms.length === 0 ? (
+            <div className="tt-empty">
+              {q.trim().length === 0
+                ? "주변에서 현재 빈 강의실이 있는 동을 찾지 못했어요."
+                : "결과가 없습니다. 동번호와 학기를 확인해 주세요."}
+            </div>
+          ) : (
+            <>
+              {q.trim().length === 0 && selectedNearby && (
+                <div className="tt-freeSubhead">
+                  {selectedNearby.building}동 기준 현재 빈 강의실 ·{" "}
+                  {fmtDistance(selectedNearby.distanceMeters)} · {selectedNearby.freeRoomCount}개
+                </div>
+              )}
+              <div className="tt-freeList">
+                {freeRooms.map(({ room, until }) => (
+                  <TrackedButton
+                    key={room}
+                    button_type="free_room_copy"
+                    className="tt-roomBtn"
+                    onClick={() => copyRoom(room)}
+                  >
+                    <span className="tt-roomName">{room}</span>
+                    <span className="tt-until">~ {fmtHHMM(until)}</span>
+                    <span className="tt-copy">{copied === room ? "복사됨" : "복사"}</span>
+                  </TrackedButton>
+                ))}
+              </div>
+            </>
           )}
         </div>
       )}
