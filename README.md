@@ -22,7 +22,7 @@ You can override dataset directory with `SNUTT_LOCAL_DATA_DIR`.
 Install crawler dependencies:
 
 ```bash
-pip install requests beautifulsoup4
+pip install requests xlrd
 ```
 
 Run full crawl (2024-1 ~ 2026-1):
@@ -34,17 +34,17 @@ python3 dev/crawl_sugang.py
 Run smoke crawl:
 
 ```bash
-python3 dev/crawl_sugang.py --term 2026-1 --max-pages 2 --max-details 20 --force
+python3 dev/crawl_sugang.py --term 2026-1 --max-details 20 --force
 ```
 
 Useful options:
 
 - `--workers 8`
 - `--term 2026-1` (can repeat)
-- `--max-pages N`
 - `--max-details N`
 - `--out-dir data/sugang`
 - `--force`
+- `--keep-xls`
 
 ### Format Guideline
 

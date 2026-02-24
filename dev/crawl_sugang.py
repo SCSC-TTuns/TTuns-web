@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """
-Crawl SNU course data from sugang.snu.ac.kr and export LectureSlim JSON files.
+Download SNU course data via "엑셀저장" and export LectureSlim JSON files.
+
+Flow:
+1) Select target semester via request payload
+2) Trigger Excel export endpoint
+3) Parse downloaded .xls and convert to local LectureSlim schema
 
 Output schema (compatible with existing API):
 [
@@ -21,37 +26,29 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
-import multiprocessing as mp
 import random
 import re
-import threading
 import time
-from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 try:
     import requests
 except Exception as exc:  # pragma: no cover
-    raise SystemExit(
-        "requests is required. Install with: pip install requests beautifulsoup4"
-    ) from exc
+    raise SystemExit("requests is required. Install with: pip install requests xlrd") from exc
 
 try:
-    from bs4 import BeautifulSoup
+    import xlrd
 except Exception as exc:  # pragma: no cover
-    raise SystemExit(
-        "beautifulsoup4 is required. Install with: pip install requests beautifulsoup4"
-    ) from exc
+    raise SystemExit("xlrd is required. Install with: pip install requests xlrd") from exc
 
 
 BASE_URL = "https://sugang.snu.ac.kr"
-LIST_ENDPOINT = "/sugang/cc/cc100InterfaceSrch.action"
-DETAIL_ENDPOINT = "/sugang/cc/cc101ajax.action"
 SEMESTER_META_ENDPOINT = "/sugang/cc/cc100ajax.action"
+SEARCH_ENDPOINT = "/sugang/cc/cc100InterfaceSrch.action"
+EXCEL_ENDPOINT = "/sugang/cc/cc100InterfaceExcel.action"
 
 DAY_KO_TO_INDEX = {"월": 0, "화": 1, "수": 2, "목": 3, "금": 4, "토": 5, "일": 6}
 DAY_EN_TO_INDEX = {
@@ -64,12 +61,11 @@ DAY_EN_TO_INDEX = {
     "SUN": 6,
 }
 
-DAY_TIME_KO_RE = re.compile(r"([월화수목금토일])\((\d{1,2}:\d{2})\s*~\s*(\d{1,2}:\d{2})\)")
+DAY_TIME_KO_RE = re.compile(r"([월화수목금토일])\s*\((\d{1,2}:\d{2})\s*~\s*(\d{1,2}:\d{2})\)")
 DAY_TIME_EN_RE = re.compile(
-    r"\b(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\.?\((\d{1,2}:\d{2})\s*~\s*(\d{1,2}:\d{2})\)",
+    r"\b(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\.?\s*\((\d{1,2}:\d{2})\s*~\s*(\d{1,2}:\d{2})\)",
     re.IGNORECASE,
 )
-TOTAL_COUNT_RE = re.compile(r"([0-9][0-9,]*)\s*건")
 
 DEFAULT_TERMS: Tuple[Tuple[int, int], ...] = (
     (2024, 1),
@@ -90,7 +86,56 @@ DEFAULT_SHTM_CODES = {
     4: "U000200002U000300002",  # winter
 }
 
-DETAIL_POOL_CONTEXT = mp.get_context("spawn")
+# Hidden fields from form HD102; Excel endpoint expects full field set.
+HD102_FIELD_NAMES: Tuple[str, ...] = (
+    "workType",
+    "pageNo",
+    "srchOpenSchyy",
+    "srchOpenShtm",
+    "srchSbjtNm",
+    "srchSbjtCd",
+    "seeMore",
+    "srchCptnCorsFg",
+    "srchOpenShyr",
+    "srchOpenUpSbjtFldCd",
+    "srchOpenSbjtFldCd",
+    "srchOpenUpDeptCd",
+    "srchOpenDeptCd",
+    "srchOpenMjCd",
+    "srchOpenSubmattCorsFg",
+    "srchOpenSubmattFgCd1",
+    "srchOpenSubmattFgCd2",
+    "srchOpenSubmattFgCd3",
+    "srchOpenSubmattFgCd4",
+    "srchOpenSubmattFgCd5",
+    "srchOpenSubmattFgCd6",
+    "srchOpenSubmattFgCd7",
+    "srchOpenSubmattFgCd8",
+    "srchOpenSubmattFgCd9",
+    "srchExcept",
+    "srchOpenPntMin",
+    "srchOpenPntMax",
+    "srchCamp",
+    "srchBdNo",
+    "srchProfNm",
+    "srchOpenSbjtTmNm",
+    "srchOpenSbjtDayNm",
+    "srchOpenSbjtTm",
+    "srchOpenSbjtNm",
+    "srchTlsnAplyCapaCntMin",
+    "srchTlsnAplyCapaCntMax",
+    "srchLsnProgType",
+    "srchTlsnRcntMin",
+    "srchTlsnRcntMax",
+    "srchMrksGvMthd",
+    "srchIsEngSbjt",
+    "srchMrksApprMthdChgPosbYn",
+    "srchIsPendingCourse",
+    "srchGenrlRemoteLtYn",
+    "srchLanguage",
+    "srchCurrPage",
+    "srchPageSize",
+)
 
 
 class CrawlError(RuntimeError):
@@ -107,31 +152,11 @@ class Term:
         return f"{self.year}-{self.semester}"
 
 
-@dataclass(frozen=True)
-class CourseStub:
-    key: str
-    open_schyy: str
-    open_shtm_fg: str
-    open_deta_shtm_fg: str
-    sbjt_cd: str
-    lt_no: str
-    sbjt_subh_cd: str
-    fallback_title: str
-
-
 @dataclass
-class CrawlStats:
-    total_count: int = 0
-    page_count: int = 0
-    listed_rows: int = 0
-    unique_rows: int = 0
-    resumed_rows: int = 0
-    fetched_rows: int = 0
+class ParseStats:
+    total_rows: int = 0
+    emitted_rows: int = 0
     failed_rows: int = 0
-
-
-_DETAIL_WORKER_CLIENT: Optional["SugangClient"] = None
-_DETAIL_WORKER_TERM: Optional[Term] = None
 
 
 class SugangClient:
@@ -140,7 +165,7 @@ class SugangClient:
         session: requests.Session,
         max_attempts: int = 5,
         connect_timeout_sec: int = 10,
-        read_timeout_sec: int = 20,
+        read_timeout_sec: int = 30,
     ):
         self.session = session
         self.max_attempts = max_attempts
@@ -192,6 +217,10 @@ def build_session() -> requests.Session:
     return session
 
 
+def normalize_space(value: str) -> str:
+    return re.sub(r"\s+", " ", (value or "")).strip()
+
+
 def canonical_sem_from_kor_name(kor_name: str) -> Optional[int]:
     text = (kor_name or "").strip()
     if "여름" in text:
@@ -208,9 +237,8 @@ def canonical_sem_from_kor_name(kor_name: str) -> Optional[int]:
 def fetch_semester_code_map(client: SugangClient) -> Dict[int, str]:
     payload = {"openUpDeptCd": "", "openDeptCd": ""}
     resp = client.post_form(SEMESTER_META_ENDPOINT, payload)
-    raw = resp.text
     try:
-        data = json.loads(raw)
+        data = json.loads(resp.text)
     except json.JSONDecodeError as exc:
         raise CrawlError("failed to parse semester metadata JSON") from exc
 
@@ -225,118 +253,82 @@ def fetch_semester_code_map(client: SugangClient) -> Dict[int, str]:
     return out
 
 
-def parse_total_count(soup: BeautifulSoup) -> int:
-    small = soup.select_one(".search-result-con small")
-    if not small:
-        return 0
-    text = small.get_text(" ", strip=True)
-    m = TOTAL_COUNT_RE.search(text)
+def parse_term_arg(raw: str) -> Term:
+    text = raw.strip()
+    m = re.match(r"^(\d{4})[-_/](\w+)$", text)
     if not m:
-        return 0
-    return int(m.group(1).replace(",", ""))
+        raise argparse.ArgumentTypeError("--term must look like YYYY-N (e.g., 2026-1)")
+
+    year = int(m.group(1))
+    sem_token = m.group(2).upper()
+
+    if sem_token in {"1", "2", "3", "4"}:
+        sem = int(sem_token)
+    elif sem_token in {"S", "SUMMER"}:
+        sem = 2
+    elif sem_token in {"W", "WINTER"}:
+        sem = 4
+    elif sem_token in {"F", "FALL", "SECOND", "AUTUMN"}:
+        sem = 3
+    else:
+        raise argparse.ArgumentTypeError(f"invalid semester token: {sem_token}")
+
+    return Term(year=year, semester=sem)
 
 
-def normalize_space(value: str) -> str:
-    return re.sub(r"\s+", " ", (value or "")).strip()
+def build_terms_from_args(term_args: Optional[List[Term]]) -> List[Term]:
+    if not term_args:
+        return [Term(year=y, semester=s) for y, s in DEFAULT_TERMS]
+
+    uniq: Dict[str, Term] = {}
+    for term in term_args:
+        uniq[term.key] = term
+    return [uniq[k] for k in sorted(uniq.keys())]
 
 
-def build_stub_from_item(item: Any, default_year: int, default_sem_code: str) -> Optional[CourseStub]:
-    hidden: Dict[str, str] = {}
-    for inp in item.select("input[type='hidden']"):
-        name = (inp.get("name") or "").strip()
-        if not name:
-            continue
-        hidden[name] = normalize_space(str(inp.get("value") or ""))
-
-    # sbjtSubhCd can be empty in recent terms; keep the row and query detail with empty string.
-    sbjt_cd = hidden.get("sbjtCd") or ""
-    lt_no = hidden.get("ltNo") or ""
-    if not sbjt_cd or not lt_no:
-        return None
-
-    open_schyy = hidden.get("openSchyy") or str(default_year)
-    open_shtm_fg = hidden.get("openShtmFg") or default_sem_code
-    open_deta_shtm_fg = hidden.get("openDetaShtmFg") or open_shtm_fg
-    sbjt_subh_cd = hidden.get("sbjtSubhCd") or ""
-
-    title_node = item.select_one(".course-name strong")
-    fallback_title = normalize_space(title_node.get_text(" ", strip=True) if title_node else "")
-
-    key = "|".join(
-        [
-            open_schyy,
-            open_shtm_fg,
-            open_deta_shtm_fg,
-            sbjt_cd,
-            lt_no,
-            sbjt_subh_cd,
-        ]
-    )
-
-    return CourseStub(
-        key=key,
-        open_schyy=open_schyy,
-        open_shtm_fg=open_shtm_fg,
-        open_deta_shtm_fg=open_deta_shtm_fg,
-        sbjt_cd=sbjt_cd,
-        lt_no=lt_no,
-        sbjt_subh_cd=sbjt_subh_cd,
-        fallback_title=fallback_title,
-    )
-
-
-def list_page_payload(year: int, sem_code: str, page_no: int) -> Dict[str, str]:
+def search_payload(term: Term, sem_code: str) -> Dict[str, str]:
     return {
         "workType": "S",
-        "pageNo": str(page_no),
-        "srchOpenSchyy": str(year),
+        "pageNo": "1",
+        "srchOpenSchyy": str(term.year),
         "srchOpenShtm": sem_code,
         "srchLanguage": "ko",
-        "srchCurrPage": str(page_no),
+        "srchCurrPage": "1",
         "srchPageSize": "9999",
     }
 
 
-def collect_course_stubs(
-    client: SugangClient,
-    term: Term,
-    sem_code: str,
-    max_pages: Optional[int],
-) -> Tuple[List[CourseStub], CrawlStats]:
-    stats = CrawlStats()
+def excel_payload(term: Term, sem_code: str) -> Dict[str, str]:
+    payload = {name: "" for name in HD102_FIELD_NAMES}
+    payload.update(
+        {
+            "workType": "EX",
+            "pageNo": "1",
+            "srchOpenSchyy": str(term.year),
+            "srchOpenShtm": sem_code,
+            "srchLanguage": "ko",
+            "srchCurrPage": "1",
+            "srchPageSize": "9999",
+        }
+    )
+    return payload
 
-    first = client.post_form(LIST_ENDPOINT, list_page_payload(term.year, sem_code, 1))
-    soup = BeautifulSoup(first.text, "html.parser")
 
-    total = parse_total_count(soup)
-    stats.total_count = total
+def download_excel_for_term(client: SugangClient, term: Term, sem_code: str) -> bytes:
+    # Keep the same flow as UI: search first, then excel export.
+    client.post_form(SEARCH_ENDPOINT, search_payload(term, sem_code))
+    resp = client.post_form(EXCEL_ENDPOINT, excel_payload(term, sem_code))
 
-    estimated_pages = max(1, math.ceil(total / 10)) if total > 0 else 1
-    if max_pages is not None:
-        estimated_pages = min(estimated_pages, max_pages)
-    stats.page_count = estimated_pages
+    content = resp.content or b""
+    if not content:
+        raise CrawlError(f"[{term.key}] excel response is empty")
 
-    stubs: List[CourseStub] = []
+    # Expected legacy XLS magic bytes (OLE2): D0 CF 11 E0 ...
+    if not content.startswith(b"\xd0\xcf\x11\xe0"):
+        snippet = normalize_space(resp.text)[:160]
+        raise CrawlError(f"[{term.key}] unexpected excel response body: {snippet!r}")
 
-    def parse_soup(page_soup: BeautifulSoup) -> None:
-        nonlocal stubs, stats
-        items = page_soup.select(".course-info-item")
-        for item in items:
-            stub = build_stub_from_item(item, default_year=term.year, default_sem_code=sem_code)
-            if stub is None:
-                continue
-            stubs.append(stub)
-            stats.listed_rows += 1
-
-    parse_soup(soup)
-
-    for page_no in range(2, estimated_pages + 1):
-        if page_no % 100 == 0 or page_no == estimated_pages:
-            print(f"[{term.key}] list progress {page_no}/{estimated_pages}")
-        resp = client.post_form(LIST_ENDPOINT, list_page_payload(term.year, sem_code, page_no))
-        parse_soup(BeautifulSoup(resp.text, "html.parser"))
-
-    return stubs, stats
+    return content
 
 
 def parse_hhmm(value: str) -> Optional[int]:
@@ -348,43 +340,6 @@ def parse_hhmm(value: str) -> Optional[int]:
     if hh < 0 or hh > 23 or mm < 0 or mm > 59:
         return None
     return hh * 60 + mm
-
-
-def normalize_place(raw: str) -> str:
-    place = normalize_space(raw)
-    # Remove trailing parenthetical metadata e.g., "(무선랜제공)"
-    while place:
-        updated = re.sub(r"\s*\([^)]*\)\s*$", "", place).strip()
-        if updated == place:
-            break
-        place = updated
-    return place
-
-
-def clean_instructor(raw: str) -> str:
-    text = normalize_space(raw)
-    if not text:
-        return ""
-    text = re.sub(r"\s*\([^)]*\)", "", text)
-    text = re.sub(r"\s*,\s*", ", ", text)
-    text = re.sub(r"\s+", " ", text)
-    return text.strip(" ,")
-
-
-def build_course_title(base_title: str, subtitle: str, fallback_title: str) -> str:
-    base = normalize_space(base_title)
-    sub = normalize_space(subtitle)
-    fallback = normalize_space(fallback_title)
-
-    if base and sub and sub not in ("-", "-"):
-        if sub not in base:
-            return f"{base} ({sub})"
-        return base
-    if base:
-        return base
-    if fallback:
-        return fallback
-    return ""
 
 
 def parse_day_time_tokens(raw: str) -> List[Tuple[int, int, int]]:
@@ -410,188 +365,181 @@ def parse_day_time_tokens(raw: str) -> List[Tuple[int, int, int]]:
     return out
 
 
-def detail_payload(stub: CourseStub) -> Dict[str, str]:
-    return {
-        "workType": "",
-        "openSchyy": stub.open_schyy,
-        "openShtmFg": stub.open_shtm_fg,
-        "openDetaShtmFg": stub.open_deta_shtm_fg,
-        "sbjtCd": stub.sbjt_cd,
-        "ltNo": stub.lt_no,
-        "sbjtSubhCd": stub.sbjt_subh_cd,
-        "t_profPersNo": "",
-    }
+def normalize_place(raw: str) -> str:
+    place = normalize_space(raw)
+    if place in {"", "-", "/"}:
+        return ""
+    while place:
+        updated = re.sub(r"\s*\([^)]*\)\s*$", "", place).strip()
+        if updated == place:
+            break
+        place = updated
+    if place in {"", "-", "/"}:
+        return ""
+    return place
 
 
-def parse_detail_json(raw: str) -> Dict[str, Any]:
-    try:
-        return json.loads(raw)
-    except json.JSONDecodeError as exc:
-        raise CrawlError("detail JSON parse failed") from exc
-
-
-def transform_detail_to_slim(term: Term, stub: CourseStub, detail: Dict[str, Any]) -> Dict[str, Any]:
-    tab = detail.get("LISTTAB01") or {}
-
-    title = build_course_title(
-        str(tab.get("sbjtNm") or ""),
-        str(tab.get("sbjtSubhNm") or ""),
-        stub.fallback_title,
-    )
-
-    instructor = clean_instructor(str(tab.get("profNm") or ""))
-    department = normalize_space(str(tab.get("departmentKorNm") or tab.get("deptKorNm") or ""))
-    course_number = normalize_space(str(tab.get("sbjtCd") or stub.sbjt_cd))
-    lecture_number = normalize_space(str(tab.get("ltNo") or stub.lt_no))
-
-    lt_times = detail.get("ltTime") if isinstance(detail.get("ltTime"), list) else []
-    lt_rooms = detail.get("ltRoom") if isinstance(detail.get("ltRoom"), list) else []
-
-    # Fallback: when ltTime[] is empty, use LISTTAB01.ltTime string.
-    if not any(normalize_space(str(v)) for v in lt_times):
-        fallback_time = normalize_space(str(tab.get("ltTime") or ""))
-        if fallback_time:
-            lt_times = [fallback_time]
-
-    if not any(normalize_space(str(v)) for v in lt_rooms):
-        fallback_room = normalize_space(str(tab.get("ltRoom") or ""))
-        if fallback_room:
-            lt_rooms = [fallback_room]
-
-    class_time_json: List[Dict[str, Any]] = []
-
-    for idx, raw_time in enumerate(lt_times):
-        time_text = normalize_space(str(raw_time))
-        if not time_text:
-            continue
-
-        tokens = parse_day_time_tokens(time_text)
-        if not tokens:
-            continue
-
-        room_text = normalize_space(str(lt_rooms[idx] if idx < len(lt_rooms) else (lt_rooms[0] if lt_rooms else "")))
-        place = normalize_place(room_text)
-
-        for day, start_minute, end_minute in tokens:
-            class_time_json.append(
-                {
-                    "day": day,
-                    "startMinute": start_minute,
-                    "endMinute": end_minute,
-                    "place": place,
-                }
-            )
-
-    return {
-        "course_title": title,
-        "instructor": instructor,
-        "class_time_json": class_time_json,
-        "course_number": course_number,
-        "lecture_number": lecture_number,
-        "department": department,
-        "year": term.year,
-        "semester": term.semester,
-    }
-
-
-def load_checkpoint_map(path: Path) -> Dict[str, Dict[str, Any]]:
-    out: Dict[str, Dict[str, Any]] = {}
-    if not path.exists():
-        return out
-
-    with path.open("r", encoding="utf-8") as fp:
-        for line in fp:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                row = json.loads(line)
-                key = str(row.get("key") or "")
-                lecture = row.get("lecture")
-                if key and isinstance(lecture, dict):
-                    out[key] = lecture
-            except Exception:
-                continue
-
+def split_places(raw: str) -> List[str]:
+    text = normalize_space(raw)
+    if not text:
+        return []
+    parts = re.split(r"\s*/\s*|\s*\n+\s*", text)
+    out = [p for p in (normalize_space(x) for x in parts) if p and p not in {"-", "/"}]
     return out
 
 
-def append_checkpoint(path: Path, key: str, lecture: Dict[str, Any], lock: threading.Lock) -> None:
-    row = {"key": key, "lecture": lecture}
-    data = json.dumps(row, ensure_ascii=False)
-    with lock:
-        with path.open("a", encoding="utf-8") as fp:
-            fp.write(data)
-            fp.write("\n")
+def clean_instructor(raw: str) -> str:
+    text = normalize_space(raw)
+    if not text:
+        return ""
+    text = re.sub(r"\s*\([^)]*\)", "", text)
+    text = re.sub(r"\s*,\s*", ", ", text)
+    text = re.sub(r"\s+", " ", text)
+    return text.strip(" ,")
 
 
-def parse_term_arg(raw: str) -> Term:
-    text = raw.strip()
-    m = re.match(r"^(\d{4})[-_/](\w+)$", text)
-    if not m:
-        raise argparse.ArgumentTypeError("--term must look like YYYY-N (e.g., 2026-1)")
+def build_course_title(base_title: str, subtitle: str, fallback_title: str) -> str:
+    base = normalize_space(base_title)
+    sub = normalize_space(subtitle)
+    fallback = normalize_space(fallback_title)
 
-    year = int(m.group(1))
-    sem_token = m.group(2).upper()
-
-    if sem_token in {"1", "2", "3", "4"}:
-        sem = int(sem_token)
-    elif sem_token in {"S", "SUMMER"}:
-        sem = 2
-    elif sem_token in {"W", "WINTER"}:
-        sem = 4
-    elif sem_token in {"F", "FALL", "SECOND", "AUTUMN"}:
-        sem = 3
-    else:
-        raise argparse.ArgumentTypeError(f"invalid semester token: {sem_token}")
-
-    if sem not in {1, 2, 3, 4}:
-        raise argparse.ArgumentTypeError("semester must be one of 1|2|3|4|S|W")
-
-    return Term(year=year, semester=sem)
+    if base and sub and sub not in ("-",):
+        if sub not in base:
+            return f"{base} ({sub})"
+        return base
+    if base:
+        return base
+    if fallback:
+        return fallback
+    return ""
 
 
-def init_detail_worker(
-    term_year: int,
-    term_semester: int,
-    max_attempts: int,
-    connect_timeout_sec: int,
-    read_timeout_sec: int,
-) -> None:
-    global _DETAIL_WORKER_CLIENT, _DETAIL_WORKER_TERM
-
-    session = build_session()
-    client = SugangClient(
-        session=session,
-        max_attempts=max_attempts,
-        connect_timeout_sec=connect_timeout_sec,
-        read_timeout_sec=read_timeout_sec,
-    )
-    # Detail endpoint stability improves when session cookie is initialized per process.
-    client.post_form(SEMESTER_META_ENDPOINT, {"openUpDeptCd": "", "openDeptCd": ""})
-
-    _DETAIL_WORKER_CLIENT = client
-    _DETAIL_WORKER_TERM = Term(year=term_year, semester=term_semester)
+def cell_text(sheet: xlrd.sheet.Sheet, row: int, col: int) -> str:
+    if row >= sheet.nrows or col >= sheet.ncols:
+        return ""
+    value = sheet.cell_value(row, col)
+    return normalize_space(str(value))
 
 
-def fetch_detail_for_row(row_key: str, stub: CourseStub) -> Tuple[str, Dict[str, Any]]:
-    if _DETAIL_WORKER_CLIENT is None or _DETAIL_WORKER_TERM is None:
-        raise CrawlError("detail worker is not initialized")
+def find_col(headers: List[str], candidates: Tuple[str, ...]) -> Optional[int]:
+    for cand in candidates:
+        for idx, header in enumerate(headers):
+            if header == cand:
+                return idx
+    for cand in candidates:
+        for idx, header in enumerate(headers):
+            if cand and cand in header:
+                return idx
+    return None
 
-    response = _DETAIL_WORKER_CLIENT.post_form(DETAIL_ENDPOINT, detail_payload(stub))
-    detail = parse_detail_json(response.text)
-    lecture = transform_detail_to_slim(_DETAIL_WORKER_TERM, stub, detail)
-    return row_key, lecture
+
+def resolve_excel_columns(sheet: xlrd.sheet.Sheet) -> Dict[str, int]:
+    if sheet.nrows < 3:
+        raise CrawlError("excel sheet is missing header rows")
+
+    headers = [cell_text(sheet, 2, c) for c in range(sheet.ncols)]
+    specs: Dict[str, Tuple[str, ...]] = {
+        "course_number": ("교과목번호",),
+        "lecture_number": ("강좌번호",),
+        "course_title": ("교과목명",),
+        "subtitle": ("부제명",),
+        "department": ("개설학과",),
+        "time": ("수업교시",),
+        "place": ("강의실(동-호)(#연건, *평창)", "강의실(동-호)"),
+        "instructor": ("주담당교수", "담당교수"),
+    }
+
+    cols: Dict[str, int] = {}
+    missing: List[str] = []
+    for key, candidates in specs.items():
+        idx = find_col(headers, candidates)
+        if idx is None:
+            missing.append(key)
+        else:
+            cols[key] = idx
+
+    if missing:
+        raise CrawlError(f"excel header mismatch; missing columns: {', '.join(sorted(missing))}")
+
+    return cols
 
 
-def build_terms_from_args(term_args: Optional[List[Term]]) -> List[Term]:
-    if not term_args:
-        return [Term(year=y, semester=s) for y, s in DEFAULT_TERMS]
+def parse_class_time_json(raw_time: str, raw_place: str) -> List[Dict[str, Any]]:
+    tokens = parse_day_time_tokens(raw_time)
+    if not tokens:
+        return []
 
-    uniq: Dict[str, Term] = {}
-    for term in term_args:
-        uniq[term.key] = term
-    return [uniq[k] for k in sorted(uniq.keys())]
+    places = split_places(raw_place)
+    out: List[Dict[str, Any]] = []
+    for idx, (day, start_minute, end_minute) in enumerate(tokens):
+        place = ""
+        if places:
+            if len(places) == 1:
+                place = places[0]
+            elif idx < len(places):
+                place = places[idx]
+            else:
+                place = places[-1]
+
+        out.append(
+            {
+                "day": day,
+                "startMinute": start_minute,
+                "endMinute": end_minute,
+                "place": normalize_place(place),
+            }
+        )
+    return out
+
+
+def parse_excel_to_lectures(
+    excel_bytes: bytes,
+    term: Term,
+    max_details: Optional[int],
+) -> Tuple[List[Dict[str, Any]], ParseStats]:
+    book = xlrd.open_workbook(file_contents=excel_bytes)
+    if book.nsheets <= 0:
+        raise CrawlError("excel workbook has no sheets")
+    sheet = book.sheet_by_index(0)
+
+    cols = resolve_excel_columns(sheet)
+    stats = ParseStats()
+    lectures: List[Dict[str, Any]] = []
+
+    for row in range(3, sheet.nrows):
+        if max_details is not None and len(lectures) >= max_details:
+            break
+
+        # Skip fully empty rows.
+        if not any(cell_text(sheet, row, c) for c in range(sheet.ncols)):
+            continue
+
+        stats.total_rows += 1
+        try:
+            title = build_course_title(
+                cell_text(sheet, row, cols["course_title"]),
+                cell_text(sheet, row, cols["subtitle"]),
+                "",
+            )
+            lecture = {
+                "course_title": title,
+                "instructor": clean_instructor(cell_text(sheet, row, cols["instructor"])),
+                "class_time_json": parse_class_time_json(
+                    cell_text(sheet, row, cols["time"]),
+                    cell_text(sheet, row, cols["place"]),
+                ),
+                "course_number": cell_text(sheet, row, cols["course_number"]),
+                "lecture_number": cell_text(sheet, row, cols["lecture_number"]),
+                "department": cell_text(sheet, row, cols["department"]),
+                "year": term.year,
+                "semester": term.semester,
+            }
+            lectures.append(lecture)
+            stats.emitted_rows += 1
+        except Exception:
+            stats.failed_rows += 1
+
+    return lectures, stats
 
 
 def crawl_term(
@@ -599,99 +547,54 @@ def crawl_term(
     term: Term,
     sem_code: str,
     out_dir: Path,
-    workers: int,
-    max_pages: Optional[int],
     max_details: Optional[int],
     force: bool,
+    keep_xls: bool,
 ) -> Dict[str, Any]:
     term_key = term.key
     out_file = out_dir / f"{term_key}.json"
-    tmp_file = out_dir / ".tmp" / f"{term_key}.rows.v2.jsonl"
 
-    if force:
-        if out_file.exists():
-            out_file.unlink()
-        if tmp_file.exists():
-            tmp_file.unlink()
+    if out_file.exists() and not force:
+        existing = json.loads(out_file.read_text(encoding="utf-8"))
+        count = len(existing) if isinstance(existing, list) else 0
+        print(f"[{term_key}] skip (exists): {out_file}")
+        return {
+            "term": term_key,
+            "year": term.year,
+            "semester": term.semester,
+            "count": count,
+            "source": "https://sugang.snu.ac.kr",
+            "generatedAt": datetime.now(timezone.utc).isoformat(),
+            "failedRows": 0,
+            "totalRows": count,
+        }
 
-    stubs, stats = collect_course_stubs(client, term, sem_code, max_pages=max_pages)
+    excel_bytes = download_excel_for_term(client, term, sem_code)
+    if keep_xls:
+        xls_path = out_dir / ".tmp" / f"{term_key}.xls"
+        xls_path.parent.mkdir(parents=True, exist_ok=True)
+        xls_path.write_bytes(excel_bytes)
+        print(f"[{term_key}] xls saved: {xls_path}")
 
-    # Preserve list-row cardinality to avoid dropping courses when keys collide or duplicate list rows exist.
-    ordered_rows: List[Tuple[str, CourseStub]] = []
-    unique_detail_keys: Dict[str, CourseStub] = {}
-    for idx, stub in enumerate(stubs):
-        row_key = f"{idx + 1:05d}|{stub.key}"
-        ordered_rows.append((row_key, stub))
-        unique_detail_keys.setdefault(stub.key, stub)
-    stats.unique_rows = len(unique_detail_keys)
-
-    checkpoint_map = load_checkpoint_map(tmp_file)
-    stats.resumed_rows = sum(1 for row_key, _ in ordered_rows if row_key in checkpoint_map)
-
-    if max_details is not None:
-        ordered_rows = ordered_rows[: max(0, max_details)]
-
-    pending_rows = [(row_key, stub) for row_key, stub in ordered_rows if row_key not in checkpoint_map]
-
-    print(
-        f"[{term_key}] total={stats.total_count} pages={stats.page_count} "
-        f"listed={stats.listed_rows} uniqueDetailKeys={stats.unique_rows} "
-        f"resumedRows={stats.resumed_rows} pendingRows={len(pending_rows)}"
-    )
-
-    lock = threading.Lock()
-
-    if pending_rows:
-        with ProcessPoolExecutor(
-            max_workers=workers,
-            mp_context=DETAIL_POOL_CONTEXT,
-            initializer=init_detail_worker,
-            initargs=(
-                term.year,
-                term.semester,
-                client.max_attempts,
-                client.connect_timeout_sec,
-                client.read_timeout_sec,
-            ),
-        ) as executor:
-            futures = {
-                executor.submit(fetch_detail_for_row, row_key, stub): (row_key, stub.key)
-                for row_key, stub in pending_rows
-            }
-
-            for idx, future in enumerate(as_completed(futures), start=1):
-                row_key, detail_key = futures[future]
-                try:
-                    result_row_key, lecture = future.result()
-                    checkpoint_map[result_row_key] = lecture
-                    append_checkpoint(tmp_file, result_row_key, lecture, lock)
-                    stats.fetched_rows += 1
-                except Exception as exc:
-                    stats.failed_rows += 1
-                    print(f"[{term_key}] detail failed row={row_key} key={detail_key}: {exc}")
-
-                if idx % 200 == 0 or idx == len(futures):
-                    print(
-                        f"[{term_key}] detail progress {idx}/{len(futures)} "
-                        f"fetched={stats.fetched_rows} failed={stats.failed_rows}"
-                    )
-
-    final_data = [checkpoint_map[row_key] for row_key, _ in ordered_rows if row_key in checkpoint_map]
+    lectures, parse_stats = parse_excel_to_lectures(excel_bytes, term, max_details=max_details)
 
     out_file.parent.mkdir(parents=True, exist_ok=True)
-    with out_file.open("w", encoding="utf-8") as fp:
-        json.dump(final_data, fp, ensure_ascii=False, indent=2)
+    out_file.write_text(json.dumps(lectures, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    generated_at = datetime.now(timezone.utc).isoformat()
+    print(
+        f"[{term_key}] excelRows={parse_stats.total_rows} "
+        f"emitted={parse_stats.emitted_rows} failed={parse_stats.failed_rows}"
+    )
+
     return {
         "term": term_key,
         "year": term.year,
         "semester": term.semester,
-        "count": len(final_data),
+        "count": len(lectures),
         "source": "https://sugang.snu.ac.kr",
-        "generatedAt": generated_at,
-        "failedRows": stats.failed_rows,
-        "totalRows": stats.total_count,
+        "generatedAt": datetime.now(timezone.utc).isoformat(),
+        "failedRows": parse_stats.failed_rows,
+        "totalRows": parse_stats.total_rows,
     }
 
 
@@ -708,22 +611,22 @@ def write_index(out_dir: Path, summaries: List[Dict[str, Any]]) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Crawl SNU sugang and export LectureSlim JSON files.",
+        description="Download SNU sugang Excel and export LectureSlim JSON files.",
     )
-    parser.add_argument("--workers", type=int, default=8, help="detail request worker processes (default: 8)")
-    parser.add_argument("--force", action="store_true", help="overwrite existing outputs and checkpoint")
+    parser.add_argument("--workers", type=int, default=8, help="compat option (ignored in excel mode)")
+    parser.add_argument("--force", action="store_true", help="overwrite existing outputs")
     parser.add_argument(
         "--term",
         action="append",
         type=parse_term_arg,
         help="target term, can repeat. format: YYYY-N (N in 1|2|3|4|S|W)",
     )
-    parser.add_argument("--max-pages", type=int, default=None, help="limit list pages per term")
+    parser.add_argument("--max-pages", type=int, default=None, help="compat option (ignored in excel mode)")
     parser.add_argument(
         "--max-details",
         type=int,
         default=None,
-        help="limit number of listed lecture rows per term",
+        help="limit number of parsed lecture rows per term",
     )
     parser.add_argument(
         "--out-dir",
@@ -731,11 +634,18 @@ def main() -> None:
         default=Path("data") / "sugang",
         help="output directory (default: data/sugang)",
     )
+    parser.add_argument(
+        "--keep-xls",
+        action="store_true",
+        help="save downloaded .xls to out-dir/.tmp for debugging",
+    )
 
     args = parser.parse_args()
 
     if args.workers <= 0:
         raise SystemExit("--workers must be > 0")
+    if args.max_pages is not None:
+        print("note: --max-pages is ignored in excel mode")
 
     out_dir: Path = args.out_dir
     (out_dir / ".tmp").mkdir(parents=True, exist_ok=True)
@@ -747,29 +657,26 @@ def main() -> None:
         session=session,
         max_attempts=5,
         connect_timeout_sec=10,
-        read_timeout_sec=20,
+        read_timeout_sec=60,
     )
 
-    # Initialize session cookies via homepage
+    # Initialize session cookies and fetch semester code metadata.
     client.post_form(SEMESTER_META_ENDPOINT, {"openUpDeptCd": "", "openDeptCd": ""})
     sem_codes = fetch_semester_code_map(client)
 
     summaries: List[Dict[str, Any]] = []
-
     for term in terms:
         sem_code = sem_codes.get(term.semester)
         if not sem_code:
             raise CrawlError(f"missing semester code for canonical semester={term.semester}")
-
         summary = crawl_term(
             client=client,
             term=term,
             sem_code=sem_code,
             out_dir=out_dir,
-            workers=args.workers,
-            max_pages=args.max_pages,
             max_details=args.max_details,
             force=args.force,
+            keep_xls=args.keep_xls,
         )
         summaries.append(summary)
 
@@ -777,12 +684,9 @@ def main() -> None:
 
     print("\nDone.")
     for row in summaries:
-        print(f" - {row['term']}: {row['count']} lectures (failed detail rows: {row['failedRows']})")
+        print(f" - {row['term']}: {row['count']} lectures (failed rows: {row['failedRows']})")
     print(f"Index: {out_dir / 'index.json'}")
 
 
 if __name__ == "__main__":
-    # Spawned worker interpreters can load this file as __main__;
-    # prevent recursively executing the CLI entrypoint there.
-    if mp.parent_process() is None:
-        main()
+    main()

@@ -45,3 +45,4 @@ data/sugang/.tmp
 __pycache__
 
 .venv
+tmp

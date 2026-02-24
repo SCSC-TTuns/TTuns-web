@@ -198,7 +198,7 @@
     ],
     "course_number": "M2177.005500",
     "lecture_number": "001",
-    "department": "공과대학",
+    "department": "",
     "year": 2025,
     "semester": 2
   },
@@ -290,60 +290,146 @@
     "semester": 2
   },
   {
-    "course_title": "글로벌 공학기술 교류 특강 1 (세라믹스 고급공정)",
-    "instructor": "유효빈",
-    "class_time_json": [
-      {
-        "day": 2,
-        "startMinute": 840,
-        "endMinute": 890,
-        "place": "38-422"
-      },
-      {
-        "day": 3,
-        "startMinute": 840,
-        "endMinute": 890,
-        "place": "38-422"
-      },
-      {
-        "day": 4,
-        "startMinute": 840,
-        "endMinute": 890,
-        "place": "38-422"
-      }
-    ],
-    "course_number": "M2177.005500",
-    "lecture_number": "001",
-    "department": "공과대학",
-    "year": 2025,
-    "semester": 2
-  },
-  {
-    "course_title": "사상과 윤리",
-    "instructor": "김남희",
+    "course_title": "한국사",
+    "instructor": "박정민",
     "class_time_json": [
       {
         "day": 0,
         "startMinute": 540,
         "endMinute": 710,
-        "place": "10-1-308"
+        "place": "14-208"
       },
       {
         "day": 2,
         "startMinute": 540,
         "endMinute": 710,
-        "place": "10-1-308"
+        "place": "14-208"
       },
       {
         "day": 4,
         "startMinute": 540,
         "endMinute": 710,
-        "place": "10-1-308"
+        "place": "14-208"
       }
     ],
-    "course_number": "C20.117",
+    "course_number": "C20.149",
     "lecture_number": "001",
-    "department": "윤리교육과",
+    "department": "역사학부",
+    "year": 2025,
+    "semester": 2
+  },
+  {
+    "course_title": "학교폭력예방 및 학생의 이해",
+    "instructor": "류장한",
+    "class_time_json": [
+      {
+        "day": 0,
+        "startMinute": 780,
+        "endMinute": 950,
+        "place": "10-1-103"
+      },
+      {
+        "day": 2,
+        "startMinute": 780,
+        "endMinute": 950,
+        "place": "10-1-103"
+      }
+    ],
+    "course_number": "T1831.001000",
+    "lecture_number": "001",
+    "department": "교육학과",
+    "year": 2025,
+    "semester": 2
+  },
+  {
+    "course_title": "특수교육학개론",
+    "instructor": "김주선",
+    "class_time_json": [
+      {
+        "day": 1,
+        "startMinute": 600,
+        "endMinute": 770,
+        "place": "9-113"
+      },
+      {
+        "day": 3,
+        "startMinute": 600,
+        "endMinute": 770,
+        "place": "9-113"
+      }
+    ],
+    "course_number": "700.020A",
+    "lecture_number": "001",
+    "department": "교육학과",
+    "year": 2025,
+    "semester": 2
+  },
+  {
+    "course_title": "교육행정 및 교육경영",
+    "instructor": "이평구",
+    "class_time_json": [
+      {
+        "day": 1,
+        "startMinute": 780,
+        "endMinute": 950,
+        "place": "10-110"
+      },
+      {
+        "day": 3,
+        "startMinute": 780,
+        "endMinute": 950,
+        "place": "10-110"
+      }
+    ],
+    "course_number": "700.006",
+    "lecture_number": "001",
+    "department": "교육학과",
+    "year": 2025,
+    "semester": 2
+  },
+  {
+    "course_title": "디지털 교육",
+    "instructor": "홍수민",
+    "class_time_json": [
+      {
+        "day": 1,
+        "startMinute": 660,
+        "endMinute": 735,
+        "place": "10-105"
+      },
+      {
+        "day": 3,
+        "startMinute": 660,
+        "endMinute": 735,
+        "place": "10-105"
+      }
+    ],
+    "course_number": "T2184.002400",
+    "lecture_number": "001",
+    "department": "교육학과",
+    "year": 2025,
+    "semester": 2
+  },
+  {
+    "course_title": "생활지도 및 상담",
+    "instructor": "조수연",
+    "class_time_json": [
+      {
+        "day": 2,
+        "startMinute": 780,
+        "endMinute": 950,
+        "place": "9-103"
+      },
+      {
+        "day": 3,
+        "startMinute": 780,
+        "endMinute": 950,
+        "place": "9-103"
+      }
+    ],
+    "course_number": "T1831.000300",
+    "lecture_number": "001",
+    "department": "교육학과",
     "year": 2025,
     "semester": 2
   },
@@ -390,7 +476,27 @@
     ],
     "course_number": "F37.101",
     "lecture_number": "001",
-    "department": "학부대학",
+    "department": "",
+    "year": 2025,
+    "semester": 2
+  },
+  {
+    "course_title": "학생자율연구: 탐구",
+    "instructor": "윤태준",
+    "class_time_json": [],
+    "course_number": "E31.103",
+    "lecture_number": "011",
+    "department": "",
+    "year": 2025,
+    "semester": 2
+  },
+  {
+    "course_title": "학생자율연구: 탐구",
+    "instructor": "김대현",
+    "class_time_json": [],
+    "course_number": "E31.103",
+    "lecture_number": "007",
+    "department": "",
     "year": 2025,
     "semester": 2
   },
@@ -419,111 +525,7 @@
     ],
     "course_number": "F31.201",
     "lecture_number": "001",
-    "department": "학부대학",
-    "year": 2025,
-    "semester": 2
-  },
-  {
-    "course_title": "고전에 길을 묻다",
-    "instructor": "김재호",
-    "class_time_json": [
-      {
-        "day": 0,
-        "startMinute": 720,
-        "endMinute": 890,
-        "place": "61-102"
-      },
-      {
-        "day": 2,
-        "startMinute": 720,
-        "endMinute": 890,
-        "place": "61-102"
-      },
-      {
-        "day": 4,
-        "startMinute": 720,
-        "endMinute": 890,
-        "place": "61-102"
-      }
-    ],
-    "course_number": "E11.104",
-    "lecture_number": "003",
-    "department": "학부대학",
-    "year": 2025,
-    "semester": 2
-  },
-  {
-    "course_title": "학생자율연구: 탐구",
-    "instructor": "김성엽",
-    "class_time_json": [],
-    "course_number": "E31.103",
-    "lecture_number": "002",
-    "department": "학부대학",
-    "year": 2025,
-    "semester": 2
-  },
-  {
-    "course_title": "학생자율연구: 탐구",
-    "instructor": "안우영",
-    "class_time_json": [],
-    "course_number": "E31.103",
-    "lecture_number": "004",
-    "department": "학부대학",
-    "year": 2025,
-    "semester": 2
-  },
-  {
-    "course_title": "학생자율연구: 탐구",
-    "instructor": "박한선",
-    "class_time_json": [],
-    "course_number": "E31.103",
-    "lecture_number": "005",
-    "department": "학부대학",
-    "year": 2025,
-    "semester": 2
-  },
-  {
-    "course_title": "지속가능발전과 에너지 전환",
-    "instructor": "윤세미",
-    "class_time_json": [
-      {
-        "day": 0,
-        "startMinute": 600,
-        "endMinute": 770,
-        "place": "140-2-202"
-      },
-      {
-        "day": 1,
-        "startMinute": 600,
-        "endMinute": 770,
-        "place": "140-2-202"
-      },
-      {
-        "day": 2,
-        "startMinute": 600,
-        "endMinute": 770,
-        "place": "140-2-202"
-      },
-      {
-        "day": 3,
-        "startMinute": 600,
-        "endMinute": 770,
-        "place": "140-2-202"
-      }
-    ],
-    "course_number": "M3459.000800",
-    "lecture_number": "001",
-    "department": "국제학과",
-    "year": 2025,
-    "semester": 2
-  },
-  {
-    "course_title": "학생자율연구: 탐구",
-    "instructor": "서상우",
-    "class_time_json": [],
-    "course_number": "E31.103",
-    "lecture_number": "012",
-    "department": "학부대학",
+    "department": "",
     "year": 2025,
     "semester": 2
   },
@@ -533,7 +535,7 @@
     "class_time_json": [],
     "course_number": "E31.103",
     "lecture_number": "003",
-    "department": "학부대학",
+    "department": "",
     "year": 2025,
     "semester": 2
   },
@@ -543,7 +545,7 @@
     "class_time_json": [],
     "course_number": "E31.103",
     "lecture_number": "005",
-    "department": "학부대학",
+    "department": "",
     "year": 2025,
     "semester": 2
   },
@@ -815,43 +817,31 @@
     "semester": 2
   },
   {
-    "course_title": "융합교육을 위한 기초 프로그래밍",
-    "instructor": "유연주",
+    "course_title": "라틴어 1",
+    "instructor": "박헌영",
     "class_time_json": [
       {
         "day": 0,
-        "startMinute": 1080,
-        "endMinute": 1250,
-        "place": "10-207"
-      },
-      {
-        "day": 1,
-        "startMinute": 1080,
-        "endMinute": 1250,
-        "place": "10-207"
+        "startMinute": 720,
+        "endMinute": 890,
+        "place": "8-B101"
       },
       {
         "day": 2,
-        "startMinute": 1080,
-        "endMinute": 1250,
-        "place": "10-207"
-      },
-      {
-        "day": 3,
-        "startMinute": 1080,
-        "endMinute": 1250,
-        "place": "10-207"
+        "startMinute": 720,
+        "endMinute": 890,
+        "place": "8-B101"
       },
       {
         "day": 4,
-        "startMinute": 1080,
-        "endMinute": 1250,
-        "place": "10-207"
+        "startMinute": 720,
+        "endMinute": 890,
+        "place": "8-B101"
       }
     ],
-    "course_number": "M3450.000600",
+    "course_number": "F29.103",
     "lecture_number": "001",
-    "department": "AI융합교육학과",
+    "department": "협동과정 서양고전학전공",
     "year": 2025,
     "semester": 2
   },
@@ -961,6 +951,64 @@
     "semester": 2
   },
   {
+    "course_title": "(공유)지열에너지공학",
+    "instructor": "민기복",
+    "class_time_json": [
+      {
+        "day": 0,
+        "startMinute": 540,
+        "endMinute": 710,
+        "place": ""
+      },
+      {
+        "day": 2,
+        "startMinute": 540,
+        "endMinute": 710,
+        "place": ""
+      },
+      {
+        "day": 4,
+        "startMinute": 540,
+        "endMinute": 710,
+        "place": ""
+      }
+    ],
+    "course_number": "M3500.005700",
+    "lecture_number": "001",
+    "department": "혁신공유학부",
+    "year": 2025,
+    "semester": 2
+  },
+  {
+    "course_title": "(공유)학부생 연구 인턴",
+    "instructor": "응웬트렁",
+    "class_time_json": [
+      {
+        "day": 0,
+        "startMinute": 1080,
+        "endMinute": 1190,
+        "place": ""
+      },
+      {
+        "day": 1,
+        "startMinute": 1080,
+        "endMinute": 1190,
+        "place": ""
+      },
+      {
+        "day": 2,
+        "startMinute": 1080,
+        "endMinute": 1190,
+        "place": ""
+      }
+    ],
+    "course_number": "M3502.004100",
+    "lecture_number": "003",
+    "department": "혁신공유학부",
+    "year": 2025,
+    "semester": 2
+  },
+  {
     "course_title": "(공유)AI입문",
     "instructor": "김남준",
     "class_time_json": [
@@ -1019,142 +1067,66 @@
     "semester": 2
   },
   {
-    "course_title": "집중일본어 2",
-    "instructor": "한정연",
+    "course_title": "(공유)학부생 연구 인턴",
+    "instructor": "김남준",
     "class_time_json": [
       {
         "day": 0,
-        "startMinute": 720,
-        "endMinute": 950,
-        "place": "7-201"
+        "startMinute": 1080,
+        "endMinute": 1190,
+        "place": ""
       },
-      {
-        "day": 2,
-        "startMinute": 720,
-        "endMinute": 950,
-        "place": "7-201"
-      },
-      {
-        "day": 4,
-        "startMinute": 720,
-        "endMinute": 950,
-        "place": "7-201"
-      }
-    ],
-    "course_number": "1003.272",
-    "lecture_number": "002",
-    "department": "아시아언어문명학부",
-    "year": 2025,
-    "semester": 2
-  },
-  {
-    "course_title": "(공유)컴퓨터처럼 생각하기",
-    "instructor": "이정원",
-    "class_time_json": [
       {
         "day": 1,
-        "startMinute": 720,
-        "endMinute": 890,
+        "startMinute": 1080,
+        "endMinute": 1190,
         "place": ""
       },
       {
         "day": 2,
-        "startMinute": 720,
-        "endMinute": 890,
-        "place": ""
-      },
-      {
-        "day": 3,
-        "startMinute": 720,
-        "endMinute": 890,
+        "startMinute": 1080,
+        "endMinute": 1190,
         "place": ""
       }
     ],
-    "course_number": "M3502.007000",
+    "course_number": "M3502.004100",
     "lecture_number": "001",
     "department": "혁신공유학부",
     "year": 2025,
     "semester": 2
   },
   {
-    "course_title": "대학영어 1",
-    "instructor": "Christiaan Prinsloo",
+    "course_title": "(공유)인공지능 하드웨어 설계 프로젝트",
+    "instructor": "이재학",
     "class_time_json": [
-      {
-        "day": 0,
-        "startMinute": 720,
-        "endMinute": 890,
-        "place": "3-116"
-      },
       {
         "day": 1,
-        "startMinute": 840,
-        "endMinute": 915,
-        "place": "2-106"
-      },
-      {
-        "day": 2,
-        "startMinute": 720,
-        "endMinute": 890,
-        "place": "3-116"
-      },
-      {
-        "day": 3,
-        "startMinute": 840,
-        "endMinute": 915,
-        "place": "2-106"
-      },
-      {
-        "day": 4,
-        "startMinute": 720,
-        "endMinute": 890,
-        "place": "3-116"
-      }
-    ],
-    "course_number": "F21.101",
-    "lecture_number": "007",
-    "department": "영어영문학과",
-    "year": 2025,
-    "semester": 2
-  },
-  {
-    "course_title": "대학영어 1",
-    "instructor": "Christiaan Prinsloo",
-    "class_time_json": [
-      {
-        "day": 0,
         "startMinute": 540,
         "endMinute": 710,
-        "place": "3-116"
-      },
-      {
-        "day": 1,
-        "startMinute": 570,
-        "endMinute": 645,
-        "place": "3-116"
+        "place": ""
       },
       {
         "day": 2,
         "startMinute": 540,
         "endMinute": 710,
-        "place": "3-116"
+        "place": ""
       },
       {
         "day": 3,
-        "startMinute": 570,
-        "endMinute": 645,
-        "place": "3-116"
+        "startMinute": 540,
+        "endMinute": 710,
+        "place": ""
       },
       {
         "day": 4,
         "startMinute": 540,
         "endMinute": 710,
-        "place": "3-116"
+        "place": ""
       }
     ],
-    "course_number": "F21.101",
-    "lecture_number": "003",
-    "department": "영어영문학과",
+    "course_number": "M3500.001500",
+    "lecture_number": "001",
+    "department": "혁신공유학부",
     "year": 2025,
     "semester": 2
   },
@@ -1473,6 +1445,122 @@
     "semester": 2
   },
   {
+    "course_title": "생물학 2",
+    "instructor": "조대식",
+    "class_time_json": [
+      {
+        "day": 0,
+        "startMinute": 900,
+        "endMinute": 1070,
+        "place": "26-B102"
+      },
+      {
+        "day": 2,
+        "startMinute": 900,
+        "endMinute": 1070,
+        "place": "26-B102"
+      },
+      {
+        "day": 4,
+        "startMinute": 900,
+        "endMinute": 1070,
+        "place": "26-B102"
+      }
+    ],
+    "course_number": "F35.105",
+    "lecture_number": "001",
+    "department": "생명과학부",
+    "year": 2025,
+    "semester": 2
+  },
+  {
+    "course_title": "생물학 1",
+    "instructor": "조대식",
+    "class_time_json": [
+      {
+        "day": 0,
+        "startMinute": 720,
+        "endMinute": 890,
+        "place": "26-B102"
+      },
+      {
+        "day": 2,
+        "startMinute": 720,
+        "endMinute": 890,
+        "place": "26-B102"
+      },
+      {
+        "day": 4,
+        "startMinute": 720,
+        "endMinute": 890,
+        "place": "26-B102"
+      }
+    ],
+    "course_number": "F35.104",
+    "lecture_number": "001",
+    "department": "생명과학부",
+    "year": 2025,
+    "semester": 2
+  },
+  {
+    "course_title": "생물학실험",
+    "instructor": "김진홍",
+    "class_time_json": [
+      {
+        "day": 0,
+        "startMinute": 720,
+        "endMinute": 830,
+        "place": "26-402"
+      },
+      {
+        "day": 2,
+        "startMinute": 720,
+        "endMinute": 830,
+        "place": "26-402"
+      },
+      {
+        "day": 4,
+        "startMinute": 720,
+        "endMinute": 830,
+        "place": "26-402"
+      }
+    ],
+    "course_number": "F35.103L",
+    "lecture_number": "001",
+    "department": "생명과학부",
+    "year": 2025,
+    "semester": 2
+  },
+  {
+    "course_title": "생물학실험",
+    "instructor": "강찬희",
+    "class_time_json": [
+      {
+        "day": 0,
+        "startMinute": 840,
+        "endMinute": 950,
+        "place": "26-403"
+      },
+      {
+        "day": 2,
+        "startMinute": 840,
+        "endMinute": 950,
+        "place": "26-403"
+      },
+      {
+        "day": 4,
+        "startMinute": 840,
+        "endMinute": 950,
+        "place": "26-403"
+      }
+    ],
+    "course_number": "F35.103L",
+    "lecture_number": "002",
+    "department": "생명과학부",
+    "year": 2025,
+    "semester": 2
+  },
+  {
     "course_title": "생물학실험",
     "instructor": "이유리",
     "class_time_json": [
@@ -1506,16 +1594,6 @@
     "instructor": "김진홍",
     "class_time_json": [],
     "course_number": "3344.513",
-    "lecture_number": "001",
-    "department": "생명과학부",
-    "year": 2025,
-    "semester": 2
-  },
-  {
-    "course_title": "생물학야외실습",
-    "instructor": "임영운",
-    "class_time_json": [],
-    "course_number": "3346.203",
     "lecture_number": "001",
     "department": "생명과학부",
     "year": 2025,
@@ -1597,60 +1675,8 @@
     "semester": 2
   },
   {
-    "course_title": "탁구초급",
-    "instructor": "권준우",
-    "class_time_json": [
-      {
-        "day": 0,
-        "startMinute": 780,
-        "endMinute": 890,
-        "place": ""
-      },
-      {
-        "day": 2,
-        "startMinute": 780,
-        "endMinute": 890,
-        "place": ""
-      },
-      {
-        "day": 4,
-        "startMinute": 780,
-        "endMinute": 890,
-        "place": ""
-      }
-    ],
-    "course_number": "E43.123",
-    "lecture_number": "003",
-    "department": "체육교육과",
-    "year": 2025,
-    "semester": 2
-  },
-  {
-    "course_title": "테니스초급",
-    "instructor": "정재욱",
-    "class_time_json": [
-      {
-        "day": 0,
-        "startMinute": 780,
-        "endMinute": 950,
-        "place": ""
-      },
-      {
-        "day": 2,
-        "startMinute": 780,
-        "endMinute": 950,
-        "place": ""
-      }
-    ],
-    "course_number": "E43.126",
-    "lecture_number": "002",
-    "department": "체육교육과",
-    "year": 2025,
-    "semester": 2
-  },
-  {
-    "course_title": "탁구초급",
-    "instructor": "최규현",
+    "course_title": "배드민턴초급",
+    "instructor": "김정준",
     "class_time_json": [
       {
         "day": 0,
@@ -1671,31 +1697,8 @@
         "place": ""
       }
     ],
-    "course_number": "E43.123",
+    "course_number": "E43.107",
     "lecture_number": "001",
-    "department": "체육교육과",
-    "year": 2025,
-    "semester": 2
-  },
-  {
-    "course_title": "체력단련",
-    "instructor": "김인우",
-    "class_time_json": [
-      {
-        "day": 1,
-        "startMinute": 540,
-        "endMinute": 710,
-        "place": ""
-      },
-      {
-        "day": 3,
-        "startMinute": 540,
-        "endMinute": 710,
-        "place": ""
-      }
-    ],
-    "course_number": "E43.118",
-    "lecture_number": "005",
     "department": "체육교육과",
     "year": 2025,
     "semester": 2
@@ -1961,364 +1964,248 @@
     "semester": 2
   },
   {
-    "course_title": "영상예술의 이해",
-    "instructor": "박제철",
+    "course_title": "배드민턴초급",
+    "instructor": "원종은",
     "class_time_json": [
       {
-        "day": 0,
-        "startMinute": 900,
-        "endMinute": 1070,
-        "place": "7-101"
-      },
-      {
-        "day": 2,
-        "startMinute": 900,
-        "endMinute": 1070,
-        "place": "7-101"
-      },
-      {
-        "day": 4,
-        "startMinute": 900,
-        "endMinute": 1070,
-        "place": "7-101"
-      }
-    ],
-    "course_number": "C10.142",
-    "lecture_number": "002",
-    "department": "미학과",
-    "year": 2025,
-    "semester": 2
-  },
-  {
-    "course_title": "철학개론",
-    "instructor": "오지호",
-    "class_time_json": [
-      {
-        "day": 0,
-        "startMinute": 720,
-        "endMinute": 890,
-        "place": "7-202"
-      },
-      {
-        "day": 2,
-        "startMinute": 720,
-        "endMinute": 890,
-        "place": "7-202"
-      },
-      {
-        "day": 4,
-        "startMinute": 720,
-        "endMinute": 890,
-        "place": "7-202"
-      }
-    ],
-    "course_number": "C20.141",
-    "lecture_number": "001",
-    "department": "철학과",
-    "year": 2025,
-    "semester": 2
-  },
-  {
-    "course_title": "영상예술의 이해",
-    "instructor": "민현준",
-    "class_time_json": [
-      {
-        "day": 0,
-        "startMinute": 900,
-        "endMinute": 1070,
-        "place": "7-106"
-      },
-      {
-        "day": 2,
-        "startMinute": 900,
-        "endMinute": 1070,
-        "place": "7-106"
-      },
-      {
-        "day": 4,
-        "startMinute": 900,
-        "endMinute": 1070,
-        "place": "7-106"
-      }
-    ],
-    "course_number": "C10.142",
-    "lecture_number": "003",
-    "department": "미학과",
-    "year": 2025,
-    "semester": 2
-  },
-  {
-    "course_title": "영상예술의 이해",
-    "instructor": "여금미",
-    "class_time_json": [
-      {
-        "day": 0,
-        "startMinute": 720,
-        "endMinute": 890,
-        "place": "7-106"
-      },
-      {
-        "day": 2,
-        "startMinute": 720,
-        "endMinute": 890,
-        "place": "7-106"
-      },
-      {
-        "day": 4,
-        "startMinute": 720,
-        "endMinute": 890,
-        "place": "7-106"
-      }
-    ],
-    "course_number": "C10.142",
-    "lecture_number": "001",
-    "department": "미학과",
-    "year": 2025,
-    "semester": 2
-  },
-  {
-    "course_title": "대중예술의 이해",
-    "instructor": "계영경",
-    "class_time_json": [
-      {
-        "day": 0,
-        "startMinute": 720,
-        "endMinute": 890,
-        "place": "5-211"
-      },
-      {
-        "day": 2,
-        "startMinute": 720,
-        "endMinute": 890,
-        "place": "5-211"
-      },
-      {
-        "day": 4,
-        "startMinute": 720,
-        "endMinute": 890,
-        "place": "5-211"
-      }
-    ],
-    "course_number": "C10.106",
-    "lecture_number": "001",
-    "department": "미학과",
-    "year": 2025,
-    "semester": 2
-  },
-  {
-    "course_title": "초급독일어 1",
-    "instructor": "김혜진",
-    "class_time_json": [
-      {
-        "day": 0,
-        "startMinute": 900,
-        "endMinute": 1070,
-        "place": "2-110"
-      },
-      {
-        "day": 2,
-        "startMinute": 900,
-        "endMinute": 1070,
-        "place": "2-110"
+        "day": 1,
+        "startMinute": 780,
+        "endMinute": 950,
+        "place": ""
       },
       {
         "day": 3,
-        "startMinute": 570,
-        "endMinute": 645,
-        "place": "2-110"
+        "startMinute": 780,
+        "endMinute": 950,
+        "place": ""
+      }
+    ],
+    "course_number": "E43.107",
+    "lecture_number": "006",
+    "department": "체육교육과",
+    "year": 2025,
+    "semester": 2
+  },
+  {
+    "course_title": "윈드서핑",
+    "instructor": "이충근",
+    "class_time_json": [],
+    "course_number": "722.353A",
+    "lecture_number": "001",
+    "department": "체육교육과",
+    "year": 2025,
+    "semester": 2
+  },
+  {
+    "course_title": "요트",
+    "instructor": "권순용",
+    "class_time_json": [],
+    "course_number": "722.263",
+    "lecture_number": "001",
+    "department": "체육교육과",
+    "year": 2025,
+    "semester": 2
+  },
+  {
+    "course_title": "언어의 세계",
+    "instructor": "박나영",
+    "class_time_json": [
+      {
+        "day": 0,
+        "startMinute": 540,
+        "endMinute": 710,
+        "place": "7-210"
       },
       {
-        "day": 3,
+        "day": 2,
+        "startMinute": 540,
+        "endMinute": 710,
+        "place": "7-210"
+      },
+      {
+        "day": 4,
+        "startMinute": 540,
+        "endMinute": 710,
+        "place": "7-210"
+      }
+    ],
+    "course_number": "C30.126",
+    "lecture_number": "001",
+    "department": "언어학과",
+    "year": 2025,
+    "semester": 2
+  },
+  {
+    "course_title": "배드민턴초급",
+    "instructor": "김정준",
+    "class_time_json": [
+      {
+        "day": 0,
         "startMinute": 660,
-        "endMinute": 735,
-        "place": "2-110"
+        "endMinute": 710,
+        "place": ""
       },
       {
-        "day": 3,
-        "startMinute": 570,
-        "endMinute": 645,
-        "place": "1-210"
+        "day": 0,
+        "startMinute": 720,
+        "endMinute": 770,
+        "place": ""
       },
       {
-        "day": 3,
+        "day": 2,
         "startMinute": 660,
-        "endMinute": 735,
-        "place": "1-210"
+        "endMinute": 770,
+        "place": ""
       },
       {
         "day": 4,
+        "startMinute": 660,
+        "endMinute": 770,
+        "place": ""
+      }
+    ],
+    "course_number": "E43.107",
+    "lecture_number": "002",
+    "department": "체육교육과",
+    "year": 2025,
+    "semester": 2
+  },
+  {
+    "course_title": "배드민턴초급",
+    "instructor": "강동균",
+    "class_time_json": [
+      {
+        "day": 0,
+        "startMinute": 780,
+        "endMinute": 890,
+        "place": ""
+      },
+      {
+        "day": 2,
+        "startMinute": 780,
+        "endMinute": 890,
+        "place": ""
+      },
+      {
+        "day": 4,
+        "startMinute": 780,
+        "endMinute": 890,
+        "place": ""
+      }
+    ],
+    "course_number": "E43.107",
+    "lecture_number": "003",
+    "department": "체육교육과",
+    "year": 2025,
+    "semester": 2
+  },
+  {
+    "course_title": "농구초급",
+    "instructor": "윤석균",
+    "class_time_json": [
+      {
+        "day": 0,
+        "startMinute": 780,
+        "endMinute": 890,
+        "place": ""
+      },
+      {
+        "day": 2,
+        "startMinute": 780,
+        "endMinute": 890,
+        "place": ""
+      },
+      {
+        "day": 4,
+        "startMinute": 780,
+        "endMinute": 890,
+        "place": ""
+      }
+    ],
+    "course_number": "E43.103",
+    "lecture_number": "002",
+    "department": "체육교육과",
+    "year": 2025,
+    "semester": 2
+  },
+  {
+    "course_title": "체력단련",
+    "instructor": "신호진",
+    "class_time_json": [
+      {
+        "day": 1,
         "startMinute": 900,
         "endMinute": 1070,
-        "place": "2-110"
+        "place": ""
+      },
+      {
+        "day": 3,
+        "startMinute": 900,
+        "endMinute": 1070,
+        "place": ""
       }
     ],
-    "course_number": "F22.101",
-    "lecture_number": "003",
-    "department": "독어독문학과",
+    "course_number": "E43.118",
+    "lecture_number": "007",
+    "department": "체육교육과",
     "year": 2025,
     "semester": 2
   },
   {
-    "course_title": "초급독일어 1",
-    "instructor": "지은영",
+    "course_title": "예술과 과학",
+    "instructor": "김영",
     "class_time_json": [
       {
         "day": 0,
         "startMinute": 720,
         "endMinute": 890,
-        "place": "2-110"
-      },
-      {
-        "day": 1,
-        "startMinute": 750,
-        "endMinute": 825,
-        "place": "2-110"
-      },
-      {
-        "day": 1,
-        "startMinute": 840,
-        "endMinute": 915,
-        "place": "2-110"
-      },
-      {
-        "day": 1,
-        "startMinute": 750,
-        "endMinute": 825,
-        "place": "1-210"
-      },
-      {
-        "day": 1,
-        "startMinute": 840,
-        "endMinute": 915,
-        "place": "1-210"
+        "place": "7-101"
       },
       {
         "day": 2,
         "startMinute": 720,
         "endMinute": 890,
-        "place": "2-110"
+        "place": "7-101"
       },
       {
         "day": 4,
         "startMinute": 720,
         "endMinute": 890,
-        "place": "2-110"
+        "place": "7-101"
       }
     ],
-    "course_number": "F22.101",
-    "lecture_number": "002",
-    "department": "독어독문학과",
-    "year": 2025,
-    "semester": 2
-  },
-  {
-    "course_title": "초급독일어 2",
-    "instructor": "성미정",
-    "class_time_json": [
-      {
-        "day": 0,
-        "startMinute": 720,
-        "endMinute": 890,
-        "place": "1-210"
-      },
-      {
-        "day": 2,
-        "startMinute": 720,
-        "endMinute": 890,
-        "place": "1-210"
-      },
-      {
-        "day": 3,
-        "startMinute": 930,
-        "endMinute": 1005,
-        "place": "1-210"
-      },
-      {
-        "day": 3,
-        "startMinute": 1020,
-        "endMinute": 1095,
-        "place": "1-210"
-      },
-      {
-        "day": 3,
-        "startMinute": 930,
-        "endMinute": 1005,
-        "place": "2-110"
-      },
-      {
-        "day": 3,
-        "startMinute": 1020,
-        "endMinute": 1095,
-        "place": "2-110"
-      },
-      {
-        "day": 4,
-        "startMinute": 720,
-        "endMinute": 890,
-        "place": "1-210"
-      }
-    ],
-    "course_number": "F22.102",
+    "course_number": "C10.144",
     "lecture_number": "001",
-    "department": "독어독문학과",
+    "department": "미학과",
     "year": 2025,
     "semester": 2
   },
   {
-    "course_title": "중급프랑스어 1",
-    "instructor": "문경자",
+    "course_title": "매체로 보는 서양사",
+    "instructor": "고재백",
     "class_time_json": [
       {
         "day": 0,
-        "startMinute": 720,
-        "endMinute": 890,
-        "place": "5-212"
+        "startMinute": 540,
+        "endMinute": 710,
+        "place": "7-106"
       },
       {
         "day": 2,
-        "startMinute": 720,
-        "endMinute": 890,
-        "place": "5-212"
+        "startMinute": 540,
+        "endMinute": 710,
+        "place": "7-106"
       },
       {
         "day": 4,
-        "startMinute": 720,
-        "endMinute": 890,
-        "place": "5-212"
+        "startMinute": 540,
+        "endMinute": 710,
+        "place": "7-106"
       }
     ],
-    "course_number": "F26.201",
+    "course_number": "E11.118",
     "lecture_number": "001",
-    "department": "불어불문학과",
-    "year": 2025,
-    "semester": 2
-  },
-  {
-    "course_title": "국제정치학입문",
-    "instructor": "변성호",
-    "class_time_json": [
-      {
-        "day": 0,
-        "startMinute": 720,
-        "endMinute": 890,
-        "place": "83-402"
-      },
-      {
-        "day": 2,
-        "startMinute": 720,
-        "endMinute": 890,
-        "place": "83-402"
-      },
-      {
-        "day": 4,
-        "startMinute": 720,
-        "endMinute": 890,
-        "place": "83-402"
-      }
-    ],
-    "course_number": "C30.105",
-    "lecture_number": "001",
-    "department": "정치외교학부",
+    "department": "역사학부",
     "year": 2025,
     "semester": 2
   },
@@ -2661,118 +2548,264 @@
     "semester": 2
   },
   {
-    "course_title": "남북분단과 한국전쟁",
-    "instructor": "권혁은",
+    "course_title": "기초 도예",
+    "instructor": "배세진",
+    "class_time_json": [
+      {
+        "day": 1,
+        "startMinute": 540,
+        "endMinute": 650,
+        "place": "52-203"
+      },
+      {
+        "day": 1,
+        "startMinute": 690,
+        "endMinute": 825,
+        "place": "52-203"
+      },
+      {
+        "day": 3,
+        "startMinute": 540,
+        "endMinute": 590,
+        "place": "52-203"
+      },
+      {
+        "day": 3,
+        "startMinute": 600,
+        "endMinute": 825,
+        "place": "52-203"
+      }
+    ],
+    "course_number": "M2182.001100",
+    "lecture_number": "001",
+    "department": "공예과",
+    "year": 2025,
+    "semester": 2
+  },
+  {
+    "course_title": "경제학개론",
+    "instructor": "김석호",
+    "class_time_json": [
+      {
+        "day": 0,
+        "startMinute": 900,
+        "endMinute": 1070,
+        "place": "83-404"
+      },
+      {
+        "day": 2,
+        "startMinute": 900,
+        "endMinute": 1070,
+        "place": "83-404"
+      },
+      {
+        "day": 4,
+        "startMinute": 900,
+        "endMinute": 1070,
+        "place": "83-404"
+      }
+    ],
+    "course_number": "E11.103",
+    "lecture_number": "001",
+    "department": "경제학부",
+    "year": 2025,
+    "semester": 2
+  },
+  {
+    "course_title": "초급스페인어 1",
+    "instructor": "박은영",
     "class_time_json": [
       {
         "day": 0,
         "startMinute": 720,
         "endMinute": 890,
-        "place": "43-1-302"
+        "place": "3-108"
+      },
+      {
+        "day": 0,
+        "startMinute": 930,
+        "endMinute": 1005,
+        "place": "2-104"
+      },
+      {
+        "day": 0,
+        "startMinute": 930,
+        "endMinute": 1005,
+        "place": "2-104-1"
       },
       {
         "day": 2,
         "startMinute": 720,
         "endMinute": 890,
-        "place": "43-1-302"
+        "place": "3-108"
+      },
+      {
+        "day": 2,
+        "startMinute": 930,
+        "endMinute": 1005,
+        "place": "2-104"
+      },
+      {
+        "day": 2,
+        "startMinute": 930,
+        "endMinute": 1005,
+        "place": "2-104-1"
       },
       {
         "day": 4,
         "startMinute": 720,
         "endMinute": 890,
-        "place": "43-1-302"
+        "place": "3-108"
       }
     ],
-    "course_number": "C20.105",
+    "course_number": "F24.101",
+    "lecture_number": "009",
+    "department": "서어서문학과",
+    "year": 2025,
+    "semester": 2
+  },
+  {
+    "course_title": "스페인어권 문화의 이해",
+    "instructor": "김용호",
+    "class_time_json": [
+      {
+        "day": 0,
+        "startMinute": 900,
+        "endMinute": 1070,
+        "place": "1-103"
+      },
+      {
+        "day": 2,
+        "startMinute": 900,
+        "endMinute": 1070,
+        "place": "1-103"
+      },
+      {
+        "day": 4,
+        "startMinute": 900,
+        "endMinute": 1070,
+        "place": "1-103"
+      }
+    ],
+    "course_number": "C10.133",
+    "lecture_number": "002",
+    "department": "서어서문학과",
+    "year": 2025,
+    "semester": 2
+  },
+  {
+    "course_title": "중급스페인어 1",
+    "instructor": "곽은미",
+    "class_time_json": [
+      {
+        "day": 0,
+        "startMinute": 720,
+        "endMinute": 890,
+        "place": "3-205"
+      },
+      {
+        "day": 2,
+        "startMinute": 720,
+        "endMinute": 890,
+        "place": "3-205"
+      },
+      {
+        "day": 4,
+        "startMinute": 720,
+        "endMinute": 890,
+        "place": "3-205"
+      }
+    ],
+    "course_number": "F24.201",
+    "lecture_number": "002",
+    "department": "서어서문학과",
+    "year": 2025,
+    "semester": 2
+  },
+  {
+    "course_title": "고급 고준위방폐물 관리 세미나 (지하연구시설 실습)",
+    "instructor": "최성열",
+    "class_time_json": [
+      {
+        "day": 0,
+        "startMinute": 540,
+        "endMinute": 710,
+        "place": "36-106"
+      },
+      {
+        "day": 2,
+        "startMinute": 540,
+        "endMinute": 710,
+        "place": "36-106"
+      },
+      {
+        "day": 4,
+        "startMinute": 540,
+        "endMinute": 710,
+        "place": "36-106"
+      }
+    ],
+    "course_number": "M3542.000800",
+    "lecture_number": "001",
+    "department": "에너지시스템공학부",
+    "year": 2025,
+    "semester": 2
+  },
+  {
+    "course_title": "한국의 역사가와 역사학",
+    "instructor": "방범석",
+    "class_time_json": [
+      {
+        "day": 0,
+        "startMinute": 900,
+        "endMinute": 1070,
+        "place": "14-208"
+      },
+      {
+        "day": 2,
+        "startMinute": 900,
+        "endMinute": 1070,
+        "place": "14-208"
+      },
+      {
+        "day": 4,
+        "startMinute": 900,
+        "endMinute": 1070,
+        "place": "14-208"
+      }
+    ],
+    "course_number": "C20.152",
     "lecture_number": "001",
     "department": "역사학부",
     "year": 2025,
     "semester": 2
   },
   {
-    "course_title": "근·현대 한국민족주의",
-    "instructor": "김진영",
-    "class_time_json": [
-      {
-        "day": 0,
-        "startMinute": 900,
-        "endMinute": 1070,
-        "place": "8-301"
-      },
-      {
-        "day": 2,
-        "startMinute": 900,
-        "endMinute": 1070,
-        "place": "8-301"
-      },
-      {
-        "day": 4,
-        "startMinute": 900,
-        "endMinute": 1070,
-        "place": "8-301"
-      }
-    ],
-    "course_number": "C20.103",
-    "lecture_number": "001",
-    "department": "역사학부",
-    "year": 2025,
-    "semester": 2
-  },
-  {
-    "course_title": "인물로 본 한국사",
-    "instructor": "서은혜",
-    "class_time_json": [
-      {
-        "day": 0,
-        "startMinute": 720,
-        "endMinute": 890,
-        "place": "14-203"
-      },
-      {
-        "day": 2,
-        "startMinute": 720,
-        "endMinute": 890,
-        "place": "14-203"
-      },
-      {
-        "day": 4,
-        "startMinute": 720,
-        "endMinute": 890,
-        "place": "14-203"
-      }
-    ],
-    "course_number": "C20.132",
-    "lecture_number": "001",
-    "department": "역사학부",
-    "year": 2025,
-    "semester": 2
-  },
-  {
-    "course_title": "한국사",
-    "instructor": "박정민",
+    "course_title": "과학기술학의 이해",
+    "instructor": "김명진",
     "class_time_json": [
       {
         "day": 0,
         "startMinute": 540,
         "endMinute": 710,
-        "place": "14-208"
+        "place": "500-L302"
       },
       {
         "day": 2,
         "startMinute": 540,
         "endMinute": 710,
-        "place": "14-208"
+        "place": "500-L302"
       },
       {
         "day": 4,
         "startMinute": 540,
         "endMinute": 710,
-        "place": "14-208"
+        "place": "500-L302"
       }
     ],
-    "course_number": "C20.149",
+    "course_number": "M2888.000700",
     "lecture_number": "001",
-    "department": "역사학부",
+    "department": "생명과학부",
     "year": 2025,
     "semester": 2
   },
@@ -2832,6 +2865,123 @@
     "course_number": "M2089.000500",
     "lecture_number": "102",
     "department": "공기업정책학과",
+    "year": 2025,
+    "semester": 2
+  },
+  {
+    "course_title": "글로벌 공학기술 교류 특강 2 (강구조 설계 및 콘크리트구조 내구성 보강 설계)",
+    "instructor": "강현구",
+    "class_time_json": [
+      {
+        "day": 0,
+        "startMinute": 600,
+        "endMinute": 675,
+        "place": "38-422"
+      },
+      {
+        "day": 1,
+        "startMinute": 600,
+        "endMinute": 675,
+        "place": "38-422"
+      },
+      {
+        "day": 2,
+        "startMinute": 600,
+        "endMinute": 675,
+        "place": "38-422"
+      },
+      {
+        "day": 3,
+        "startMinute": 600,
+        "endMinute": 675,
+        "place": "38-422"
+      }
+    ],
+    "course_number": "M2177.005600",
+    "lecture_number": "002",
+    "department": "",
+    "year": 2025,
+    "semester": 2
+  },
+  {
+    "course_title": "글로벌 공학기술 교류 특강 2 (VLSI 구조 및 설계)",
+    "instructor": "유담",
+    "class_time_json": [
+      {
+        "day": 0,
+        "startMinute": 750,
+        "endMinute": 825,
+        "place": "38-422"
+      },
+      {
+        "day": 1,
+        "startMinute": 750,
+        "endMinute": 825,
+        "place": "38-422"
+      },
+      {
+        "day": 2,
+        "startMinute": 750,
+        "endMinute": 825,
+        "place": "38-422"
+      },
+      {
+        "day": 3,
+        "startMinute": 750,
+        "endMinute": 825,
+        "place": "38-422"
+      }
+    ],
+    "course_number": "M2177.005600",
+    "lecture_number": "001",
+    "department": "",
+    "year": 2025,
+    "semester": 2
+  },
+  {
+    "course_title": "원자력시스템실습",
+    "instructor": "조형규",
+    "class_time_json": [
+      {
+        "day": 0,
+        "startMinute": 600,
+        "endMinute": 710,
+        "place": "36-106A"
+      },
+      {
+        "day": 0,
+        "startMinute": 780,
+        "endMinute": 890,
+        "place": "36-106A"
+      },
+      {
+        "day": 1,
+        "startMinute": 600,
+        "endMinute": 710,
+        "place": "36-106A"
+      },
+      {
+        "day": 1,
+        "startMinute": 780,
+        "endMinute": 890,
+        "place": "36-106A"
+      },
+      {
+        "day": 2,
+        "startMinute": 600,
+        "endMinute": 710,
+        "place": "36-106A"
+      },
+      {
+        "day": 2,
+        "startMinute": 780,
+        "endMinute": 890,
+        "place": "36-106A"
+      }
+    ],
+    "course_number": "409.402F",
+    "lecture_number": "001",
+    "department": "원자핵공학과",
     "year": 2025,
     "semester": 2
   },
@@ -2917,52 +3067,6 @@
     "semester": 2
   },
   {
-    "course_title": "특수교육학개론",
-    "instructor": "김주선",
-    "class_time_json": [
-      {
-        "day": 1,
-        "startMinute": 600,
-        "endMinute": 770,
-        "place": "9-113"
-      },
-      {
-        "day": 3,
-        "startMinute": 600,
-        "endMinute": 770,
-        "place": "9-113"
-      }
-    ],
-    "course_number": "700.020A",
-    "lecture_number": "001",
-    "department": "교육학과",
-    "year": 2025,
-    "semester": 2
-  },
-  {
-    "course_title": "교육행정 및 교육경영",
-    "instructor": "이평구",
-    "class_time_json": [
-      {
-        "day": 1,
-        "startMinute": 780,
-        "endMinute": 950,
-        "place": "10-110"
-      },
-      {
-        "day": 3,
-        "startMinute": 780,
-        "endMinute": 950,
-        "place": "10-110"
-      }
-    ],
-    "course_number": "700.006",
-    "lecture_number": "001",
-    "department": "교육학과",
-    "year": 2025,
-    "semester": 2
-  },
-  {
     "course_title": "생활지도 및 상담",
     "instructor": "조수연",
     "class_time_json": [
@@ -2986,133 +3090,31 @@
     "semester": 2
   },
   {
-    "course_title": "생활지도 및 상담",
-    "instructor": "조수연",
-    "class_time_json": [
-      {
-        "day": 2,
-        "startMinute": 780,
-        "endMinute": 950,
-        "place": "9-103"
-      },
-      {
-        "day": 3,
-        "startMinute": 780,
-        "endMinute": 950,
-        "place": "9-103"
-      }
-    ],
-    "course_number": "T1831.000300",
-    "lecture_number": "001",
-    "department": "교육학과",
-    "year": 2025,
-    "semester": 2
-  },
-  {
     "course_title": "사상과 윤리",
     "instructor": "김남희",
     "class_time_json": [
       {
         "day": 0,
-        "startMinute": 720,
-        "endMinute": 890,
+        "startMinute": 540,
+        "endMinute": 710,
         "place": "10-1-308"
       },
       {
         "day": 2,
-        "startMinute": 720,
-        "endMinute": 890,
+        "startMinute": 540,
+        "endMinute": 710,
         "place": "10-1-308"
       },
       {
         "day": 4,
-        "startMinute": 720,
-        "endMinute": 890,
+        "startMinute": 540,
+        "endMinute": 710,
         "place": "10-1-308"
       }
     ],
     "course_number": "C20.117",
-    "lecture_number": "002",
+    "lecture_number": "001",
     "department": "윤리교육과",
-    "year": 2025,
-    "semester": 2
-  },
-  {
-    "course_title": "학교폭력예방 및 학생의 이해",
-    "instructor": "류장한",
-    "class_time_json": [
-      {
-        "day": 0,
-        "startMinute": 780,
-        "endMinute": 950,
-        "place": "10-1-103"
-      },
-      {
-        "day": 2,
-        "startMinute": 780,
-        "endMinute": 950,
-        "place": "10-1-103"
-      }
-    ],
-    "course_number": "T1831.001000",
-    "lecture_number": "001",
-    "department": "교육학과",
-    "year": 2025,
-    "semester": 2
-  },
-  {
-    "course_title": "디지털 교육",
-    "instructor": "홍수민",
-    "class_time_json": [
-      {
-        "day": 1,
-        "startMinute": 660,
-        "endMinute": 735,
-        "place": "10-105"
-      },
-      {
-        "day": 3,
-        "startMinute": 660,
-        "endMinute": 735,
-        "place": "10-105"
-      }
-    ],
-    "course_number": "T2184.002400",
-    "lecture_number": "001",
-    "department": "교육학과",
-    "year": 2025,
-    "semester": 2
-  },
-  {
-    "course_title": "교육방법 및 교육공학",
-    "instructor": "신행수",
-    "class_time_json": [
-      {
-        "day": 1,
-        "startMinute": 780,
-        "endMinute": 950,
-        "place": "10-105"
-      },
-      {
-        "day": 3,
-        "startMinute": 780,
-        "endMinute": 950,
-        "place": "10-105"
-      }
-    ],
-    "course_number": "700.007",
-    "lecture_number": "001",
-    "department": "교육학과",
-    "year": 2025,
-    "semester": 2
-  },
-  {
-    "course_title": "학생자율연구: 탐구",
-    "instructor": "이신형",
-    "class_time_json": [],
-    "course_number": "E31.103",
-    "lecture_number": "010",
-    "department": "학부대학",
     "year": 2025,
     "semester": 2
   },
@@ -3193,7 +3195,7 @@
     ],
     "course_number": "E11.104",
     "lecture_number": "003",
-    "department": "학부대학",
+    "department": "",
     "year": 2025,
     "semester": 2
   },
@@ -3203,7 +3205,7 @@
     "class_time_json": [],
     "course_number": "E31.103",
     "lecture_number": "002",
-    "department": "학부대학",
+    "department": "",
     "year": 2025,
     "semester": 2
   },
@@ -3213,7 +3215,7 @@
     "class_time_json": [],
     "course_number": "E31.103",
     "lecture_number": "004",
-    "department": "학부대학",
+    "department": "",
     "year": 2025,
     "semester": 2
   },
@@ -3223,7 +3225,7 @@
     "class_time_json": [],
     "course_number": "E31.103",
     "lecture_number": "010",
-    "department": "학부대학",
+    "department": "",
     "year": 2025,
     "semester": 2
   },
@@ -3233,7 +3235,7 @@
     "class_time_json": [],
     "course_number": "E31.103",
     "lecture_number": "001",
-    "department": "학부대학",
+    "department": "",
     "year": 2025,
     "semester": 2
   },
@@ -3262,7 +3264,7 @@
     ],
     "course_number": "E11.104",
     "lecture_number": "004",
-    "department": "학부대학",
+    "department": "",
     "year": 2025,
     "semester": 2
   },
@@ -3272,7 +3274,7 @@
     "class_time_json": [],
     "course_number": "E31.103",
     "lecture_number": "013",
-    "department": "학부대학",
+    "department": "",
     "year": 2025,
     "semester": 2
   },
@@ -3282,36 +3284,254 @@
     "class_time_json": [],
     "course_number": "E31.103",
     "lecture_number": "012",
-    "department": "학부대학",
+    "department": "",
     "year": 2025,
     "semester": 2
   },
   {
-    "course_title": "현대문화와 기독교",
-    "instructor": "이유나",
+    "course_title": "학생자율연구: 탐구",
+    "instructor": "전세영",
+    "class_time_json": [],
+    "course_number": "E31.103",
+    "lecture_number": "009",
+    "department": "",
+    "year": 2025,
+    "semester": 2
+  },
+  {
+    "course_title": "학생자율연구: 탐구",
+    "instructor": "홍영준",
+    "class_time_json": [],
+    "course_number": "E31.103",
+    "lecture_number": "008",
+    "department": "",
+    "year": 2025,
+    "semester": 2
+  },
+  {
+    "course_title": "중급중국어 1",
+    "instructor": "홍혜진",
     "class_time_json": [
       {
         "day": 0,
         "startMinute": 720,
         "endMinute": 890,
-        "place": "7-203"
+        "place": "1-102"
       },
       {
         "day": 2,
         "startMinute": 720,
         "endMinute": 890,
-        "place": "7-203"
+        "place": "1-102"
       },
       {
         "day": 4,
         "startMinute": 720,
         "endMinute": 890,
-        "place": "7-203"
+        "place": "1-102"
       }
     ],
-    "course_number": "E11.188",
+    "course_number": "F25.201",
     "lecture_number": "001",
-    "department": "종교학과",
+    "department": "중어중문학과",
+    "year": 2025,
+    "semester": 2
+  },
+  {
+    "course_title": "창작의 세계",
+    "instructor": "김향라",
+    "class_time_json": [
+      {
+        "day": 0,
+        "startMinute": 720,
+        "endMinute": 890,
+        "place": "1-103"
+      },
+      {
+        "day": 2,
+        "startMinute": 720,
+        "endMinute": 890,
+        "place": "1-103"
+      },
+      {
+        "day": 4,
+        "startMinute": 720,
+        "endMinute": 890,
+        "place": "1-103"
+      }
+    ],
+    "course_number": "C10.155",
+    "lecture_number": "001",
+    "department": "국어국문학과",
+    "year": 2025,
+    "semester": 2
+  },
+  {
+    "course_title": "초급한문 1",
+    "instructor": "주기평",
+    "class_time_json": [
+      {
+        "day": 0,
+        "startMinute": 900,
+        "endMinute": 1070,
+        "place": "1-101"
+      },
+      {
+        "day": 2,
+        "startMinute": 900,
+        "endMinute": 1070,
+        "place": "1-101"
+      },
+      {
+        "day": 4,
+        "startMinute": 900,
+        "endMinute": 1070,
+        "place": "1-101"
+      }
+    ],
+    "course_number": "F28.101",
+    "lecture_number": "002",
+    "department": "중어중문학과",
+    "year": 2025,
+    "semester": 2
+  },
+  {
+    "course_title": "인공지능 반도체 소자 설계 프로젝트",
+    "instructor": "강대웅",
+    "class_time_json": [
+      {
+        "day": 0,
+        "startMinute": 900,
+        "endMinute": 1070,
+        "place": "301-207"
+      },
+      {
+        "day": 1,
+        "startMinute": 900,
+        "endMinute": 1070,
+        "place": "301-207"
+      },
+      {
+        "day": 2,
+        "startMinute": 900,
+        "endMinute": 1070,
+        "place": "301-207"
+      },
+      {
+        "day": 3,
+        "startMinute": 900,
+        "endMinute": 1070,
+        "place": "301-207"
+      }
+    ],
+    "course_number": "M3238.000300",
+    "lecture_number": "001",
+    "department": "전기·정보공학부",
+    "year": 2025,
+    "semester": 2
+  },
+  {
+    "course_title": "인공지능 하드웨어 설계프로젝트",
+    "instructor": "이재학",
+    "class_time_json": [
+      {
+        "day": 1,
+        "startMinute": 540,
+        "endMinute": 710,
+        "place": "301-207"
+      },
+      {
+        "day": 2,
+        "startMinute": 540,
+        "endMinute": 710,
+        "place": "301-207"
+      },
+      {
+        "day": 3,
+        "startMinute": 540,
+        "endMinute": 710,
+        "place": "301-207"
+      },
+      {
+        "day": 4,
+        "startMinute": 540,
+        "endMinute": 710,
+        "place": "301-207"
+      }
+    ],
+    "course_number": "M3238.000400",
+    "lecture_number": "001",
+    "department": "전기·정보공학부",
+    "year": 2025,
+    "semester": 2
+  },
+  {
+    "course_title": "융합교육을 위한 기초 프로그래밍",
+    "instructor": "유연주",
+    "class_time_json": [
+      {
+        "day": 0,
+        "startMinute": 1080,
+        "endMinute": 1250,
+        "place": "10-207"
+      },
+      {
+        "day": 1,
+        "startMinute": 1080,
+        "endMinute": 1250,
+        "place": "10-207"
+      },
+      {
+        "day": 2,
+        "startMinute": 1080,
+        "endMinute": 1250,
+        "place": "10-207"
+      },
+      {
+        "day": 3,
+        "startMinute": 1080,
+        "endMinute": 1250,
+        "place": "10-207"
+      },
+      {
+        "day": 4,
+        "startMinute": 1080,
+        "endMinute": 1250,
+        "place": "10-207"
+      }
+    ],
+    "course_number": "M3450.000600",
+    "lecture_number": "001",
+    "department": "AI융합교육학과",
+    "year": 2025,
+    "semester": 2
+  },
+  {
+    "course_title": "그리스비극",
+    "instructor": "김준서",
+    "class_time_json": [
+      {
+        "day": 0,
+        "startMinute": 720,
+        "endMinute": 890,
+        "place": "14-208"
+      },
+      {
+        "day": 2,
+        "startMinute": 720,
+        "endMinute": 890,
+        "place": "14-208"
+      },
+      {
+        "day": 4,
+        "startMinute": 720,
+        "endMinute": 890,
+        "place": "14-208"
+      }
+    ],
+    "course_number": "C10.104",
+    "lecture_number": "001",
+    "department": "협동과정 서양고전학전공",
     "year": 2025,
     "semester": 2
   },
@@ -3341,256 +3561,6 @@
     "course_number": "C10.103",
     "lecture_number": "001",
     "department": "협동과정 서양고전학전공",
-    "year": 2025,
-    "semester": 2
-  },
-  {
-    "course_title": "라틴어 1",
-    "instructor": "박헌영",
-    "class_time_json": [
-      {
-        "day": 0,
-        "startMinute": 720,
-        "endMinute": 890,
-        "place": "8-B101"
-      },
-      {
-        "day": 2,
-        "startMinute": 720,
-        "endMinute": 890,
-        "place": "8-B101"
-      },
-      {
-        "day": 4,
-        "startMinute": 720,
-        "endMinute": 890,
-        "place": "8-B101"
-      }
-    ],
-    "course_number": "F29.103",
-    "lecture_number": "001",
-    "department": "협동과정 서양고전학전공",
-    "year": 2025,
-    "semester": 2
-  },
-  {
-    "course_title": "(공유)에너지신산업세미나 1",
-    "instructor": "김수현",
-    "class_time_json": [
-      {
-        "day": 0,
-        "startMinute": 540,
-        "endMinute": 710,
-        "place": ""
-      },
-      {
-        "day": 1,
-        "startMinute": 540,
-        "endMinute": 710,
-        "place": ""
-      },
-      {
-        "day": 2,
-        "startMinute": 540,
-        "endMinute": 710,
-        "place": ""
-      },
-      {
-        "day": 3,
-        "startMinute": 540,
-        "endMinute": 710,
-        "place": ""
-      },
-      {
-        "day": 4,
-        "startMinute": 540,
-        "endMinute": 710,
-        "place": ""
-      }
-    ],
-    "course_number": "M3502.014400",
-    "lecture_number": "001",
-    "department": "혁신공유학부",
-    "year": 2025,
-    "semester": 2
-  },
-  {
-    "course_title": "(공유)학부생 연구 인턴",
-    "instructor": "이정원",
-    "class_time_json": [
-      {
-        "day": 0,
-        "startMinute": 1080,
-        "endMinute": 1190,
-        "place": ""
-      },
-      {
-        "day": 1,
-        "startMinute": 1080,
-        "endMinute": 1190,
-        "place": ""
-      },
-      {
-        "day": 2,
-        "startMinute": 1080,
-        "endMinute": 1190,
-        "place": ""
-      }
-    ],
-    "course_number": "M3502.004100",
-    "lecture_number": "004",
-    "department": "혁신공유학부",
-    "year": 2025,
-    "semester": 2
-  },
-  {
-    "course_title": "(공유)지열에너지공학",
-    "instructor": "민기복",
-    "class_time_json": [
-      {
-        "day": 0,
-        "startMinute": 540,
-        "endMinute": 710,
-        "place": ""
-      },
-      {
-        "day": 2,
-        "startMinute": 540,
-        "endMinute": 710,
-        "place": ""
-      },
-      {
-        "day": 4,
-        "startMinute": 540,
-        "endMinute": 710,
-        "place": ""
-      }
-    ],
-    "course_number": "M3500.005700",
-    "lecture_number": "001",
-    "department": "혁신공유학부",
-    "year": 2025,
-    "semester": 2
-  },
-  {
-    "course_title": "(공유)프로그래밍 기초",
-    "instructor": "이정원",
-    "class_time_json": [
-      {
-        "day": 1,
-        "startMinute": 720,
-        "endMinute": 890,
-        "place": ""
-      },
-      {
-        "day": 2,
-        "startMinute": 720,
-        "endMinute": 890,
-        "place": ""
-      },
-      {
-        "day": 3,
-        "startMinute": 720,
-        "endMinute": 890,
-        "place": ""
-      }
-    ],
-    "course_number": "M3500.004400",
-    "lecture_number": "001",
-    "department": "혁신공유학부",
-    "year": 2025,
-    "semester": 2
-  },
-  {
-    "course_title": "(공유)학부생 연구 인턴",
-    "instructor": "응웬트렁",
-    "class_time_json": [
-      {
-        "day": 0,
-        "startMinute": 1080,
-        "endMinute": 1190,
-        "place": ""
-      },
-      {
-        "day": 1,
-        "startMinute": 1080,
-        "endMinute": 1190,
-        "place": ""
-      },
-      {
-        "day": 2,
-        "startMinute": 1080,
-        "endMinute": 1190,
-        "place": ""
-      }
-    ],
-    "course_number": "M3502.004100",
-    "lecture_number": "003",
-    "department": "혁신공유학부",
-    "year": 2025,
-    "semester": 2
-  },
-  {
-    "course_title": "(공유)처음 만나는 전기회로와 PCB설계",
-    "instructor": "윤정남",
-    "class_time_json": [
-      {
-        "day": 0,
-        "startMinute": 900,
-        "endMinute": 1070,
-        "place": "301-106"
-      },
-      {
-        "day": 2,
-        "startMinute": 900,
-        "endMinute": 1070,
-        "place": "301-106"
-      },
-      {
-        "day": 4,
-        "startMinute": 900,
-        "endMinute": 1070,
-        "place": "301-106"
-      }
-    ],
-    "course_number": "M3502.004600",
-    "lecture_number": "001",
-    "department": "혁신공유학부",
-    "year": 2025,
-    "semester": 2
-  },
-  {
-    "course_title": "(공유)인공지능 반도체 소자 설계 프로젝트",
-    "instructor": "강대웅",
-    "class_time_json": [
-      {
-        "day": 0,
-        "startMinute": 900,
-        "endMinute": 1070,
-        "place": ""
-      },
-      {
-        "day": 1,
-        "startMinute": 900,
-        "endMinute": 1070,
-        "place": ""
-      },
-      {
-        "day": 2,
-        "startMinute": 900,
-        "endMinute": 1070,
-        "place": ""
-      },
-      {
-        "day": 3,
-        "startMinute": 900,
-        "endMinute": 1070,
-        "place": ""
-      }
-    ],
-    "course_number": "M3502.002000",
-    "lecture_number": "001",
-    "department": "혁신공유학부",
     "year": 2025,
     "semester": 2
   },
@@ -3915,6 +3885,122 @@
     "semester": 2
   },
   {
+    "course_title": "수학연습 2",
+    "instructor": "최형규",
+    "class_time_json": [
+      {
+        "day": 0,
+        "startMinute": 660,
+        "endMinute": 770,
+        "place": "24-207"
+      },
+      {
+        "day": 2,
+        "startMinute": 660,
+        "endMinute": 770,
+        "place": "24-207"
+      },
+      {
+        "day": 4,
+        "startMinute": 660,
+        "endMinute": 770,
+        "place": "24-207"
+      }
+    ],
+    "course_number": "F31.105L",
+    "lecture_number": "001",
+    "department": "수리과학부",
+    "year": 2025,
+    "semester": 2
+  },
+  {
+    "course_title": "수학연습 2",
+    "instructor": "김현정",
+    "class_time_json": [
+      {
+        "day": 0,
+        "startMinute": 660,
+        "endMinute": 770,
+        "place": "24-209"
+      },
+      {
+        "day": 2,
+        "startMinute": 660,
+        "endMinute": 770,
+        "place": "24-209"
+      },
+      {
+        "day": 4,
+        "startMinute": 660,
+        "endMinute": 770,
+        "place": "24-209"
+      }
+    ],
+    "course_number": "F31.105L",
+    "lecture_number": "002",
+    "department": "수리과학부",
+    "year": 2025,
+    "semester": 2
+  },
+  {
+    "course_title": "수학연습 1",
+    "instructor": "김민희",
+    "class_time_json": [
+      {
+        "day": 0,
+        "startMinute": 660,
+        "endMinute": 770,
+        "place": "25-101"
+      },
+      {
+        "day": 2,
+        "startMinute": 660,
+        "endMinute": 770,
+        "place": "25-101"
+      },
+      {
+        "day": 4,
+        "startMinute": 660,
+        "endMinute": 770,
+        "place": "25-101"
+      }
+    ],
+    "course_number": "F31.104L",
+    "lecture_number": "001",
+    "department": "수리과학부",
+    "year": 2025,
+    "semester": 2
+  },
+  {
+    "course_title": "선형대수학",
+    "instructor": "김영득",
+    "class_time_json": [
+      {
+        "day": 0,
+        "startMinute": 540,
+        "endMinute": 710,
+        "place": "500-L307"
+      },
+      {
+        "day": 2,
+        "startMinute": 540,
+        "endMinute": 710,
+        "place": "500-L307"
+      },
+      {
+        "day": 4,
+        "startMinute": 540,
+        "endMinute": 710,
+        "place": "500-L307"
+      }
+    ],
+    "course_number": "881.007",
+    "lecture_number": "001",
+    "department": "수리과학부",
+    "year": 2025,
+    "semester": 2
+  },
+  {
     "course_title": "수학연습 1",
     "instructor": "김영득",
     "class_time_json": [
@@ -3939,35 +4025,6 @@
     ],
     "course_number": "F31.104L",
     "lecture_number": "005",
-    "department": "수리과학부",
-    "year": 2025,
-    "semester": 2
-  },
-  {
-    "course_title": "수학연습 1",
-    "instructor": "김민희",
-    "class_time_json": [
-      {
-        "day": 0,
-        "startMinute": 900,
-        "endMinute": 1010,
-        "place": "500-L305"
-      },
-      {
-        "day": 2,
-        "startMinute": 900,
-        "endMinute": 1010,
-        "place": "500-L305"
-      },
-      {
-        "day": 4,
-        "startMinute": 900,
-        "endMinute": 1010,
-        "place": "500-L305"
-      }
-    ],
-    "course_number": "F31.104L",
-    "lecture_number": "004",
     "department": "수리과학부",
     "year": 2025,
     "semester": 2
@@ -4020,64 +4077,6 @@
     "semester": 2
   },
   {
-    "course_title": "생물학 2",
-    "instructor": "조대식",
-    "class_time_json": [
-      {
-        "day": 0,
-        "startMinute": 900,
-        "endMinute": 1070,
-        "place": "26-B102"
-      },
-      {
-        "day": 2,
-        "startMinute": 900,
-        "endMinute": 1070,
-        "place": "26-B102"
-      },
-      {
-        "day": 4,
-        "startMinute": 900,
-        "endMinute": 1070,
-        "place": "26-B102"
-      }
-    ],
-    "course_number": "F35.105",
-    "lecture_number": "001",
-    "department": "생명과학부",
-    "year": 2025,
-    "semester": 2
-  },
-  {
-    "course_title": "생물학실험",
-    "instructor": "강찬희",
-    "class_time_json": [
-      {
-        "day": 0,
-        "startMinute": 840,
-        "endMinute": 950,
-        "place": "26-403"
-      },
-      {
-        "day": 2,
-        "startMinute": 840,
-        "endMinute": 950,
-        "place": "26-403"
-      },
-      {
-        "day": 4,
-        "startMinute": 840,
-        "endMinute": 950,
-        "place": "26-403"
-      }
-    ],
-    "course_number": "F35.103L",
-    "lecture_number": "002",
-    "department": "생명과학부",
-    "year": 2025,
-    "semester": 2
-  },
-  {
     "course_title": "스마트팜 실무 융합 적용 인턴십",
     "instructor": "김학진",
     "class_time_json": [],
@@ -4094,6 +4093,35 @@
     "course_number": "M3313.001100",
     "lecture_number": "001",
     "department": "바이오시스템공학과",
+    "year": 2025,
+    "semester": 2
+  },
+  {
+    "course_title": "고급 이동통신 시스템의 이해",
+    "instructor": "심병효",
+    "class_time_json": [
+      {
+        "day": 0,
+        "startMinute": 810,
+        "endMinute": 980,
+        "place": "132-105"
+      },
+      {
+        "day": 2,
+        "startMinute": 810,
+        "endMinute": 980,
+        "place": "132-105"
+      },
+      {
+        "day": 4,
+        "startMinute": 810,
+        "endMinute": 980,
+        "place": "132-105"
+      }
+    ],
+    "course_number": "M3495.000200",
+    "lecture_number": "001",
+    "department": "전기·정보공학부",
     "year": 2025,
     "semester": 2
   },
@@ -4141,58 +4169,6 @@
     "course_number": "E41.102",
     "lecture_number": "001",
     "department": "동양화과",
-    "year": 2025,
-    "semester": 2
-  },
-  {
-    "course_title": "학교폭력예방 및 학생의 이해",
-    "instructor": "김경래",
-    "class_time_json": [
-      {
-        "day": 1,
-        "startMinute": 780,
-        "endMinute": 950,
-        "place": "11-215"
-      },
-      {
-        "day": 3,
-        "startMinute": 780,
-        "endMinute": 950,
-        "place": "11-215"
-      }
-    ],
-    "course_number": "T2184.000200",
-    "lecture_number": "001",
-    "department": "사회교육과",
-    "year": 2025,
-    "semester": 2
-  },
-  {
-    "course_title": "배드민턴초급",
-    "instructor": "김정준",
-    "class_time_json": [
-      {
-        "day": 0,
-        "startMinute": 540,
-        "endMinute": 650,
-        "place": ""
-      },
-      {
-        "day": 2,
-        "startMinute": 540,
-        "endMinute": 650,
-        "place": ""
-      },
-      {
-        "day": 4,
-        "startMinute": 540,
-        "endMinute": 650,
-        "place": ""
-      }
-    ],
-    "course_number": "E43.107",
-    "lecture_number": "001",
-    "department": "체육교육과",
     "year": 2025,
     "semester": 2
   },
@@ -4444,6 +4420,29 @@
     "semester": 2
   },
   {
+    "course_title": "배드민턴초급",
+    "instructor": "원종은",
+    "class_time_json": [
+      {
+        "day": 1,
+        "startMinute": 600,
+        "endMinute": 770,
+        "place": ""
+      },
+      {
+        "day": 3,
+        "startMinute": 600,
+        "endMinute": 770,
+        "place": ""
+      }
+    ],
+    "course_number": "E43.107",
+    "lecture_number": "005",
+    "department": "체육교육과",
+    "year": 2025,
+    "semester": 2
+  },
+  {
     "course_title": "체력단련",
     "instructor": "김인우",
     "class_time_json": [
@@ -4472,6 +4471,29 @@
     "class_time_json": [
       {
         "day": 1,
+        "startMinute": 660,
+        "endMinute": 830,
+        "place": ""
+      },
+      {
+        "day": 3,
+        "startMinute": 660,
+        "endMinute": 830,
+        "place": ""
+      }
+    ],
+    "course_number": "E43.102",
+    "lecture_number": "001",
+    "department": "체육교육과",
+    "year": 2025,
+    "semester": 2
+  },
+  {
+    "course_title": "골프초급",
+    "instructor": "채기재",
+    "class_time_json": [
+      {
+        "day": 1,
         "startMinute": 840,
         "endMinute": 1010,
         "place": ""
@@ -4490,22 +4512,31 @@
     "semester": 2
   },
   {
-    "course_title": "윈드서핑",
-    "instructor": "이충근",
-    "class_time_json": [],
-    "course_number": "722.353A",
+    "course_title": "과학의 철학적 이해",
+    "instructor": "김영",
+    "class_time_json": [
+      {
+        "day": 0,
+        "startMinute": 900,
+        "endMinute": 1070,
+        "place": "7-210"
+      },
+      {
+        "day": 2,
+        "startMinute": 900,
+        "endMinute": 1070,
+        "place": "7-210"
+      },
+      {
+        "day": 4,
+        "startMinute": 900,
+        "endMinute": 1070,
+        "place": "7-210"
+      }
+    ],
+    "course_number": "C40.103",
     "lecture_number": "001",
-    "department": "체육교육과",
-    "year": 2025,
-    "semester": 2
-  },
-  {
-    "course_title": "요트",
-    "instructor": "권순용",
-    "class_time_json": [],
-    "course_number": "722.263",
-    "lecture_number": "001",
-    "department": "체육교육과",
+    "department": "철학과",
     "year": 2025,
     "semester": 2
   },
@@ -4662,66 +4693,31 @@
     "semester": 2
   },
   {
-    "course_title": "언어의 세계",
-    "instructor": "박나영",
+    "course_title": "철학개론",
+    "instructor": "오지호",
     "class_time_json": [
-      {
-        "day": 0,
-        "startMinute": 540,
-        "endMinute": 710,
-        "place": "7-210"
-      },
-      {
-        "day": 2,
-        "startMinute": 540,
-        "endMinute": 710,
-        "place": "7-210"
-      },
-      {
-        "day": 4,
-        "startMinute": 540,
-        "endMinute": 710,
-        "place": "7-210"
-      }
-    ],
-    "course_number": "C30.126",
-    "lecture_number": "001",
-    "department": "언어학과",
-    "year": 2025,
-    "semester": 2
-  },
-  {
-    "course_title": "배드민턴초급",
-    "instructor": "김정준",
-    "class_time_json": [
-      {
-        "day": 0,
-        "startMinute": 660,
-        "endMinute": 710,
-        "place": ""
-      },
       {
         "day": 0,
         "startMinute": 720,
-        "endMinute": 770,
-        "place": ""
+        "endMinute": 890,
+        "place": "7-202"
       },
       {
         "day": 2,
-        "startMinute": 660,
-        "endMinute": 770,
-        "place": ""
+        "startMinute": 720,
+        "endMinute": 890,
+        "place": "7-202"
       },
       {
         "day": 4,
-        "startMinute": 660,
-        "endMinute": 770,
-        "place": ""
+        "startMinute": 720,
+        "endMinute": 890,
+        "place": "7-202"
       }
     ],
-    "course_number": "E43.107",
-    "lecture_number": "002",
-    "department": "체육교육과",
+    "course_number": "C20.141",
+    "lecture_number": "001",
+    "department": "철학과",
     "year": 2025,
     "semester": 2
   },
@@ -5040,78 +5036,54 @@
     "semester": 2
   },
   {
-    "course_title": "영어교수법특강 (AIDT 시대 성찰적 디지털 리터러시)",
-    "instructor": "장인철",
+    "course_title": "심리학개론",
+    "instructor": "박승진",
     "class_time_json": [
       {
         "day": 0,
-        "startMinute": 780,
-        "endMinute": 950,
-        "place": "12-502"
-      },
-      {
-        "day": 1,
-        "startMinute": 780,
-        "endMinute": 950,
-        "place": "12-502"
+        "startMinute": 720,
+        "endMinute": 890,
+        "place": "16-110"
       },
       {
         "day": 2,
-        "startMinute": 780,
-        "endMinute": 950,
-        "place": "12-502"
-      },
-      {
-        "day": 3,
-        "startMinute": 780,
-        "endMinute": 950,
-        "place": "12-502"
+        "startMinute": 720,
+        "endMinute": 890,
+        "place": "16-110"
       },
       {
         "day": 4,
-        "startMinute": 780,
-        "endMinute": 950,
-        "place": "12-502"
+        "startMinute": 720,
+        "endMinute": 890,
+        "place": "16-110"
       }
     ],
-    "course_number": "707.532",
-    "lecture_number": "001",
-    "department": "외국어교육과",
+    "course_number": "E11.146",
+    "lecture_number": "004",
+    "department": "심리학과",
     "year": 2025,
     "semester": 2
   },
   {
-    "course_title": "기초 도예",
-    "instructor": "배세진",
+    "course_title": "소묘의 기초",
+    "instructor": "이은재",
     "class_time_json": [
       {
-        "day": 1,
-        "startMinute": 540,
-        "endMinute": 650,
-        "place": "52-203"
+        "day": 0,
+        "startMinute": 720,
+        "endMinute": 1040,
+        "place": "52-306"
       },
       {
-        "day": 1,
-        "startMinute": 690,
-        "endMinute": 825,
-        "place": "52-203"
-      },
-      {
-        "day": 3,
-        "startMinute": 540,
-        "endMinute": 590,
-        "place": "52-203"
-      },
-      {
-        "day": 3,
-        "startMinute": 600,
-        "endMinute": 825,
-        "place": "52-203"
+        "day": 2,
+        "startMinute": 720,
+        "endMinute": 1040,
+        "place": "52-306"
       }
     ],
-    "course_number": "M2182.001100",
+    "course_number": "E41.103",
     "lecture_number": "001",
-    "department": "공예과",
+    "department": "서양화과",
     "year": 2025,
     "semester": 2
   },
@@ -5219,35 +5191,6 @@
     "semester": 2
   },
   {
-    "course_title": "라틴어 2",
-    "instructor": "양호영",
-    "class_time_json": [
-      {
-        "day": 0,
-        "startMinute": 600,
-        "endMinute": 770,
-        "place": "14-321"
-      },
-      {
-        "day": 2,
-        "startMinute": 600,
-        "endMinute": 770,
-        "place": "14-321"
-      },
-      {
-        "day": 4,
-        "startMinute": 600,
-        "endMinute": 770,
-        "place": "14-321"
-      }
-    ],
-    "course_number": "F29.104",
-    "lecture_number": "001",
-    "department": "협동과정 서양고전학전공",
-    "year": 2025,
-    "semester": 2
-  },
-  {
     "course_title": "농구초급",
     "instructor": "박찬우",
     "class_time_json": [
@@ -5294,6 +5237,35 @@
     "semester": 2
   },
   {
+    "course_title": "라틴어 2",
+    "instructor": "양호영",
+    "class_time_json": [
+      {
+        "day": 0,
+        "startMinute": 600,
+        "endMinute": 770,
+        "place": "14-321"
+      },
+      {
+        "day": 2,
+        "startMinute": 600,
+        "endMinute": 770,
+        "place": "14-321"
+      },
+      {
+        "day": 4,
+        "startMinute": 600,
+        "endMinute": 770,
+        "place": "14-321"
+      }
+    ],
+    "course_number": "F29.104",
+    "lecture_number": "001",
+    "department": "협동과정 서양고전학전공",
+    "year": 2025,
+    "semester": 2
+  },
+  {
     "course_title": "컴퓨팅 기초: 처음 만나는 컴퓨팅",
     "instructor": "우현제",
     "class_time_json": [
@@ -5336,7 +5308,7 @@
     ],
     "course_number": "F37.101",
     "lecture_number": "002",
-    "department": "학부대학",
+    "department": "",
     "year": 2025,
     "semester": 2
   },
@@ -5452,7 +5424,7 @@
     ],
     "course_number": "E11.104",
     "lecture_number": "002",
-    "department": "학부대학",
+    "department": "",
     "year": 2025,
     "semester": 2
   },
@@ -5747,31 +5719,12 @@
     "semester": 2
   },
   {
-    "course_title": "말하기와 토론",
-    "instructor": "황은미",
-    "class_time_json": [
-      {
-        "day": 0,
-        "startMinute": 540,
-        "endMinute": 710,
-        "place": "3-211-1"
-      },
-      {
-        "day": 2,
-        "startMinute": 540,
-        "endMinute": 710,
-        "place": "3-211-1"
-      },
-      {
-        "day": 4,
-        "startMinute": 540,
-        "endMinute": 710,
-        "place": "3-211-1"
-      }
-    ],
-    "course_number": "F12.102",
-    "lecture_number": "003",
-    "department": "학부대학",
+    "course_title": "사회봉사 1",
+    "instructor": "민기복",
+    "class_time_json": [],
+    "course_number": "E20.103",
+    "lecture_number": "002",
+    "department": "",
     "year": 2025,
     "semester": 2
   },
@@ -5781,50 +5734,7 @@
     "class_time_json": [],
     "course_number": "E20.103",
     "lecture_number": "005",
-    "department": "학부대학",
-    "year": 2025,
-    "semester": 2
-  },
-  {
-    "course_title": "사회봉사 3",
-    "instructor": "조태준",
-    "class_time_json": [],
-    "course_number": "E20.105",
-    "lecture_number": "001",
-    "department": "학부대학",
-    "year": 2025,
-    "semester": 2
-  },
-  {
-    "course_title": "테니스초급",
-    "instructor": "김종호",
-    "class_time_json": [
-      {
-        "day": 1,
-        "startMinute": 540,
-        "endMinute": 710,
-        "place": ""
-      },
-      {
-        "day": 3,
-        "startMinute": 540,
-        "endMinute": 710,
-        "place": ""
-      }
-    ],
-    "course_number": "E43.126",
-    "lecture_number": "003",
-    "department": "체육교육과",
-    "year": 2025,
-    "semester": 2
-  },
-  {
-    "course_title": "사회봉사 1",
-    "instructor": "민기복",
-    "class_time_json": [],
-    "course_number": "E20.103",
-    "lecture_number": "002",
-    "department": "학부대학",
+    "department": "",
     "year": 2025,
     "semester": 2
   },
@@ -5834,7 +5744,37 @@
     "class_time_json": [],
     "course_number": "E20.103",
     "lecture_number": "003",
-    "department": "학부대학",
+    "department": "",
+    "year": 2025,
+    "semester": 2
+  },
+  {
+    "course_title": "사회봉사 3",
+    "instructor": "조태준",
+    "class_time_json": [],
+    "course_number": "E20.105",
+    "lecture_number": "001",
+    "department": "",
+    "year": 2025,
+    "semester": 2
+  },
+  {
+    "course_title": "사회봉사 1",
+    "instructor": "명훈",
+    "class_time_json": [],
+    "course_number": "E20.103",
+    "lecture_number": "001",
+    "department": "",
+    "year": 2025,
+    "semester": 2
+  },
+  {
+    "course_title": "그린리더십 인턴십",
+    "instructor": "함유근",
+    "class_time_json": [],
+    "course_number": "E20.102",
+    "lecture_number": "001",
+    "department": "",
     "year": 2025,
     "semester": 2
   },
@@ -5863,7 +5803,7 @@
     ],
     "course_number": "F12.102",
     "lecture_number": "003",
-    "department": "학부대학",
+    "department": "",
     "year": 2025,
     "semester": 2
   },
@@ -6055,7 +5995,7 @@
     ],
     "course_number": "F11.203",
     "lecture_number": "004",
-    "department": "학부대학",
+    "department": "",
     "year": 2025,
     "semester": 2
   },
@@ -6084,7 +6024,7 @@
     ],
     "course_number": "F11.203",
     "lecture_number": "003",
-    "department": "학부대학",
+    "department": "",
     "year": 2025,
     "semester": 2
   },
@@ -6479,47 +6419,6 @@
     "semester": 2
   },
   {
-    "course_title": "대학영어 1",
-    "instructor": "황세희",
-    "class_time_json": [
-      {
-        "day": 0,
-        "startMinute": 540,
-        "endMinute": 710,
-        "place": "5-107-1"
-      },
-      {
-        "day": 1,
-        "startMinute": 660,
-        "endMinute": 735,
-        "place": "3-114"
-      },
-      {
-        "day": 2,
-        "startMinute": 540,
-        "endMinute": 710,
-        "place": "5-107-1"
-      },
-      {
-        "day": 3,
-        "startMinute": 660,
-        "endMinute": 735,
-        "place": "3-114"
-      },
-      {
-        "day": 4,
-        "startMinute": 540,
-        "endMinute": 710,
-        "place": "5-107-1"
-      }
-    ],
-    "course_number": "F21.101",
-    "lecture_number": "005",
-    "department": "영어영문학과",
-    "year": 2025,
-    "semester": 2
-  },
-  {
     "course_title": "대학영어 2: 글쓰기",
     "instructor": "황세희",
     "class_time_json": [
@@ -6545,6 +6444,59 @@
     "course_number": "F21.201",
     "lecture_number": "001",
     "department": "영어영문학과",
+    "year": 2025,
+    "semester": 2
+  },
+  {
+    "course_title": "초급스페인어 2",
+    "instructor": "강수희",
+    "class_time_json": [
+      {
+        "day": 0,
+        "startMinute": 720,
+        "endMinute": 890,
+        "place": "8-302"
+      },
+      {
+        "day": 0,
+        "startMinute": 930,
+        "endMinute": 1005,
+        "place": "1-210"
+      },
+      {
+        "day": 0,
+        "startMinute": 930,
+        "endMinute": 1005,
+        "place": "3-105"
+      },
+      {
+        "day": 2,
+        "startMinute": 720,
+        "endMinute": 890,
+        "place": "8-302"
+      },
+      {
+        "day": 2,
+        "startMinute": 930,
+        "endMinute": 1005,
+        "place": "1-210"
+      },
+      {
+        "day": 2,
+        "startMinute": 930,
+        "endMinute": 1005,
+        "place": "3-105"
+      },
+      {
+        "day": 4,
+        "startMinute": 720,
+        "endMinute": 890,
+        "place": "8-302"
+      }
+    ],
+    "course_number": "F24.102",
+    "lecture_number": "002",
+    "department": "서어서문학과",
     "year": 2025,
     "semester": 2
   },
@@ -6898,7 +6850,7 @@
     ],
     "course_number": "F11.203",
     "lecture_number": "001",
-    "department": "학부대학",
+    "department": "",
     "year": 2025,
     "semester": 2
   },
@@ -7228,6 +7180,35 @@
     "semester": 2
   },
   {
+    "course_title": "생명과학을 위한 수학 1",
+    "instructor": "김형준",
+    "class_time_json": [
+      {
+        "day": 0,
+        "startMinute": 900,
+        "endMinute": 1070,
+        "place": "24-210"
+      },
+      {
+        "day": 2,
+        "startMinute": 900,
+        "endMinute": 1070,
+        "place": "24-210"
+      },
+      {
+        "day": 4,
+        "startMinute": 900,
+        "endMinute": 1070,
+        "place": "24-210"
+      }
+    ],
+    "course_number": "F31.111",
+    "lecture_number": "003",
+    "department": "수리과학부",
+    "year": 2025,
+    "semester": 2
+  },
+  {
     "course_title": "(공유)학부생 연구 인턴",
     "instructor": "선우경",
     "class_time_json": [
@@ -7286,35 +7267,6 @@
     "semester": 2
   },
   {
-    "course_title": "생명과학을 위한 수학 1",
-    "instructor": "김형준",
-    "class_time_json": [
-      {
-        "day": 0,
-        "startMinute": 900,
-        "endMinute": 1070,
-        "place": "24-210"
-      },
-      {
-        "day": 2,
-        "startMinute": 900,
-        "endMinute": 1070,
-        "place": "24-210"
-      },
-      {
-        "day": 4,
-        "startMinute": 900,
-        "endMinute": 1070,
-        "place": "24-210"
-      }
-    ],
-    "course_number": "F31.111",
-    "lecture_number": "003",
-    "department": "수리과학부",
-    "year": 2025,
-    "semester": 2
-  },
-  {
     "course_title": "대학영어 1",
     "instructor": "Paul Shepherd",
     "class_time_json": [
@@ -7361,7 +7313,7 @@
     "class_time_json": [],
     "course_number": "E20.104",
     "lecture_number": "001",
-    "department": "학부대학",
+    "department": "",
     "year": 2025,
     "semester": 2
   },
@@ -7557,7 +7509,7 @@
     "class_time_json": [],
     "course_number": "E20.103",
     "lecture_number": "004",
-    "department": "학부대학",
+    "department": "",
     "year": 2025,
     "semester": 2
   },
@@ -7586,7 +7538,7 @@
     ],
     "course_number": "F31.202",
     "lecture_number": "001",
-    "department": "학부대학",
+    "department": "",
     "year": 2025,
     "semester": 2
   },
@@ -8265,7 +8217,7 @@
     ],
     "course_number": "M3637.000400",
     "lecture_number": "001",
-    "department": "첨단융합학부",
+    "department": "",
     "year": 2025,
     "semester": 2
   },
@@ -8473,7 +8425,7 @@
     "class_time_json": [],
     "course_number": "E31.103",
     "lecture_number": "006",
-    "department": "학부대학",
+    "department": "",
     "year": 2025,
     "semester": 2
   },
@@ -8602,7 +8554,7 @@
     ],
     "course_number": "F11.203",
     "lecture_number": "002",
-    "department": "학부대학",
+    "department": "",
     "year": 2025,
     "semester": 2
   },
@@ -8795,7 +8747,7 @@
     ],
     "course_number": "E11.104",
     "lecture_number": "006",
-    "department": "학부대학",
+    "department": "",
     "year": 2025,
     "semester": 2
   },
@@ -8905,7 +8857,7 @@
     ],
     "course_number": "F12.102",
     "lecture_number": "002",
-    "department": "학부대학",
+    "department": "",
     "year": 2025,
     "semester": 2
   },
@@ -8934,7 +8886,7 @@
     ],
     "course_number": "F12.102",
     "lecture_number": "001",
-    "department": "학부대학",
+    "department": "",
     "year": 2025,
     "semester": 2
   },
@@ -8944,7 +8896,7 @@
     "class_time_json": [],
     "course_number": "E20.104",
     "lecture_number": "002",
-    "department": "학부대학",
+    "department": "",
     "year": 2025,
     "semester": 2
   },
@@ -9070,7 +9022,7 @@
     "class_time_json": [],
     "course_number": "M2199.002100",
     "lecture_number": "001",
-    "department": "자유전공학부",
+    "department": "",
     "year": 2025,
     "semester": 2
   },
@@ -9080,7 +9032,7 @@
     "class_time_json": [],
     "course_number": "M2199.002100",
     "lecture_number": "002",
-    "department": "자유전공학부",
+    "department": "",
     "year": 2025,
     "semester": 2
   },
@@ -9090,7 +9042,7 @@
     "class_time_json": [],
     "course_number": "M2173.005300",
     "lecture_number": "001",
-    "department": "자연과학대학",
+    "department": "",
     "year": 2025,
     "semester": 2
   },
@@ -9100,7 +9052,7 @@
     "class_time_json": [],
     "course_number": "M2199.002100",
     "lecture_number": "007",
-    "department": "자유전공학부",
+    "department": "",
     "year": 2025,
     "semester": 2
   },
@@ -9110,7 +9062,7 @@
     "class_time_json": [],
     "course_number": "M2199.002100",
     "lecture_number": "009",
-    "department": "자유전공학부",
+    "department": "",
     "year": 2025,
     "semester": 2
   },
@@ -9120,7 +9072,7 @@
     "class_time_json": [],
     "course_number": "M2199.002100",
     "lecture_number": "003",
-    "department": "자유전공학부",
+    "department": "",
     "year": 2025,
     "semester": 2
   },
@@ -9130,7 +9082,7 @@
     "class_time_json": [],
     "course_number": "M2199.002100",
     "lecture_number": "006",
-    "department": "자유전공학부",
+    "department": "",
     "year": 2025,
     "semester": 2
   },
@@ -9140,7 +9092,7 @@
     "class_time_json": [],
     "course_number": "M2199.002100",
     "lecture_number": "005",
-    "department": "자유전공학부",
+    "department": "",
     "year": 2025,
     "semester": 2
   },
@@ -9150,7 +9102,7 @@
     "class_time_json": [],
     "course_number": "M2199.002100",
     "lecture_number": "004",
-    "department": "자유전공학부",
+    "department": "",
     "year": 2025,
     "semester": 2
   },
@@ -9160,7 +9112,7 @@
     "class_time_json": [],
     "course_number": "M2199.002100",
     "lecture_number": "008",
-    "department": "자유전공학부",
+    "department": "",
     "year": 2025,
     "semester": 2
   },
@@ -9447,7 +9399,7 @@
     "class_time_json": [],
     "course_number": "T2184.001300",
     "lecture_number": "001",
-    "department": "사범대학",
+    "department": "",
     "year": 2025,
     "semester": 2
   },
@@ -9457,7 +9409,7 @@
     "class_time_json": [],
     "course_number": "T2184.001400",
     "lecture_number": "001",
-    "department": "사범대학",
+    "department": "",
     "year": 2025,
     "semester": 2
   },
@@ -9477,7 +9429,7 @@
     "class_time_json": [],
     "course_number": "650.1207",
     "lecture_number": "001",
-    "department": "음악대학",
+    "department": "",
     "year": 2025,
     "semester": 2
   },

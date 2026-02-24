@@ -349,7 +349,7 @@
     ],
     "course_number": "M2177.005600",
     "lecture_number": "001",
-    "department": "공과대학",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -512,7 +512,7 @@
     ],
     "course_number": "M3502.000100",
     "lecture_number": "001",
-    "department": "혁신공유학부",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -605,7 +605,7 @@
     ],
     "course_number": "033.014",
     "lecture_number": "001",
-    "department": "기초교육원",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -994,7 +994,7 @@
     ],
     "course_number": "L0655.000300",
     "lecture_number": "004",
-    "department": "기초교육원",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -1023,7 +1023,7 @@
     ],
     "course_number": "L0655.000300",
     "lecture_number": "001",
-    "department": "기초교육원",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -2553,7 +2553,7 @@
     ],
     "course_number": "L0444.000400",
     "lecture_number": "003",
-    "department": "기초교육원",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -2991,7 +2991,7 @@
     ],
     "course_number": "920.703",
     "lecture_number": "001",
-    "department": "행정대학원",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -3177,7 +3177,7 @@
     ],
     "course_number": "L0444.000400",
     "lecture_number": "001",
-    "department": "기초교육원",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -3264,7 +3264,7 @@
     ],
     "course_number": "L0655.000300",
     "lecture_number": "002",
-    "department": "기초교육원",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -3322,7 +3322,7 @@
     ],
     "course_number": "M3502.003800",
     "lecture_number": "001",
-    "department": "혁신공유학부",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -3686,7 +3686,7 @@
     ],
     "course_number": "M3502.009900",
     "lecture_number": "001",
-    "department": "혁신공유학부",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -3715,7 +3715,7 @@
     ],
     "course_number": "M3502.007000",
     "lecture_number": "001",
-    "department": "혁신공유학부",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -3725,7 +3725,7 @@
     "class_time_json": [],
     "course_number": "053.005",
     "lecture_number": "001",
-    "department": "기초교육원",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -3735,7 +3735,7 @@
     "class_time_json": [],
     "course_number": "053.003",
     "lecture_number": "004",
-    "department": "기초교육원",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -3745,7 +3745,7 @@
     "class_time_json": [],
     "course_number": "053.003",
     "lecture_number": "001",
-    "department": "기초교육원",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -3855,7 +3855,7 @@
     ],
     "course_number": "M3502.009700",
     "lecture_number": "001",
-    "department": "혁신공유학부",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -3998,7 +3998,7 @@
     "class_time_json": [],
     "course_number": "T2184.001300",
     "lecture_number": "001",
-    "department": "사범대학",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -4027,7 +4027,7 @@
     ],
     "course_number": "M3502.001900",
     "lecture_number": "001",
-    "department": "혁신공유학부",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -4056,7 +4056,7 @@
     ],
     "course_number": "L0440.000900",
     "lecture_number": "002",
-    "department": "기초교육원",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -4085,7 +4085,7 @@
     ],
     "course_number": "L0655.000300",
     "lecture_number": "003",
-    "department": "기초교육원",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -4166,7 +4166,7 @@
     ],
     "course_number": "M3500.001700",
     "lecture_number": "001",
-    "department": "혁신공유학부",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -4244,7 +4244,7 @@
     ],
     "course_number": "L0440.000900",
     "lecture_number": "003",
-    "department": "기초교육원",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -4357,7 +4357,7 @@
     "class_time_json": [],
     "course_number": "M2199.002100",
     "lecture_number": "002",
-    "department": "자유전공학부",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -4367,7 +4367,7 @@
     "class_time_json": [],
     "course_number": "M2199.002100",
     "lecture_number": "001",
-    "department": "자유전공학부",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -4377,7 +4377,7 @@
     "class_time_json": [],
     "course_number": "M2199.002100",
     "lecture_number": "003",
-    "department": "자유전공학부",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -4406,7 +4406,7 @@
     ],
     "course_number": "M3502.002900",
     "lecture_number": "001",
-    "department": "혁신공유학부",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -4441,7 +4441,7 @@
     ],
     "course_number": "M3500.001500",
     "lecture_number": "001",
-    "department": "혁신공유학부",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -4493,7 +4493,7 @@
     ],
     "course_number": "M3502.002200",
     "lecture_number": "001",
-    "department": "혁신공유학부",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -4683,7 +4683,7 @@
     "class_time_json": [],
     "course_number": "M2199.002100",
     "lecture_number": "004",
-    "department": "자유전공학부",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -4693,7 +4693,7 @@
     "class_time_json": [],
     "course_number": "M2199.002100",
     "lecture_number": "005",
-    "department": "자유전공학부",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -4911,7 +4911,7 @@
     ],
     "course_number": "M3502.009500",
     "lecture_number": "001",
-    "department": "혁신공유학부",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -5032,7 +5032,7 @@
     "class_time_json": [],
     "course_number": "053.004",
     "lecture_number": "001",
-    "department": "기초교육원",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -7155,7 +7155,7 @@
     "class_time_json": [],
     "course_number": "T2184.001400",
     "lecture_number": "001",
-    "department": "사범대학",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -7444,7 +7444,7 @@
     ],
     "course_number": "M2177.005500",
     "lecture_number": "001",
-    "department": "공과대학",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -7506,7 +7506,7 @@
     "class_time_json": [],
     "course_number": "M2090.000900",
     "lecture_number": "001",
-    "department": "법학전문대학원",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -7516,7 +7516,7 @@
     "class_time_json": [],
     "course_number": "931.725",
     "lecture_number": "001",
-    "department": "법학전문대학원",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -7526,7 +7526,7 @@
     "class_time_json": [],
     "course_number": "M2194.002400",
     "lecture_number": "001",
-    "department": "법학전문대학원",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -7979,7 +7979,7 @@
     ],
     "course_number": "M3502.004900",
     "lecture_number": "001",
-    "department": "혁신공유학부",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -8031,7 +8031,7 @@
     ],
     "course_number": "M3500.000200",
     "lecture_number": "001",
-    "department": "혁신공유학부",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -8089,7 +8089,7 @@
     ],
     "course_number": "M3502.002000",
     "lecture_number": "001",
-    "department": "혁신공유학부",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -8163,7 +8163,7 @@
     ],
     "course_number": "033.015",
     "lecture_number": "001",
-    "department": "기초교육원",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -8173,7 +8173,7 @@
     "class_time_json": [],
     "course_number": "053.003",
     "lecture_number": "002",
-    "department": "기초교육원",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -8183,7 +8183,7 @@
     "class_time_json": [],
     "course_number": "053.003",
     "lecture_number": "003",
-    "department": "기초교육원",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -8230,7 +8230,7 @@
     ],
     "course_number": "L0444.000400",
     "lecture_number": "002",
-    "department": "기초교육원",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -8259,7 +8259,7 @@
     ],
     "course_number": "L0440.000900",
     "lecture_number": "001",
-    "department": "기초교육원",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -8288,7 +8288,7 @@
     ],
     "course_number": "L0655.000300",
     "lecture_number": "005",
-    "department": "기초교육원",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -8317,7 +8317,7 @@
     ],
     "course_number": "M3500.004500",
     "lecture_number": "001",
-    "department": "혁신공유학부",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -8346,7 +8346,7 @@
     ],
     "course_number": "M3500.004400",
     "lecture_number": "001",
-    "department": "혁신공유학부",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -8356,7 +8356,7 @@
     "class_time_json": [],
     "course_number": "053.011",
     "lecture_number": "001",
-    "department": "기초교육원",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -8366,7 +8366,7 @@
     "class_time_json": [],
     "course_number": "053.003",
     "lecture_number": "005",
-    "department": "기초교육원",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -8376,7 +8376,7 @@
     "class_time_json": [],
     "course_number": "053.004",
     "lecture_number": "002",
-    "department": "기초교육원",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -8386,7 +8386,7 @@
     "class_time_json": [],
     "course_number": "M3502.006900",
     "lecture_number": "001",
-    "department": "혁신공유학부",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -8415,7 +8415,7 @@
     ],
     "course_number": "M3500.004800",
     "lecture_number": "001",
-    "department": "혁신공유학부",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -8444,7 +8444,7 @@
     ],
     "course_number": "M3502.008700",
     "lecture_number": "001",
-    "department": "혁신공유학부",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -8473,7 +8473,7 @@
     ],
     "course_number": "M3502.000800",
     "lecture_number": "001",
-    "department": "혁신공유학부",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -8520,7 +8520,7 @@
     ],
     "course_number": "M3500.005700",
     "lecture_number": "001",
-    "department": "혁신공유학부",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -8687,7 +8687,7 @@
     ],
     "course_number": "054.003",
     "lecture_number": "001",
-    "department": "기초교육원",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -8697,7 +8697,7 @@
     "class_time_json": [],
     "course_number": "054.001",
     "lecture_number": "004",
-    "department": "기초교육원",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -8707,7 +8707,7 @@
     "class_time_json": [],
     "course_number": "054.001",
     "lecture_number": "005",
-    "department": "기초교육원",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -8717,7 +8717,7 @@
     "class_time_json": [],
     "course_number": "054.001",
     "lecture_number": "003",
-    "department": "기초교육원",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -8727,7 +8727,7 @@
     "class_time_json": [],
     "course_number": "054.001",
     "lecture_number": "007",
-    "department": "기초교육원",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -8737,7 +8737,7 @@
     "class_time_json": [],
     "course_number": "054.001",
     "lecture_number": "002",
-    "department": "기초교육원",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -8747,7 +8747,7 @@
     "class_time_json": [],
     "course_number": "054.001",
     "lecture_number": "006",
-    "department": "기초교육원",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -8757,7 +8757,7 @@
     "class_time_json": [],
     "course_number": "054.001",
     "lecture_number": "001",
-    "department": "기초교육원",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -8796,7 +8796,7 @@
     "class_time_json": [],
     "course_number": "054.001",
     "lecture_number": "008",
-    "department": "기초교육원",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -8806,7 +8806,7 @@
     "class_time_json": [],
     "course_number": "054.001",
     "lecture_number": "012",
-    "department": "기초교육원",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -8816,7 +8816,7 @@
     "class_time_json": [],
     "course_number": "054.001",
     "lecture_number": "010",
-    "department": "기초교육원",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -8826,7 +8826,7 @@
     "class_time_json": [],
     "course_number": "054.001",
     "lecture_number": "009",
-    "department": "기초교육원",
+    "department": "",
     "year": 2024,
     "semester": 2
   },
@@ -9136,7 +9136,7 @@
     "class_time_json": [],
     "course_number": "M2090.000300",
     "lecture_number": "001",
-    "department": "법학전문대학원",
+    "department": "",
     "year": 2024,
     "semester": 2
   }
