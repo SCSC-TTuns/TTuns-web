@@ -54,10 +54,39 @@ function splitPlaces(p: string): string[] {
     .filter(Boolean);
 }
 
-/** 방 이름만: "301-118" → "118", "301-B119" → "B119" */
-function roomLabel(room: string): string {
-  const idx = room.indexOf("-");
-  return idx >= 0 ? room.slice(idx + 1) : room;
+/** 방 이름만: "301-118" → "118", "301-B119" → "B119", 
+ * "71-1-101" -> "101", "301-113-2" -> "113-2"*/
+function parsePlace(place: string): { building: string; room: string } | null {
+  const lastDashIndex = place.lastIndexOf("-");
+  const partAfterLastDash = place.substring(lastDashIndex + 1);
+
+  let splitIndex = lastDashIndex;
+
+  if (partAfterLastDash.length === 1) {
+    const secondLastDashIndex = place.lastIndexOf("-", lastDashIndex - 1);
+    
+    if (secondLastDashIndex !== -1) {
+      splitIndex = secondLastDashIndex;
+    }
+  }
+
+  const building = place.substring(0, splitIndex);
+  const room = place.substring(splitIndex + 1);
+
+  if (!building || !room) return null; // not parsed
+  return { building, room };
+}
+
+
+/** 호실 번호만 추출: "301-113-2" → "113-2", "71-1-101" → "101" */
+function roomLabel(place: string): string {
+  const parsed = parsePlace(place);
+  if (parsed) {
+    return parsed.room;
+  }
+  // if not parsed
+  const idx = place.lastIndexOf("-");
+  return idx >= 0 ? place.slice(idx + 1) : place;
 }
 
 /** GET /api/snutt/free-rooms?year=2025&semester=3&building=301&day=0&at=13:40 */

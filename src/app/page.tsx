@@ -1,22 +1,49 @@
 "use client";
 
-import { useEffect, useMemo, useState, useRef, useLayoutEffect } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { DayIndex } from "@/lib/lectureSchedule";
 import {
   AnyLecture,
+  buildEventsFromLectures,
   DAY_LABELS,
+  layoutByDay,
   lectureMatchesProfessorExact,
   lectureMatchesRoomExact,
-  buildEventsFromLectures,
-  layoutByDay,
   timeBounds,
 } from "@/lib/lectureSchedule";
 import TrackedButton from "@/components/TrackedButton";
 import { trackEvent, trackUIEvent } from "@/lib/mixpanel/trackEvent";
+import ReactDOM from "react-dom";
+import "./globals.css";
 import "./page.css";
+import { clsx } from "clsx";
+import localFont from "next/font/local";
+import { Label } from "@/components/ui/label";
+import { DarkModeToggle } from "@/components/DarkModeToggle";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type Mode = "professor" | "room" | "free";
 type FreeRoom = { room: string; until: number };
+type NearbyBuildingPoint = {
+  building: string;
+  buildingName: string;
+  lat: number;
+  lon: number;
+  distanceMeters: number;
+  dxMeters: number;
+  dyMeters: number;
+  freeRoomCount: number;
+  topUntil: number;
+  rooms: FreeRoom[];
+};
 
 type EventBlock = {
   start: number;
@@ -31,20 +58,40 @@ type EventBlock = {
 
 type Laid = Partial<Record<DayIndex, EventBlock[]>>;
 
-const VISIBLE_DAYS: DayIndex[] = [0, 1, 2, 3, 4, 5];
-
 function colorForTitle(title: string) {
-  let h = 0;
-  for (let i = 0; i < title.length; i++) h = (h * 31 + title.charCodeAt(i)) % 360;
-  return { fill: `hsla(${h}, 85%, 96%, 1)`, stroke: `hsl(${h}, 70%, 42%)` };
+  let hue = 0;
+  for (let i = 0; i < title.length; i++) hue = (hue * 31 + title.charCodeAt(i)) % 360;
+  const smax = 65;
+  const smin = 40;
+  const saturation =
+    hue < 120
+      ? (smax * (120 - hue) + smin * hue) / 120
+      : (smax * (hue - 120) + smin * (240 - hue)) / 120;
+  const lmax = 59;
+  const lmin = 40;
+  const lightness =
+    hue < 120
+      ? (lmax * (120 - hue) + lmin * hue) / 120
+      : (lmax * (hue - 120) + lmin * (240 - hue)) / 120;
+  return {
+    fill: `hsl(${hue}, ${saturation}%, ${lightness}%)`,
+    stroke: `hsla(${hue}, 85%, 96%, 1)`,
+  };
 }
+
 function fmtTime(min: number) {
   const h = Math.floor(min / 60),
     m = min % 60;
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
+
 function fmtHHMM(min: number) {
   return fmtTime(min);
+}
+
+function fmtDistance(meters: number) {
+  if (meters >= 1000) return `${(meters / 1000).toFixed(2)}km`;
+  return `${Math.round(meters)}m`;
 }
 
 function nowKst() {
@@ -57,6 +104,42 @@ function nowKst() {
   const mm = String(kst.getMinutes()).padStart(2, "0");
   return { snuttDay, minute, hhmm: `${hh}:${mm}` };
 }
+
+function currentYearSemesterKst(): { year: string; semester: string } {
+  // KST 기준 날짜(연/월/일) 추출
+  const kst = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
+  const y = kst.getFullYear();
+  const m = kst.getMonth() + 1; // 1~12
+  const d = kst.getDate(); // 1~31
+
+  // 규칙:
+  // n년 12/25 ~ n+1년 1/31 => n년 겨울학기(4)
+  // n년 2/1 ~ 6/18 => n년 1학기(1)
+  // n년 6/19 ~ 8/5 => n년 여름학기(2)
+  // 나머지 => n년 2학기(3)
+
+  // 1월(1/1~1/31)은 "전년도 겨울학기"
+  if (m === 1) return { year: String(y - 1), semester: "4" };
+
+  // 12월 25일~31일은 "당해 겨울학기"
+  if (m === 12 && d >= 25) return { year: String(y), semester: "4" };
+
+  // 2/1~6/18: 1학기
+  if (m >= 2 && (m < 6 || (m === 6 && d <= 18))) return { year: String(y), semester: "1" };
+
+  // 6/19~8/5: 여름학기
+  if (
+    (m === 6 && d >= 19) ||
+    m === 7 ||
+    (m === 8 && d <= 5)
+  ) {
+    return { year: String(y), semester: "2" };
+  }
+
+  // 나머지: 2학기
+  return { year: String(y), semester: "3" };
+}
+
 
 function extractDept(lec: any): string {
   return (
@@ -78,20 +161,9 @@ function lectureHasTime(lec: any, ev: EventBlock) {
 const JOINT_RE = /(연계|연합|협동)/;
 
 function groupDepts(uniqueDepts: string[]) {
-  // 1) normalize input
   const list = Array.from(new Set(uniqueDepts.map((s) => s.trim()).filter(Boolean)));
-
-  // 2) If a detailed label like "산업공학(산업공학전공)" exists,
-  //    drop a generic sibling like "산업공학과" or "산업공학학과".
   const baseKey = (s: string) =>
-    s
-      // strip anything from the first parenthesis to the end
-      .replace(/\(.*$/u, "")
-      .replace(/\s+/g, "")
-      // drop common generic suffixes
-      .replace(/학과$/u, "")
-      .replace(/과$/u, "")
-      .trim();
+    s.replace(/\(.*$/u, "").replace(/\s+/g, "").replace(/학과$/u, "").replace(/과$/u, "").trim();
 
   const detailedBases = new Set<string>();
   for (const d of list) {
@@ -100,14 +172,11 @@ function groupDepts(uniqueDepts: string[]) {
 
   const filteredForDetail = list.filter((d) => {
     const hasParen = d.includes("(");
-    if (hasParen) return true; // always keep detailed labels
+    if (hasParen) return true;
     const bk = baseKey(d);
-    // Drop generic label if a detailed one with the same base exists
-    if (detailedBases.has(bk)) return false;
-    return true;
+    return !detailedBases.has(bk);
   });
 
-  // 3) Handle joint programs labeling/auto-collapse
   const joint = filteredForDetail.filter((d) => JOINT_RE.test(d));
   const base = filteredForDetail.filter((d) => !JOINT_RE.test(d));
 
@@ -122,9 +191,50 @@ function groupDepts(uniqueDepts: string[]) {
   return { mode: "dropdown" as const, options: filteredForDetail };
 }
 
+const rootFont = localFont({
+  src: "./fonts/PretendardVariable.ttf",
+}); 
+
+const chosungList = [
+  "ㄱ", "ㄲ", "ㄴ", "ㄷ", "ㄸ", "ㄹ", "ㅁ", "ㅂ", "ㅃ", "ㅅ", "ㅆ",
+  "ㅇ", "ㅈ", "ㅉ", "ㅊ", "ㅋ", "ㅌ", "ㅍ", "ㅎ",
+];
+function getChosung(ch: string): string {
+  if (!ch) return "";
+  const code = ch.charCodeAt(0);
+  if (code >= 0xac00 && code <= 0xd7a3) {
+    return chosungList[Math.floor((code - 0xac00) / 588)] || ch;
+  }
+  return ch;
+}
+
+function isFuzzyMatch(input: string, target: string): boolean {
+  const normalizedInput = input.toLowerCase().replace(/\s/g, '');
+  const normalizedTarget = target.toLowerCase().replace(/\s/g, '');
+
+  let input_point = 0; // input ("홍ㄱㄷ") 포인터
+  let target_point = 0; // target ("홍길동") 포인터
+
+  while (input_point < normalizedInput.length && target_point < normalizedTarget.length) {
+    const inputChar = normalizedInput[input_point];
+    const targetSyllable = normalizedTarget[target_point];
+
+    if (inputChar === targetSyllable ||inputChar === getChosung(targetSyllable)) {
+      input_point++;
+      target_point++;
+    } else {
+      target_point++;
+    }
+  }
+
+  return input_point === normalizedInput.length;
+}
+
 export default function TimetablePage() {
-  const [year, setYear] = useState("2025");
-  const [semester, setSemester] = useState("3");
+  const initialYS = useMemo(() => currentYearSemesterKst(), []);
+  const [year, setYear] = useState(initialYS.year);
+  const [semester, setSemester] = useState(initialYS.semester);
+
   const [mode, setMode] = useState<Mode>("room");
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(false);
@@ -132,6 +242,14 @@ export default function TimetablePage() {
   const [events, setEvents] = useState<EventBlock[]>([]);
   const [freeRooms, setFreeRooms] = useState<FreeRoom[]>([]);
   const [copied, setCopied] = useState<string>("");
+  const [nearbyBuildings, setNearbyBuildings] = useState<NearbyBuildingPoint[]>([]);
+  const [nearbyLoading, setNearbyLoading] = useState(false);
+  const [nearbyError, setNearbyError] = useState("");
+  const [nearbyScaleMeters, setNearbyScaleMeters] = useState(0);
+  const [selectedNearbyBuilding, setSelectedNearbyBuilding] = useState<string>("");
+  const [userPos, setUserPos] = useState<{ lat: number; lon: number } | null>(null);
+  const nearbyCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const nearbyPlotRef = useRef<Array<{ building: string; x: number; y: number; r: number }>>([]);
 
   const [collapsed, setCollapsed] = useState(false);
   const panelRef = useRef<HTMLDivElement | null>(null);
@@ -152,6 +270,8 @@ export default function TimetablePage() {
     free: [],
   });
   const laid = layoutByDay(events) as Laid;
+  const VISIBLE_DAYS: DayIndex[] =
+    (laid[5] ?? []).length > 0 ? [0, 1, 2, 3, 4, 5] : [0, 1, 2, 3, 4];
   const { startMin, endMin } = timeBounds(events);
 
   const semesterCacheRef = useRef(new Map<string, AnyLecture[]>());
@@ -161,11 +281,12 @@ export default function TimetablePage() {
   const autoCollapseRef = useRef<number>(0);
   const viewStartRef = useRef<number | null>(null);
 
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [inputFocused, setInputFocused] = useState(false);
+  const blurTimeout = useRef<number | null>(null);
+
   useEffect(() => {
-    // Mixpanel 초기화 및 페이지뷰 추적은 MixpanelProvider에서 담당하므로 여기서는 제거합니다.
-    // 페이지에 머문 시간(duration) 추적 로직만 남겨둡니다.
-    const start = Date.now();
-    viewStartRef.current = start;
+    viewStartRef.current = Date.now();
 
     const onHide = () => {
       if (viewStartRef.current != null) {
@@ -217,6 +338,17 @@ export default function TimetablePage() {
     )}&semester=${encodeURIComponent(semester)}`;
     fetch(url).catch(() => {});
   }, [year, semester]);
+// 뒤로가기(popstate) 시 필터 자동 펼침
+useEffect(() => {
+  const onPop = () => setCollapsed(false);
+  window.addEventListener("popstate", onPop);
+  return () => window.removeEventListener("popstate", onPop);
+}, []);
+
+// 검색어가 비어(초기화)지면 필터 자동 펼침
+useEffect(() => {
+  if (!loading && q.trim() === "") setCollapsed(false);
+}, [q, loading]);
 
   const canSearch = useMemo(() => !!year && !!semester && q.trim().length > 0, [year, semester, q]);
 
@@ -242,6 +374,10 @@ export default function TimetablePage() {
     setActiveLectures([]);
     setEvents([]);
     setFreeRooms([]);
+    setNearbyBuildings([]);
+    setNearbyError("");
+    setNearbyScaleMeters(0);
+    setSelectedNearbyBuilding("");
     setSel(null);
   }, [mode, year, semester]);
 
@@ -301,7 +437,6 @@ export default function TimetablePage() {
     setHistoryByMode(loadHistory());
   }, []);
 
-  // manage single vs double click on history chips
   const histClickTimers = useRef<Record<string, number>>({});
   const clearHistTimer = (key: string) => {
     const id = histClickTimers.current[key];
@@ -311,10 +446,41 @@ export default function TimetablePage() {
     }
   };
 
+  //reset app to initial state
+  const resetToInitial = () => {
+    setQ("");
+    setEvents([]);
+    setFreeRooms([]);
+    setActiveLectures([]);
+    setProfFiltered([]);
+    setDeptOptions([]);
+    setDept("");
+    setSel(null);
+    //reset other if needed
+  };
+
+  //reset state when go back button is pressed
+  useEffect(() => {
+    const handlePopState = () => {
+      resetToInitial();
+    };
+
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, []);
+
   const onSearch = async (overrideQ?: string | unknown) => {
     const query = (typeof overrideQ === "string" ? overrideQ : q).trim();
     const can = !!year && !!semester && query.length > 0;
     if (!can) return;
+
+    setInputFocused(false);
+    if (inputRef.current) inputRef.current.blur();
+    setSuggestions([]);
+
     setLoading(true);
     setCopied("");
     setDept("");
@@ -437,6 +603,7 @@ export default function TimetablePage() {
       alert("불러오기 실패");
     } finally {
       setLoading(false);
+      window.history.pushState(null, ""); //to stay on the app
     }
   };
 
@@ -531,6 +698,240 @@ export default function TimetablePage() {
     } catch {}
   };
 
+  const selectedNearby = useMemo(
+    () =>
+      nearbyBuildings.find((b) => b.building === selectedNearbyBuilding) ??
+      nearbyBuildings[0] ??
+      null,
+    [nearbyBuildings, selectedNearbyBuilding]
+  );
+
+  const requestCurrentPosition = () =>
+    new Promise<{ lat: number; lon: number }>((resolve, reject) => {
+      if (typeof navigator === "undefined" || !navigator.geolocation) {
+        reject(new Error("geolocation unavailable"));
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+        (err) => reject(err),
+        { enableHighAccuracy: true, timeout: 12_000, maximumAge: 60_000 }
+      );
+    });
+
+  const loadNearbyAirdrop = async (preset?: { lat: number; lon: number }) => {
+    setNearbyLoading(true);
+    setNearbyError("");
+
+    try {
+      const pos = preset ?? (await requestCurrentPosition());
+      setUserPos(pos);
+
+      const url = `/api/snutt/recommendation/location?year=${encodeURIComponent(
+        Number(year)
+      )}&semester=${encodeURIComponent(semester)}&lat=${encodeURIComponent(
+        pos.lat
+      )}&lon=${encodeURIComponent(pos.lon)}&limit=24&radiusMeters=1200&format=buildings`;
+      const res = await fetch(url);
+      const data: unknown = await res.json();
+
+      if (!res.ok || !Array.isArray(data)) {
+        setNearbyBuildings([]);
+        setSelectedNearbyBuilding("");
+        setNearbyError((data as { error?: string })?.error || "내 주변 정보를 불러오지 못했어요.");
+        return;
+      }
+
+      const parsed = (data as unknown[])
+        .map((item) => {
+          const row = item as Partial<NearbyBuildingPoint>;
+          if (
+            typeof row?.building !== "string" ||
+            typeof row?.buildingName !== "string" ||
+            typeof row?.lat !== "number" ||
+            typeof row?.lon !== "number" ||
+            typeof row?.distanceMeters !== "number" ||
+            typeof row?.dxMeters !== "number" ||
+            typeof row?.dyMeters !== "number" ||
+            typeof row?.freeRoomCount !== "number" ||
+            typeof row?.topUntil !== "number" ||
+            !Array.isArray(row?.rooms)
+          ) {
+            return null;
+          }
+          const rooms = row.rooms
+            .filter(
+              (r): r is FreeRoom =>
+                !!r &&
+                typeof (r as FreeRoom).room === "string" &&
+                typeof (r as FreeRoom).until === "number"
+            )
+            .slice(0, 6);
+          return { ...row, rooms } as NearbyBuildingPoint;
+        })
+        .filter((row): row is NearbyBuildingPoint => row !== null);
+
+      setNearbyBuildings(parsed);
+      setSelectedNearbyBuilding(parsed[0]?.building ?? "");
+      trackEvent("nearby_airdrop_loaded", {
+        count: parsed.length,
+        year,
+        semester,
+      });
+    } catch (err) {
+      const geo = err as { code?: number; message?: string };
+      let msg = "내 위치를 가져오지 못했어요.";
+      if (geo?.code === 1) msg = "위치 권한이 필요해요. 브라우저에서 위치 접근을 허용해 주세요.";
+      else if (geo?.code === 3) msg = "위치 확인 시간이 초과됐어요. 다시 시도해 주세요.";
+      else if (geo?.message) msg = geo.message;
+      setNearbyBuildings([]);
+      setSelectedNearbyBuilding("");
+      setNearbyError(msg);
+      trackEvent("nearby_airdrop_failed", { reason: geo?.message || "unknown" });
+    } finally {
+      setNearbyLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const canvas = nearbyCanvasRef.current;
+    if (!canvas) return;
+
+    const draw = () => {
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const width = Math.max(280, Math.round(rect.width));
+      const height = Math.max(260, Math.round(rect.height));
+      const dpr = window.devicePixelRatio || 1;
+      const realW = Math.round(width * dpr);
+      const realH = Math.round(height * dpr);
+
+      if (canvas.width !== realW || canvas.height !== realH) {
+        canvas.width = realW;
+        canvas.height = realH;
+      }
+
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+
+      const root = getComputedStyle(document.documentElement);
+      const line = (root.getPropertyValue("--line") || "#d1d5db").trim();
+      const lineSoft = (root.getPropertyValue("--line-soft") || "#e5e7eb").trim();
+      const primary = (root.getPropertyValue("--primary") || "#4f46e5").trim();
+      const muted = (root.getPropertyValue("--muted-foreground") || "#6b7280").trim();
+      const panel = (root.getPropertyValue("--panel") || "#ffffff").trim();
+
+      ctx.fillStyle = panel;
+      ctx.fillRect(0, 0, width, height);
+
+      const cx = width / 2;
+      const cy = height / 2;
+      const plotRadius = Math.min(width, height) * 0.38;
+
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = lineSoft;
+      for (let i = 1; i <= 4; i++) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, (plotRadius / 4) * i, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      ctx.setLineDash([4, 4]);
+      ctx.strokeStyle = line;
+      ctx.beginPath();
+      ctx.moveTo(cx - plotRadius, cy);
+      ctx.lineTo(cx + plotRadius, cy);
+      ctx.moveTo(cx, cy - plotRadius);
+      ctx.lineTo(cx, cy + plotRadius);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = muted;
+      ctx.font = "11px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("N", cx, cy - plotRadius - 8);
+      ctx.fillText("S", cx, cy + plotRadius + 14);
+      ctx.fillText("W", cx - plotRadius - 10, cy + 4);
+      ctx.fillText("E", cx + plotRadius + 10, cy + 4);
+
+      ctx.fillStyle = primary;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillText("ME", cx, cy - 10);
+
+      nearbyPlotRef.current = [];
+
+      if (!nearbyBuildings.length) {
+        setNearbyScaleMeters((prev) => (prev === 0 ? prev : 0));
+        ctx.fillStyle = muted;
+        ctx.font = "13px sans-serif";
+        ctx.fillText("내 위치로 주변 빈 강의실 건물을 찾아보세요.", cx, cy + 24);
+        return;
+      }
+
+      const maxDistance = Math.max(
+        150,
+        ...nearbyBuildings.map((b) => Math.hypot(b.dxMeters, b.dyMeters))
+      );
+      const scale = Math.ceil(maxDistance / 100) * 100;
+      setNearbyScaleMeters((prev) => (prev === scale ? prev : scale));
+
+      const labelSet = new Set<string>(nearbyBuildings.slice(0, 6).map((b) => b.building));
+      if (selectedNearbyBuilding) labelSet.add(selectedNearbyBuilding);
+
+      for (const item of nearbyBuildings) {
+        const px = cx + (item.dxMeters / scale) * plotRadius;
+        const py = cy - (item.dyMeters / scale) * plotRadius;
+        const isSelected = item.building === selectedNearbyBuilding;
+        const r = Math.max(5, Math.min(11, 4 + Math.log2(item.freeRoomCount + 1) * 1.6));
+
+        ctx.fillStyle = isSelected ? primary : `${primary}B0`;
+        ctx.strokeStyle = isSelected ? "#ffffff" : `${line}`;
+        ctx.lineWidth = isSelected ? 2 : 1;
+
+        ctx.beginPath();
+        ctx.arc(px, py, r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        nearbyPlotRef.current.push({ building: item.building, x: px, y: py, r });
+
+        if (labelSet.has(item.building)) {
+          ctx.fillStyle = muted;
+          ctx.font = "11px sans-serif";
+          ctx.textAlign = "left";
+          ctx.fillText(item.building, px + r + 4, py - r - 1);
+        }
+      }
+    };
+
+    draw();
+    window.addEventListener("resize", draw);
+    return () => window.removeEventListener("resize", draw);
+  }, [nearbyBuildings, selectedNearbyBuilding]);
+
+  const onNearbyCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!nearbyPlotRef.current.length) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    let winner = "";
+    let best = Infinity;
+    for (const p of nearbyPlotRef.current) {
+      const d = Math.hypot(x - p.x, y - p.y);
+      const hitR = Math.max(12, p.r + 4);
+      if (d <= hitR && d < best) {
+        winner = p.building;
+        best = d;
+      }
+    }
+    if (winner) setSelectedNearbyBuilding(winner);
+  };
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setSel(null);
@@ -564,39 +965,149 @@ export default function TimetablePage() {
     });
   };
 
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!q.trim() || loading) {
+      setSuggestions([]);
+      return;
+    }
+    const key = `${Number(year)}-${semester}`;
+    const all = semesterCacheRef.current.get(key);
+    if (!all) {
+      setSuggestions([]);
+      return;
+    }
+    let list: string[] = [];
+    const input = q.trim();
+    if (mode === "professor") {
+      const professors = Array.from(
+        new Set(
+          all
+            .map((lec) => String(lec?.instructor || lec?.professor || "").trim())
+            .filter((v) => v.length > 0 && isFuzzyMatch(input, v))
+        )
+      );
+      list = professors.sort((a, b) => {
+        const aPrefix = a.startsWith(input);
+        const bPrefix = b.startsWith(input);
+        if (aPrefix && !bPrefix) return -1;
+        if (!aPrefix && bPrefix) return 1;
+        return a.localeCompare(b);
+      });
+    } else if (mode === "room") {
+      let matcher: (room: string) => boolean;
+      if (!input.includes("-")) {
+        matcher = (room: string) => room.startsWith(input + "-");
+      } else {
+        const building = input.split("-")[0];
+        matcher = (room: string) => room.startsWith(building + "-") && room.includes(input);
+      }
+      list = Array.from(
+        new Set(
+          all
+            .map((lec) =>
+              Array.isArray(lec?.class_time_json)
+                ? lec.class_time_json.map((t: any) => String(t?.place ?? t?.room ?? "").trim())
+                : []
+            )
+            .flat()
+            .filter((v) => v.length > 0 && matcher(v))
+        )
+      );
+      list = list.sort((a, b) => {
+        const aPrefix = a.startsWith(input) ? -1 : 1;
+        const bPrefix = b.startsWith(input) ? -1 : 1;
+        if (aPrefix !== bPrefix) return aPrefix - bPrefix;
+        return a.localeCompare(b);
+      });
+    } else if (mode === "free") {
+      const buildings = Array.from(
+        new Set(
+          all
+            .map((lec) =>
+              Array.isArray(lec?.class_time_json)
+                ? lec.class_time_json.map((t: any) => {
+                    const room = String(t?.place ?? t?.room ?? "").trim();
+                    return room.split("-")[0];
+                  })
+                : []
+            )
+            .flat()
+            .filter((v) => v.length > 0 && v.includes(input))
+        )
+      );
+      list = buildings.sort((a, b) => {
+        const aPrefix = a.startsWith(input);
+        const bPrefix = b.startsWith(input);
+        if (aPrefix && !bPrefix) return -1;
+        if (!aPrefix && bPrefix) return 1;
+        return a.localeCompare(b);
+      });
+    }
+    setSuggestions(list);
+  }, [q, mode, year, semester, loading]);
+
+  useEffect(() => {
+    const key = `${Number(year)}-${semester}`;
+    if (semesterCacheRef.current.has(key)) return;
+    const url = `/api/snutt/search?year=${encodeURIComponent(
+      Number(year)
+    )}&semester=${encodeURIComponent(semester)}`;
+    fetch(url)
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          semesterCacheRef.current.set(key, data);
+        }
+      })
+      .catch(() => {});
+  }, [year, semester]);
+
+  const handleSuggestionSelect = (value: string) => {
+    setQ(value);
+    setInputFocused(false);
+    if (inputRef.current) inputRef.current.blur();
+    setSuggestions([]);
+    onSearch(value);
+  };
+
   return (
-    <main className="tt-wrap">
-      <header className="tt-header">
-        <div className="tt-headRow">
-          <h1 className="tt-title">TTuns</h1>
-          <TrackedButton
-            button_type="toggle_filter_collapse"
-            className="tt-collapseBtn"
-            aria-expanded={!collapsed}
-            aria-controls="tt-filter-panel"
-            onClick={() => setCollapsed((v) => !v)}
-            title={collapsed ? "필터 펼치기" : "필터 접기"}
-          >
-            <svg
-              className="tt-chevron"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
+    <main className={clsx("tt-wrap", rootFont.className)}>
+      <Card className="tt-header p-4">
+        <div className="tt-headRow p-2">
+          <h1 className="tt-title text-2xl">TTuns</h1>
+          <div className="tt-buttons absolute right-3 flex gap-2">
+            <DarkModeToggle />
+            <TrackedButton
+              button_type="toggle_filter_collapse"
+              className="tt-collapseBtn"
+              aria-expanded={!collapsed}
+              aria-controls="tt-filter-panel"
+              onClick={() => setCollapsed((v) => !v)}
+              title={collapsed ? "필터 펼치기" : "필터 접기"}
             >
-              <polyline points="6 15 12 9 18 15"></polyline>
-            </svg>
-            <span className="sr-only">{collapsed ? "필터 펼치기" : "필터 접기"}</span>
-          </TrackedButton>
+              <svg
+                className="tt-chevron"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <polyline points="6 15 12 9 18 15"></polyline>
+              </svg>
+              <span className="sr-only">{collapsed ? "필터 펼치기" : "필터 접기"}</span>
+            </TrackedButton>
+          </div>
         </div>
 
         <div className="tt-controls" data-collapsed={collapsed ? "1" : "0"}>
           <div className="tt-pillbar" aria-hidden={!collapsed}>
             <span className="tt-pill">
-              {year} • {semesterLabel}
+              {year}년 {semesterLabel}
             </span>
             <span className="tt-pill">{modeLabel}</span>
             <span className="tt-pill tt-pill-q" title={q}>
@@ -620,8 +1131,8 @@ export default function TimetablePage() {
           >
             <div className="tt-row">
               <div className="tt-field tt-year">
-                <label>연도</label>
-                <input
+                <Label>연도</Label>
+                <Input
                   value={year}
                   onChange={(e) => setYear(e.target.value)}
                   placeholder="예: 2025"
@@ -631,21 +1142,27 @@ export default function TimetablePage() {
               </div>
 
               <div className="tt-field tt-sem">
-                <label>학기</label>
-                <select value={semester} onChange={(e) => setSemester(e.target.value)}>
-                  <option value="1">1학기</option>
-                  <option value="2">여름학기</option>
-                  <option value="3">2학기</option>
-                  <option value="4">겨울학기</option>
-                </select>
+                <Label>학기</Label>
+                <Select value={semester} onValueChange={(value) => setSemester(value)}>
+                  <SelectTrigger className="w-[100%]">
+                    <SelectValue placeholder="학기" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1학기</SelectItem>
+                    <SelectItem value="2">여름학기</SelectItem>
+                    <SelectItem value="3">2학기</SelectItem>
+                    <SelectItem value="4">겨울학기</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="tt-field tt-mode">
-                <label>
+                <Label>
                   {mode === "professor" ? "교수명" : mode === "room" ? "강의실" : "건물 동번호"}
-                </label>
+                </Label>
                 <div className="tt-searchWrap">
-                  <input
+                  <Input
+                    ref={inputRef}
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
                     placeholder={
@@ -657,44 +1174,90 @@ export default function TimetablePage() {
                     }
                     inputMode={mode === "free" ? "numeric" : "text"}
                     onKeyDown={onKeyDownInput}
+                    autoComplete="off"
+                    onFocus={() => {
+                      if (blurTimeout.current) {
+                        clearTimeout(blurTimeout.current);
+                        blurTimeout.current = null;
+                      }
+                      setInputFocused(true);
+                    }}
+                    onBlur={() => {
+                      blurTimeout.current = window.setTimeout(() => {
+                        setInputFocused(false);
+                      }, 150);
+                    }}
                   />
-                  <div className="tt-history" aria-label="최근 검색">
-                    {(historyByMode[mode] || []).slice(0, 3).map((h) => (
-                      <button
-                        key={h}
-                        type="button"
-                        className="tt-hChip"
-                        title={`최근 검색: ${h} (더블 클릭으로 삭제)`}
-                        onClick={() => {
-                          // defer single-click action slightly to detect double-click
-                          clearHistTimer(h);
-                          const t = window.setTimeout(() => {
-                            delete histClickTimers.current[h];
-                            setQ(h);
-                            if (!loading) onSearch(h);
-                          }, 250);
-                          histClickTimers.current[h] = t;
-                        }}
-                        onDoubleClick={() => {
-                          // cancel pending single-click and delete this history item
-                          clearHistTimer(h);
-                          removeHistory(mode, h);
-                          trackEvent("history_item_deleted", { mode, value_len: h.length });
+                  {suggestions.length > 0 &&
+                    inputFocused &&
+                    inputRef.current &&
+                    ReactDOM.createPortal(
+                      <div
+                        className="tt-suggestList"
+                        style={{
+                          position: "absolute",
+                          left: inputRef.current.getBoundingClientRect().left,
+                          top: inputRef.current.getBoundingClientRect().bottom + window.scrollY,
+                          width: inputRef.current.offsetWidth,
+                          zIndex: 9999,
                         }}
                       >
-                        {h}
-                      </button>
+                        {suggestions.map((s) => (
+                          <button
+                            key={s}
+                            type="button"
+                            className="tt-suggestItem"
+                            onClick={() => handleSuggestionSelect(s)}
+                          >
+                            {s}
+                          </button>
+                        ))}
+                      </div>,
+                      document.body
+                    )}
+                  <div className="tt-history" aria-label="최근 검색">
+                    {(historyByMode[mode] || []).slice(0, 3).map((h) => (
+                      <div key={h} className="tt-hChip">
+                        <button
+                          key={h}
+                          type="button"
+                          className="tt-hChip-text"
+                          title={`최근 검색: ${h}`}
+                          onClick={() => {
+                            setQ(h);
+                            setInputFocused(false);
+                            if (inputRef.current) inputRef.current.blur();
+                            setSuggestions([]);
+                            if (!loading) onSearch(h);
+                          }}
+                        >
+                          {h}
+                        </button>
+
+                        <button
+                          type="button"
+                          className="tt-hChip-delete"
+                          aria-label={`최근 검색 ${h} 삭제`}
+                          title="삭제"
+                          onClick={() => {
+                            removeHistory(mode, h);
+                            trackEvent("history_item_deleted", { mode, value_len: h.length });
+                          }}
+                        >
+                          &times;
+                        </button>
+                      </div>
                     ))}
                   </div>
                 </div>
               </div>
 
               <div className="tt-field tt-mode">
-                <label>검색 유형</label>
+                <Label>검색 유형</Label>
                 <div className="tt-segment" role="tablist" aria-label="검색 유형 선택">
                   <TrackedButton
                     button_type="mode_professor"
-                    className={`tt-segbtn ${mode === "professor" ? "on" : ""}`}
+                    className={clsx("tt-segbtn", mode === "professor" ? "on" : "", "text-xs")}
                     aria-pressed={mode === "professor"}
                     onClick={() => {
                       setMode("professor");
@@ -707,7 +1270,7 @@ export default function TimetablePage() {
                   </TrackedButton>
                   <TrackedButton
                     button_type="mode_room"
-                    className={`tt-segbtn ${mode === "room" ? "on" : ""}`}
+                    className={clsx("tt-segbtn", mode === "room" ? "on" : "", "text-xs")}
                     aria-pressed={mode === "room"}
                     onClick={() => {
                       setMode("room");
@@ -720,7 +1283,7 @@ export default function TimetablePage() {
                   </TrackedButton>
                   <TrackedButton
                     button_type="mode_free"
-                    className={`tt-segbtn ${mode === "free" ? "on" : ""}`}
+                    className={clsx("tt-segbtn", mode === "free" ? "on" : "", "text-xs")}
                     aria-pressed={mode === "free"}
                     onClick={() => {
                       setMode("free");
@@ -773,47 +1336,136 @@ export default function TimetablePage() {
             </div>
           </div>
         </div>
-      </header>
+      </Card>
 
       {mode === "free" && !loading && (
-        <div className="tt-freeWrap">
-          <div className="tt-freeHead">
-            <div className="tt-freeTitle">현재 빈 강의실</div>
-            <div className="tt-freeMeta">기준 시각(KST): {nowKst().hhmm}</div>
+        <>
+          <div className="tt-nearbyWrap">
+            <div className="tt-nearbyHead">
+              <div>
+                <div className="tt-nearbyTitle">내 주변 AirDrop 빈 강의실</div>
+                <div className="tt-nearbyMeta">
+                  {userPos
+                    ? `현재 좌표: ${userPos.lat.toFixed(5)}, ${userPos.lon.toFixed(5)}`
+                    : "현재 위치를 기준으로 빈 강의실이 있는 건물을 데카르트 좌표계로 표시합니다."}
+                </div>
+              </div>
+              <TrackedButton
+                button_type="nearby_airdrop_search"
+                className="tt-nearbyAction"
+                onClick={() => void loadNearbyAirdrop(userPos ?? undefined)}
+                disabled={nearbyLoading}
+              >
+                {nearbyLoading ? "탐색 중…" : "내 주변 보기"}
+              </TrackedButton>
+            </div>
+
+            <div className="tt-nearbyCanvasBox">
+              <canvas
+                ref={nearbyCanvasRef}
+                className="tt-nearbyCanvas"
+                onClick={onNearbyCanvasClick}
+                role="img"
+                aria-label="내 주변 빈 강의실 건물 분포"
+              />
+              {nearbyScaleMeters > 0 && (
+                <div className="tt-nearbyScale">반경 ±{fmtDistance(nearbyScaleMeters)}</div>
+              )}
+            </div>
+
+            {nearbyError && <div className="tt-nearbyError">{nearbyError}</div>}
+
+            {!!nearbyBuildings.length && (
+              <>
+                <div className="tt-nearbyList">
+                  {nearbyBuildings.slice(0, 8).map((b) => (
+                    <button
+                      key={b.building}
+                      type="button"
+                      className={clsx(
+                        "tt-nearbyChip",
+                        selectedNearby?.building === b.building && "on"
+                      )}
+                      onClick={() => setSelectedNearbyBuilding(b.building)}
+                    >
+                      <span className="tt-nearbyChipTitle">{b.building}</span>
+                      <span className="tt-nearbyChipMeta">
+                        {fmtDistance(b.distanceMeters)} · {b.freeRoomCount}개
+                      </span>
+                    </button>
+                  ))}
+                </div>
+
+                {selectedNearby && (
+                  <div className="tt-nearbyDetail">
+                    <div className="tt-nearbyDetailTitle">
+                      {selectedNearby.building} {selectedNearby.buildingName}
+                    </div>
+                    <div className="tt-nearbyDetailMeta">
+                      거리 {fmtDistance(selectedNearby.distanceMeters)} · 현재 빈 강의실{" "}
+                      {selectedNearby.freeRoomCount}개 · 최장 ~ {fmtHHMM(selectedNearby.topUntil)}
+                    </div>
+                    <div className="tt-nearbyRooms">
+                      {selectedNearby.rooms.slice(0, 4).map((room) => (
+                        <TrackedButton
+                          key={room.room}
+                          button_type="free_room_copy_nearby"
+                          className="tt-nearbyRoomBtn"
+                          onClick={() => copyRoom(room.room)}
+                        >
+                          <span>{room.room}</span>
+                          <span>~ {fmtHHMM(room.until)}</span>
+                        </TrackedButton>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
           </div>
 
-          {freeRooms.length === 0 ? (
-            <div className="tt-empty">결과가 없습니다. 동번호/학기를 확인해 주세요.</div>
-          ) : (
-            <div className="tt-freeList">
-              {freeRooms.map(({ room, until }) => (
-                <TrackedButton
-                  key={room}
-                  button_type="free_room_copy"
-                  className="tt-roomBtn"
-                  onClick={() => copyRoom(room)}
-                >
-                  <span className="tt-roomName">{room}</span>
-                  <span className="tt-until">~ {fmtHHMM(until)}</span>
-                  <span className="tt-copy">{copied === room ? "복사됨" : "복사"}</span>
-                </TrackedButton>
-              ))}
+          <div className="tt-freeWrap">
+            <div className="tt-freeHead">
+              <div className="tt-freeTitle">현재 빈 강의실</div>
+              <div className="tt-freeMeta">기준 시각(KST): {nowKst().hhmm}</div>
             </div>
-          )}
-        </div>
+
+            {freeRooms.length === 0 ? (
+              <div className="tt-empty">결과가 없습니다. 동번호와 학기를 확인해 주세요.</div>
+            ) : (
+              <div className="tt-freeList">
+                {freeRooms.map(({ room, until }) => (
+                  <TrackedButton
+                    key={room}
+                    button_type="free_room_copy"
+                    className="tt-roomBtn"
+                    onClick={() => copyRoom(room)}
+                  >
+                    <span className="tt-roomName">{room}</span>
+                    <span className="tt-until">~ {fmtHHMM(until)}</span>
+                    <span className="tt-copy">{copied === room ? "복사됨" : "복사"}</span>
+                  </TrackedButton>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
       )}
 
       {mode !== "free" && !loading && events.length === 0 && (
         <div className="tt-empty">
           {mode === "professor" && profFiltered.length > 0 && deptOptions.length > 1 && !dept
             ? "소속을 선택해 주세요."
-            : "결과가 없습니다. 입력값과 학기를 확인해 주세요."}
+            : `결과가 없습니다. ${mode === "professor" ? "교수명" : "강의실"}과 학기를 확인해 주세요.`}
         </div>
       )}
 
       {mode !== "free" && (
         <div className="tt-tableWrap">
-          <div className="tt-grid tt-headerRow">
+          <div
+            className="tt-grid tt-headerRow"
+            no-saturday={((laid[5] ?? []).length == 0).toString()}
+          >
             <div className="tt-timeCol tt-headCell" aria-hidden="true" />
             {VISIBLE_DAYS.map((d) => (
               <div key={d} className="tt-dayHead tt-headCell">
@@ -824,6 +1476,7 @@ export default function TimetablePage() {
 
           <div
             className="tt-grid tt-body"
+            no-saturday={((laid[5] ?? []).length == 0).toString()}
             style={{ height: Math.max(380, (endMin - startMin) * PPM) }}
           >
             <div className="tt-timeCol">
@@ -858,8 +1511,17 @@ export default function TimetablePage() {
                   {list.map((e, i) => {
                     const top = (e.start - startMin) * PPM;
                     const height = Math.max(22, (e.end - e.start) * PPM - 2);
-                    const widthPct = 100 / e.colCount;
-                    const leftPct = widthPct * e.col;
+                    // Determine dynamic lane count among events that overlap with this event's interval
+                    const overlaps = list.filter(
+                      (o) => o !== e && o.start < e.end && o.end > e.start
+                    );
+                    const activeCols = Array.from(
+                      new Set([...overlaps.map((o) => o.col), e.col])
+                    ).sort((a, b) => a - b);
+                    const localColCount = Math.max(1, activeCols.length);
+                    const localIndex = Math.max(0, activeCols.indexOf(e.col));
+                    const widthPct = 100 / localColCount;
+                    const leftPct = widthPct * localIndex;
                     const { fill, stroke } = colorForTitle(e.title || "");
                     return (
                       <div
