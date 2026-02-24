@@ -9,6 +9,7 @@ import {
   nowKst,
   take,
 } from "@/server/snutt";
+import { parseHHmm, toMinuteRange } from "@/lib/lectureShared";
 
 export const runtime = "nodejs";
 
@@ -47,43 +48,6 @@ const g = globalThis as unknown as GlobalStores;
 const recoBaseCache =
   g.__recoBaseCache ?? new Map<string, { data: RecoBaseItem[]; expiresAt: number }>();
 if (!g.__recoBaseCache) g.__recoBaseCache = recoBaseCache;
-
-/** "HH:mm" -> 분 */
-function parseHHmm(s?: string): number | null {
-  if (!s) return null;
-  const m = s.match(/^(\d{1,2}):(\d{2})$/);
-  if (!m) return null;
-  const hh = Number(m[1]);
-  const mm = Number(m[2]);
-  if (!Number.isFinite(hh) || !Number.isFinite(mm)) return null;
-  if (hh < 0 || hh > 23 || mm < 0 || mm > 59) return null;
-  return hh * 60 + mm;
-}
-
-/** SNUTT 시간 블록을 안전하게 분 범위로 */
-function toMinuteRange(t: {
-  startMinute?: number;
-  endMinute?: number;
-  start_time?: string;
-  end_time?: string;
-  start?: number;
-  len?: number;
-}): MinuteRange | null {
-  if (typeof t.startMinute === "number" && typeof t.endMinute === "number") {
-    return { s: t.startMinute, e: t.endMinute };
-  }
-
-  const ps = parseHHmm(t.start_time);
-  const pe = parseHHmm(t.end_time);
-  if (ps !== null && pe !== null) return { s: ps, e: pe };
-
-  if (typeof t.start === "number" && typeof t.len === "number") {
-    const s = Math.round((8 + t.start) * 60);
-    const e = Math.round(s + t.len * 60);
-    return { s, e };
-  }
-  return null;
-}
 
 /** "301-118, 301-119 / 301-201" -> ["301-118","301-119","301-201"] */
 function splitPlaces(p: string): string[] {

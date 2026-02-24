@@ -32,6 +32,8 @@ import {
 
 type Mode = "professor" | "room" | "free";
 type FreeRoom = { room: string; until: number };
+type GeoPoint = { lat: number; lon: number };
+type ResolvedGeoPosition = GeoPoint & { source: "gps" | "cached" };
 type NearbyBuildingPoint = {
   building: string;
   buildingName: string;
@@ -111,7 +113,7 @@ function fmtDistance(meters: number) {
 
 const LAST_GEO_KEY = "ttuns.lastGeo.v1";
 
-function readCachedGeo(): { lat: number; lon: number } | null {
+function readCachedGeo(): GeoPoint | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = localStorage.getItem(LAST_GEO_KEY);
@@ -126,7 +128,7 @@ function readCachedGeo(): { lat: number; lon: number } | null {
   }
 }
 
-function writeCachedGeo(pos: { lat: number; lon: number }) {
+function writeCachedGeo(pos: GeoPoint) {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(LAST_GEO_KEY, JSON.stringify(pos));
@@ -312,7 +314,7 @@ export default function TimetablePage() {
   const [nearbyError, setNearbyError] = useState("");
   const [nearbyScaleMeters, setNearbyScaleMeters] = useState(0);
   const [selectedNearbyBuilding, setSelectedNearbyBuilding] = useState<string>("");
-  const [userPos, setUserPos] = useState<{ lat: number; lon: number } | null>(null);
+  const [userPos, setUserPos] = useState<ResolvedGeoPosition | null>(null);
   const nearbyCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const nearbyPlotRef = useRef<PlotNode[]>([]);
 
@@ -564,7 +566,7 @@ export default function TimetablePage() {
         const isNearbyMode = query.length === 0;
 
         if (isNearbyMode) {
-          let pos: { lat: number; lon: number };
+          let pos: ResolvedGeoPosition;
           try {
             pos = userPos ?? (await requestCurrentPosition());
           } catch (err) {
@@ -826,11 +828,11 @@ export default function TimetablePage() {
   }, [mode, q, selectedNearby]);
 
   const requestCurrentPosition = () =>
-    new Promise<{ lat: number; lon: number }>((resolve, reject) => {
+    new Promise<ResolvedGeoPosition>((resolve, reject) => {
       const cached = readCachedGeo();
       if (typeof navigator === "undefined") {
         if (cached) {
-          resolve(cached);
+          resolve({ ...cached, source: "cached" });
           return;
         }
         reject(new Error("navigator unavailable"));
@@ -838,7 +840,7 @@ export default function TimetablePage() {
       }
       if (!navigator.geolocation) {
         if (cached) {
-          resolve(cached);
+          resolve({ ...cached, source: "cached" });
           return;
         }
         reject(new Error("geolocation unsupported"));
@@ -849,11 +851,11 @@ export default function TimetablePage() {
           (pos) => {
             const next = { lat: pos.coords.latitude, lon: pos.coords.longitude };
             writeCachedGeo(next);
-            resolve(next);
+            resolve({ ...next, source: "gps" });
           },
           (err) => {
             if (cached) {
-              resolve(cached);
+              resolve({ ...cached, source: "cached" });
               return;
             }
             reject(err);
@@ -862,14 +864,14 @@ export default function TimetablePage() {
         );
       } catch (err) {
         if (cached) {
-          resolve(cached);
+          resolve({ ...cached, source: "cached" });
           return;
         }
         reject(err);
       }
     });
 
-  const loadNearbyAirdrop = async (preset?: { lat: number; lon: number }) => {
+  const loadNearbyAirdrop = async (preset?: ResolvedGeoPosition) => {
     setNearbyError("");
 
     try {
@@ -1672,6 +1674,9 @@ export default function TimetablePage() {
                   : selectedNearby
                     ? `· 선택 동 ${selectedNearby.building}`
                     : "· 내 주변"}
+                {q.trim().length === 0 && userPos?.source === "cached" && (
+                  <span className="tt-geoApprox"> · 대략적 위치</span>
+                )}
               </div>
             </div>
           </div>
