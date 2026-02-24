@@ -394,6 +394,155 @@
         background: var(--panel);
     }
 
+    /* ===== 주변 AirDrop 캔버스 ===== */
+    .tt-nearbyWrap {
+        max-width: 1100px;
+        margin: 0 auto 8px;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        box-shadow: var(--shadow);
+        padding: 12px;
+    }
+
+    .tt-nearbyHead {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+
+    .tt-nearbyTitle {
+        font-weight: 900;
+    }
+
+    .tt-nearbyMeta {
+        margin-top: 2px;
+        color: var(--muted-foreground);
+        font-size: 12px;
+    }
+
+    .tt-nearbyAction {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 8px 12px;
+        font-weight: 800;
+        background: var(--color-accent);
+        color: var(--primary);
+        white-space: nowrap;
+        cursor: pointer;
+    }
+
+    .tt-nearbyAction:disabled {
+        opacity: 0.6;
+        cursor: default;
+    }
+
+    .tt-nearbyCanvasBox {
+        position: relative;
+        border-radius: 12px;
+        border: 1px dashed var(--line);
+        overflow: hidden;
+    }
+
+    .tt-nearbyCanvas {
+        display: block;
+        width: 100%;
+        height: 320px;
+        cursor: crosshair;
+    }
+
+    .tt-nearbyScale {
+        position: absolute;
+        right: 10px;
+        bottom: 10px;
+        padding: 4px 8px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: var(--panel);
+        font-size: 11.5px;
+        font-weight: 700;
+        color: var(--muted-foreground);
+    }
+
+    .tt-nearbyError {
+        margin-top: 8px;
+        font-size: 12px;
+        color: #dc2626;
+    }
+
+    .tt-nearbyList {
+        margin-top: 10px;
+        display: grid;
+        gap: 8px;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .tt-nearbyChip {
+        display: grid;
+        gap: 1px;
+        text-align: left;
+        padding: 8px 10px;
+        border-radius: 10px;
+        border: 1px solid var(--line);
+        background: var(--panel);
+        cursor: pointer;
+        transition: border-color 0.12s, box-shadow 0.12s;
+    }
+
+    .tt-nearbyChip.on {
+        border-color: var(--primary);
+        box-shadow: 0 2px 10px rgba(15, 23, 42, 0.08);
+    }
+
+    .tt-nearbyChipTitle {
+        font-weight: 900;
+    }
+
+    .tt-nearbyChipMeta {
+        font-size: 12px;
+        color: var(--muted-foreground);
+    }
+
+    .tt-nearbyDetail {
+        margin-top: 10px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 10px;
+    }
+
+    .tt-nearbyDetailTitle {
+        font-weight: 900;
+    }
+
+    .tt-nearbyDetailMeta {
+        margin-top: 2px;
+        color: var(--muted-foreground);
+        font-size: 12px;
+    }
+
+    .tt-nearbyRooms {
+        margin-top: 8px;
+        display: grid;
+        gap: 8px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .tt-nearbyRoomBtn {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        padding: 8px 10px;
+        font-size: 12px;
+        font-weight: 700;
+        background: var(--panel);
+        cursor: pointer;
+    }
+
     /* ===== 빈 강의실 ===== */
     .tt-freeWrap {
         max-width: 1100px;
@@ -678,6 +827,10 @@
 
     /* ===== 반응형 ===== */
     @media (max-width: 1024px) {
+        .tt-nearbyList {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
         .tt-row {
             grid-template-columns:
         minmax(78px, 100px)
@@ -693,12 +846,30 @@
     }
 
     @media (max-width: 720px) {
+        .tt-nearbyHead {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .tt-nearbyCanvas {
+            height: 280px;
+        }
+
+        .tt-nearbyList {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .tt-nearbyRooms {
+            grid-template-columns: 1fr;
+        }
+
         .tt-wrap {
             padding: 10px 0 20px;
         }
 
         /* 모바일에서 좌우 여백 제거 */
         .tt-header,
+        .tt-nearbyWrap,
         .tt-freeWrap,
         .tt-tableWrap,
         .tt-empty {
@@ -937,6 +1108,7 @@
         }
 
         .tt-header,
+        .tt-nearbyWrap,
         .tt-freeWrap,
         .tt-tableWrap,
         .tt-empty {

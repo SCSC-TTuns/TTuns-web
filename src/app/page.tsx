@@ -21,7 +21,6 @@ import localFont from "next/font/local";
 import { Label } from "@/components/ui/label";
 import { DarkModeToggle } from "@/components/DarkModeToggle";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -33,6 +32,18 @@ import {
 
 type Mode = "professor" | "room" | "free";
 type FreeRoom = { room: string; until: number };
+type NearbyBuildingPoint = {
+  building: string;
+  buildingName: string;
+  lat: number;
+  lon: number;
+  distanceMeters: number;
+  dxMeters: number;
+  dyMeters: number;
+  freeRoomCount: number;
+  topUntil: number;
+  rooms: FreeRoom[];
+};
 
 type EventBlock = {
   start: number;
@@ -76,6 +87,11 @@ function fmtTime(min: number) {
 
 function fmtHHMM(min: number) {
   return fmtTime(min);
+}
+
+function fmtDistance(meters: number) {
+  if (meters >= 1000) return `${(meters / 1000).toFixed(2)}km`;
+  return `${Math.round(meters)}m`;
 }
 
 function nowKst() {
@@ -226,6 +242,14 @@ export default function TimetablePage() {
   const [events, setEvents] = useState<EventBlock[]>([]);
   const [freeRooms, setFreeRooms] = useState<FreeRoom[]>([]);
   const [copied, setCopied] = useState<string>("");
+  const [nearbyBuildings, setNearbyBuildings] = useState<NearbyBuildingPoint[]>([]);
+  const [nearbyLoading, setNearbyLoading] = useState(false);
+  const [nearbyError, setNearbyError] = useState("");
+  const [nearbyScaleMeters, setNearbyScaleMeters] = useState(0);
+  const [selectedNearbyBuilding, setSelectedNearbyBuilding] = useState<string>("");
+  const [userPos, setUserPos] = useState<{ lat: number; lon: number } | null>(null);
+  const nearbyCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const nearbyPlotRef = useRef<Array<{ building: string; x: number; y: number; r: number }>>([]);
 
   const [collapsed, setCollapsed] = useState(false);
   const panelRef = useRef<HTMLDivElement | null>(null);
@@ -350,6 +374,10 @@ useEffect(() => {
     setActiveLectures([]);
     setEvents([]);
     setFreeRooms([]);
+    setNearbyBuildings([]);
+    setNearbyError("");
+    setNearbyScaleMeters(0);
+    setSelectedNearbyBuilding("");
     setSel(null);
   }, [mode, year, semester]);
 
@@ -668,6 +696,240 @@ useEffect(() => {
       trackEvent("room_copied", { room_prefix: room.split("-")[0] || "", label_len: room.length });
       setTimeout(() => setCopied(""), 1500);
     } catch {}
+  };
+
+  const selectedNearby = useMemo(
+    () =>
+      nearbyBuildings.find((b) => b.building === selectedNearbyBuilding) ??
+      nearbyBuildings[0] ??
+      null,
+    [nearbyBuildings, selectedNearbyBuilding]
+  );
+
+  const requestCurrentPosition = () =>
+    new Promise<{ lat: number; lon: number }>((resolve, reject) => {
+      if (typeof navigator === "undefined" || !navigator.geolocation) {
+        reject(new Error("geolocation unavailable"));
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+        (err) => reject(err),
+        { enableHighAccuracy: true, timeout: 12_000, maximumAge: 60_000 }
+      );
+    });
+
+  const loadNearbyAirdrop = async (preset?: { lat: number; lon: number }) => {
+    setNearbyLoading(true);
+    setNearbyError("");
+
+    try {
+      const pos = preset ?? (await requestCurrentPosition());
+      setUserPos(pos);
+
+      const url = `/api/snutt/recommendation/location?year=${encodeURIComponent(
+        Number(year)
+      )}&semester=${encodeURIComponent(semester)}&lat=${encodeURIComponent(
+        pos.lat
+      )}&lon=${encodeURIComponent(pos.lon)}&limit=24&radiusMeters=1200&format=buildings`;
+      const res = await fetch(url);
+      const data: unknown = await res.json();
+
+      if (!res.ok || !Array.isArray(data)) {
+        setNearbyBuildings([]);
+        setSelectedNearbyBuilding("");
+        setNearbyError((data as { error?: string })?.error || "내 주변 정보를 불러오지 못했어요.");
+        return;
+      }
+
+      const parsed = (data as unknown[])
+        .map((item) => {
+          const row = item as Partial<NearbyBuildingPoint>;
+          if (
+            typeof row?.building !== "string" ||
+            typeof row?.buildingName !== "string" ||
+            typeof row?.lat !== "number" ||
+            typeof row?.lon !== "number" ||
+            typeof row?.distanceMeters !== "number" ||
+            typeof row?.dxMeters !== "number" ||
+            typeof row?.dyMeters !== "number" ||
+            typeof row?.freeRoomCount !== "number" ||
+            typeof row?.topUntil !== "number" ||
+            !Array.isArray(row?.rooms)
+          ) {
+            return null;
+          }
+          const rooms = row.rooms
+            .filter(
+              (r): r is FreeRoom =>
+                !!r &&
+                typeof (r as FreeRoom).room === "string" &&
+                typeof (r as FreeRoom).until === "number"
+            )
+            .slice(0, 6);
+          return { ...row, rooms } as NearbyBuildingPoint;
+        })
+        .filter((row): row is NearbyBuildingPoint => row !== null);
+
+      setNearbyBuildings(parsed);
+      setSelectedNearbyBuilding(parsed[0]?.building ?? "");
+      trackEvent("nearby_airdrop_loaded", {
+        count: parsed.length,
+        year,
+        semester,
+      });
+    } catch (err) {
+      const geo = err as { code?: number; message?: string };
+      let msg = "내 위치를 가져오지 못했어요.";
+      if (geo?.code === 1) msg = "위치 권한이 필요해요. 브라우저에서 위치 접근을 허용해 주세요.";
+      else if (geo?.code === 3) msg = "위치 확인 시간이 초과됐어요. 다시 시도해 주세요.";
+      else if (geo?.message) msg = geo.message;
+      setNearbyBuildings([]);
+      setSelectedNearbyBuilding("");
+      setNearbyError(msg);
+      trackEvent("nearby_airdrop_failed", { reason: geo?.message || "unknown" });
+    } finally {
+      setNearbyLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const canvas = nearbyCanvasRef.current;
+    if (!canvas) return;
+
+    const draw = () => {
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const width = Math.max(280, Math.round(rect.width));
+      const height = Math.max(260, Math.round(rect.height));
+      const dpr = window.devicePixelRatio || 1;
+      const realW = Math.round(width * dpr);
+      const realH = Math.round(height * dpr);
+
+      if (canvas.width !== realW || canvas.height !== realH) {
+        canvas.width = realW;
+        canvas.height = realH;
+      }
+
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+
+      const root = getComputedStyle(document.documentElement);
+      const line = (root.getPropertyValue("--line") || "#d1d5db").trim();
+      const lineSoft = (root.getPropertyValue("--line-soft") || "#e5e7eb").trim();
+      const primary = (root.getPropertyValue("--primary") || "#4f46e5").trim();
+      const muted = (root.getPropertyValue("--muted-foreground") || "#6b7280").trim();
+      const panel = (root.getPropertyValue("--panel") || "#ffffff").trim();
+
+      ctx.fillStyle = panel;
+      ctx.fillRect(0, 0, width, height);
+
+      const cx = width / 2;
+      const cy = height / 2;
+      const plotRadius = Math.min(width, height) * 0.38;
+
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = lineSoft;
+      for (let i = 1; i <= 4; i++) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, (plotRadius / 4) * i, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      ctx.setLineDash([4, 4]);
+      ctx.strokeStyle = line;
+      ctx.beginPath();
+      ctx.moveTo(cx - plotRadius, cy);
+      ctx.lineTo(cx + plotRadius, cy);
+      ctx.moveTo(cx, cy - plotRadius);
+      ctx.lineTo(cx, cy + plotRadius);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = muted;
+      ctx.font = "11px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("N", cx, cy - plotRadius - 8);
+      ctx.fillText("S", cx, cy + plotRadius + 14);
+      ctx.fillText("W", cx - plotRadius - 10, cy + 4);
+      ctx.fillText("E", cx + plotRadius + 10, cy + 4);
+
+      ctx.fillStyle = primary;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillText("ME", cx, cy - 10);
+
+      nearbyPlotRef.current = [];
+
+      if (!nearbyBuildings.length) {
+        setNearbyScaleMeters((prev) => (prev === 0 ? prev : 0));
+        ctx.fillStyle = muted;
+        ctx.font = "13px sans-serif";
+        ctx.fillText("내 위치로 주변 빈 강의실 건물을 찾아보세요.", cx, cy + 24);
+        return;
+      }
+
+      const maxDistance = Math.max(
+        150,
+        ...nearbyBuildings.map((b) => Math.hypot(b.dxMeters, b.dyMeters))
+      );
+      const scale = Math.ceil(maxDistance / 100) * 100;
+      setNearbyScaleMeters((prev) => (prev === scale ? prev : scale));
+
+      const labelSet = new Set<string>(nearbyBuildings.slice(0, 6).map((b) => b.building));
+      if (selectedNearbyBuilding) labelSet.add(selectedNearbyBuilding);
+
+      for (const item of nearbyBuildings) {
+        const px = cx + (item.dxMeters / scale) * plotRadius;
+        const py = cy - (item.dyMeters / scale) * plotRadius;
+        const isSelected = item.building === selectedNearbyBuilding;
+        const r = Math.max(5, Math.min(11, 4 + Math.log2(item.freeRoomCount + 1) * 1.6));
+
+        ctx.fillStyle = isSelected ? primary : `${primary}B0`;
+        ctx.strokeStyle = isSelected ? "#ffffff" : `${line}`;
+        ctx.lineWidth = isSelected ? 2 : 1;
+
+        ctx.beginPath();
+        ctx.arc(px, py, r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        nearbyPlotRef.current.push({ building: item.building, x: px, y: py, r });
+
+        if (labelSet.has(item.building)) {
+          ctx.fillStyle = muted;
+          ctx.font = "11px sans-serif";
+          ctx.textAlign = "left";
+          ctx.fillText(item.building, px + r + 4, py - r - 1);
+        }
+      }
+    };
+
+    draw();
+    window.addEventListener("resize", draw);
+    return () => window.removeEventListener("resize", draw);
+  }, [nearbyBuildings, selectedNearbyBuilding]);
+
+  const onNearbyCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!nearbyPlotRef.current.length) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    let winner = "";
+    let best = Infinity;
+    for (const p of nearbyPlotRef.current) {
+      const d = Math.hypot(x - p.x, y - p.y);
+      const hitR = Math.max(12, p.r + 4);
+      if (d <= hitR && d < best) {
+        winner = p.building;
+        best = d;
+      }
+    }
+    if (winner) setSelectedNearbyBuilding(winner);
   };
 
   useEffect(() => {
@@ -1077,31 +1339,117 @@ useEffect(() => {
       </Card>
 
       {mode === "free" && !loading && (
-        <div className="tt-freeWrap">
-          <div className="tt-freeHead">
-            <div className="tt-freeTitle">현재 빈 강의실</div>
-            <div className="tt-freeMeta">기준 시각(KST): {nowKst().hhmm}</div>
+        <>
+          <div className="tt-nearbyWrap">
+            <div className="tt-nearbyHead">
+              <div>
+                <div className="tt-nearbyTitle">내 주변 AirDrop 빈 강의실</div>
+                <div className="tt-nearbyMeta">
+                  {userPos
+                    ? `현재 좌표: ${userPos.lat.toFixed(5)}, ${userPos.lon.toFixed(5)}`
+                    : "현재 위치를 기준으로 빈 강의실이 있는 건물을 데카르트 좌표계로 표시합니다."}
+                </div>
+              </div>
+              <TrackedButton
+                button_type="nearby_airdrop_search"
+                className="tt-nearbyAction"
+                onClick={() => void loadNearbyAirdrop(userPos ?? undefined)}
+                disabled={nearbyLoading}
+              >
+                {nearbyLoading ? "탐색 중…" : "내 주변 보기"}
+              </TrackedButton>
+            </div>
+
+            <div className="tt-nearbyCanvasBox">
+              <canvas
+                ref={nearbyCanvasRef}
+                className="tt-nearbyCanvas"
+                onClick={onNearbyCanvasClick}
+                role="img"
+                aria-label="내 주변 빈 강의실 건물 분포"
+              />
+              {nearbyScaleMeters > 0 && (
+                <div className="tt-nearbyScale">반경 ±{fmtDistance(nearbyScaleMeters)}</div>
+              )}
+            </div>
+
+            {nearbyError && <div className="tt-nearbyError">{nearbyError}</div>}
+
+            {!!nearbyBuildings.length && (
+              <>
+                <div className="tt-nearbyList">
+                  {nearbyBuildings.slice(0, 8).map((b) => (
+                    <button
+                      key={b.building}
+                      type="button"
+                      className={clsx(
+                        "tt-nearbyChip",
+                        selectedNearby?.building === b.building && "on"
+                      )}
+                      onClick={() => setSelectedNearbyBuilding(b.building)}
+                    >
+                      <span className="tt-nearbyChipTitle">{b.building}</span>
+                      <span className="tt-nearbyChipMeta">
+                        {fmtDistance(b.distanceMeters)} · {b.freeRoomCount}개
+                      </span>
+                    </button>
+                  ))}
+                </div>
+
+                {selectedNearby && (
+                  <div className="tt-nearbyDetail">
+                    <div className="tt-nearbyDetailTitle">
+                      {selectedNearby.building} {selectedNearby.buildingName}
+                    </div>
+                    <div className="tt-nearbyDetailMeta">
+                      거리 {fmtDistance(selectedNearby.distanceMeters)} · 현재 빈 강의실{" "}
+                      {selectedNearby.freeRoomCount}개 · 최장 ~ {fmtHHMM(selectedNearby.topUntil)}
+                    </div>
+                    <div className="tt-nearbyRooms">
+                      {selectedNearby.rooms.slice(0, 4).map((room) => (
+                        <TrackedButton
+                          key={room.room}
+                          button_type="free_room_copy_nearby"
+                          className="tt-nearbyRoomBtn"
+                          onClick={() => copyRoom(room.room)}
+                        >
+                          <span>{room.room}</span>
+                          <span>~ {fmtHHMM(room.until)}</span>
+                        </TrackedButton>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
           </div>
 
-          {freeRooms.length === 0 ? (
-            <div className="tt-empty">결과가 없습니다. 동번호와 학기를 확인해 주세요.</div>
-          ) : (
-            <div className="tt-freeList">
-              {freeRooms.map(({ room, until }) => (
-                <TrackedButton
-                  key={room}
-                  button_type="free_room_copy"
-                  className="tt-roomBtn"
-                  onClick={() => copyRoom(room)}
-                >
-                  <span className="tt-roomName">{room}</span>
-                  <span className="tt-until">~ {fmtHHMM(until)}</span>
-                  <span className="tt-copy">{copied === room ? "복사됨" : "복사"}</span>
-                </TrackedButton>
-              ))}
+          <div className="tt-freeWrap">
+            <div className="tt-freeHead">
+              <div className="tt-freeTitle">현재 빈 강의실</div>
+              <div className="tt-freeMeta">기준 시각(KST): {nowKst().hhmm}</div>
             </div>
-          )}
-        </div>
+
+            {freeRooms.length === 0 ? (
+              <div className="tt-empty">결과가 없습니다. 동번호와 학기를 확인해 주세요.</div>
+            ) : (
+              <div className="tt-freeList">
+                {freeRooms.map(({ room, until }) => (
+                  <TrackedButton
+                    key={room}
+                    button_type="free_room_copy"
+                    className="tt-roomBtn"
+                    onClick={() => copyRoom(room)}
+                  >
+                    <span className="tt-roomName">{room}</span>
+                    <span className="tt-until">~ {fmtHHMM(until)}</span>
+                    <span className="tt-copy">{copied === room ? "복사됨" : "복사"}</span>
+                  </TrackedButton>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
       )}
 
       {mode !== "free" && !loading && events.length === 0 && (
