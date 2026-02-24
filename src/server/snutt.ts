@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { NextResponse } from "next/server";
 
 /** ====== 타입 ====== */
@@ -17,29 +19,6 @@ export type LectureTimeRaw = {
   len?: number;
   start?: number;
 };
-export type LectureRaw = {
-  _id?: string;
-  academic_year?: string;
-  category?: string;
-  class_time_json?: LectureTimeRaw[];
-  classification?: string;
-  credit?: number;
-  department?: string;
-  instructor?: string;
-  lecture_number?: string;
-  quota?: number;
-  remark?: string;
-  semester?: number | string;
-  year?: number;
-  course_number?: string;
-  course_title?: string;
-  title?: string;
-  registrationCount?: number;
-  wasFull?: boolean;
-  place?: string;
-  room?: string;
-  location?: string;
-};
 
 export type LectureSlim = {
   course_title: string;
@@ -47,19 +26,19 @@ export type LectureSlim = {
   class_time_json: LectureTimeRaw[];
   course_number: string;
   lecture_number: string;
-  department: string; // 학과 정보 추가
+  department: string;
   year?: number;
   semester?: number | string;
 };
 
 /** ====== 설정 ====== */
-const PAGE_SIZE = 200;
-const MAX_PAGES = 100;
 const CACHE_TTL_MS = (Number(process.env.SNUTT_CACHE_TTL_SECONDS || "1800") || 1800) * 1000;
 const RATE = {
   windowMs: Number(process.env.SNUTT_RATE_LIMIT_WINDOW_MS || "60000") || 60000,
   max: Number(process.env.SNUTT_RATE_LIMIT_MAX || "30") || 30,
 };
+const LOCAL_DATA_DIR =
+  process.env.SNUTT_LOCAL_DATA_DIR || path.join(process.cwd(), "data", "sugang");
 
 /** ====== 전역 저장소 ====== */
 interface GlobalStores {
@@ -82,6 +61,7 @@ if (!g.__snuttRate) g.__snuttRate = buckets;
 export const freeRoomsCache =
   g.__freeRoomsCache ?? new Map<string, { data: FreeRoom[]; expiresAt: number }>();
 if (!g.__freeRoomsCache) g.__freeRoomsCache = freeRoomsCache;
+
 /** ====== 공통 유틸 ====== */
 export function take(ip: string): boolean {
   const now = Date.now();
@@ -95,54 +75,6 @@ export function take(ip: string): boolean {
   return true;
 }
 
-function isRecord(x: unknown): x is Record<string, unknown> {
-  return typeof x === "object" && x !== null;
-}
-function pickArray(data: unknown): LectureRaw[] {
-  if (Array.isArray(data)) return data as LectureRaw[];
-  if (isRecord(data) && Array.isArray(data.result)) return data.result as LectureRaw[];
-  if (isRecord(data) && Array.isArray(data.results)) return data.results as LectureRaw[];
-  if (isRecord(data) && Array.isArray(data.lectures)) return data.lectures as LectureRaw[];
-  if (isRecord(data) && Array.isArray(data.items)) return data.items as LectureRaw[];
-  return [];
-}
-function keyOf(x: LectureRaw): string {
-  return (
-    x._id ??
-    `${x.course_number ?? ""}#${x.lecture_number ?? ""}#${x.course_title ?? x.title ?? ""}#${
-      x.year ?? ""
-    }#${x.semester ?? ""}`
-  );
-}
-
-async function callSnutt(
-  body: Record<string, unknown>,
-  base: string,
-  apiKey: string,
-  accessToken: string
-): Promise<{ status: number; data: unknown }> {
-  const res = await fetch(`${base}/v1/search_query`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json;charset=UTF-8",
-      accept: "*/*",
-      "x-access-apikey": apiKey,
-      "x-access-token": accessToken,
-    },
-    body: JSON.stringify(body),
-    cache: "no-store",
-  });
-  const text = await res.text();
-  let data: unknown = text;
-  const ct = res.headers.get("content-type") || "";
-  if (ct.includes("application/json")) {
-    try {
-      data = JSON.parse(text) as unknown;
-    } catch {}
-  }
-  return { status: res.status, data };
-}
-
 /** 표준 학기ID: 1=1학기, 2=여름, 3=2학기, 4=겨울 */
 export function canonicalSemesterId(sem: string): string {
   const s = String(sem).trim().toUpperCase();
@@ -152,6 +84,7 @@ export function canonicalSemesterId(sem: string): string {
   if (s === "FALL" || s === "SECOND" || s === "AUTUMN") return "3";
   return s;
 }
+
 export function semesterVariantsByCanonical(canon: string): SemesterValue[] {
   switch (canon) {
     case "1":
@@ -169,70 +102,99 @@ export function semesterVariantsByCanonical(canon: string): SemesterValue[] {
   }
 }
 
-/** 모든 페이지 수집 후 슬림화 */
-async function fetchAllPagesSlim(
-  base: string,
-  apiKey: string,
-  accessToken: string,
-  year: number,
-  semesterVariant: SemesterValue
-): Promise<LectureSlim[]> {
-  const uniq = new Map<string, LectureRaw>();
+function toNumberOrUndefined(value: unknown): number | undefined {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : undefined;
+}
 
-  // offset 기반
-  for (let p = 0; p < MAX_PAGES; p++) {
-    const payload: Record<string, unknown> = {
-      year,
-      semester: semesterVariant,
-      limit: PAGE_SIZE,
-      offset: p * PAGE_SIZE,
-    };
-    const { status, data } = await callSnutt(payload, base, apiKey, accessToken);
-    if (status === 400 || status === 404) break;
-    if (status >= 500) throw { status, data };
-    const arr = pickArray(data);
-    if (arr.length === 0) break;
-    for (const it of arr) uniq.set(keyOf(it), it);
-    if (arr.length < PAGE_SIZE) break;
-  }
-  // page 기반 (offset 무시 대비)
-  if (uniq.size <= PAGE_SIZE) {
-    for (let p = 0; p < MAX_PAGES; p++) {
-      const payload: Record<string, unknown> = {
-        year,
-        semester: semesterVariant,
-        page: p,
-        limit: PAGE_SIZE,
-      };
-      const { status, data } = await callSnutt(payload, base, apiKey, accessToken);
-      if (status === 400 || status === 404) break;
-      if (status >= 500) throw { status, data };
-      const arr = pickArray(data);
-      if (arr.length === 0) break;
-      for (const it of arr) uniq.set(keyOf(it), it);
-      if (arr.length < PAGE_SIZE) break;
-    }
-  }
+function toStringOrEmpty(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
 
-  const full = Array.from(uniq.values());
-  return full.map((lec) => ({
-    course_title:
-      typeof lec.course_title === "string"
-        ? lec.course_title
-        : typeof lec.title === "string"
-          ? lec.title
-          : "",
-    instructor: typeof lec.instructor === "string" ? lec.instructor : "",
-    class_time_json: Array.isArray(lec.class_time_json) ? lec.class_time_json : [],
-    course_number: typeof lec.course_number === "string" ? lec.course_number : "",
-    lecture_number: typeof lec.lecture_number === "string" ? lec.lecture_number : "",
-    department: typeof lec.department === "string" ? lec.department : "",
-    year: typeof lec.year === "number" ? lec.year : undefined,
+function normalizeClassTimeRaw(raw: unknown): LectureTimeRaw | null {
+  const rec = typeof raw === "object" && raw ? (raw as Record<string, unknown>) : null;
+  if (!rec) return null;
+
+  const day =
+    typeof rec.day === "number" || typeof rec.day === "string" ? (rec.day as number | string) : 0;
+
+  const out: LectureTimeRaw = { day };
+
+  const place = toStringOrEmpty(rec.place);
+  if (place) out.place = place;
+
+  const room = toStringOrEmpty(rec.room);
+  if (room) out.room = room;
+
+  const location = toStringOrEmpty(rec.location);
+  if (location) out.location = location;
+
+  const startMinute = toNumberOrUndefined(rec.startMinute);
+  if (startMinute !== undefined) out.startMinute = startMinute;
+
+  const endMinute = toNumberOrUndefined(rec.endMinute);
+  if (endMinute !== undefined) out.endMinute = endMinute;
+
+  const startTime = toStringOrEmpty(rec.start_time);
+  if (startTime) out.start_time = startTime;
+
+  const endTime = toStringOrEmpty(rec.end_time);
+  if (endTime) out.end_time = endTime;
+
+  const len = toNumberOrUndefined(rec.len);
+  if (len !== undefined) out.len = len;
+
+  const start = toNumberOrUndefined(rec.start);
+  if (start !== undefined) out.start = start;
+
+  return out;
+}
+
+function normalizeLectureSlim(raw: unknown, year: number, semester: string): LectureSlim {
+  const rec = typeof raw === "object" && raw ? (raw as Record<string, unknown>) : {};
+
+  const classTimeJson = Array.isArray(rec.class_time_json)
+    ? rec.class_time_json
+        .map((t) => normalizeClassTimeRaw(t))
+        .filter((t): t is LectureTimeRaw => t !== null)
+    : [];
+
+  return {
+    course_title: toStringOrEmpty(rec.course_title),
+    instructor: toStringOrEmpty(rec.instructor),
+    class_time_json: classTimeJson,
+    course_number: toStringOrEmpty(rec.course_number),
+    lecture_number: toStringOrEmpty(rec.lecture_number),
+    department: toStringOrEmpty(rec.department),
+    year: toNumberOrUndefined(rec.year) ?? year,
     semester:
-      typeof lec.semester === "number" || typeof lec.semester === "string"
-        ? lec.semester
-        : undefined,
-  }));
+      typeof rec.semester === "number" || typeof rec.semester === "string"
+        ? (rec.semester as number | string)
+        : semester,
+  };
+}
+
+async function loadLocalSlimLectures(year: number, semesterCanon: string): Promise<LectureSlim[]> {
+  const filePath = path.join(LOCAL_DATA_DIR, `${year}-${semesterCanon}.json`);
+
+  let text: string;
+  try {
+    text = await readFile(filePath, "utf-8");
+  } catch (err) {
+    const e = err as NodeJS.ErrnoException;
+    if (e.code === "ENOENT") return [];
+    throw err;
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text) as unknown;
+  } catch {
+    return [];
+  }
+
+  if (!Array.isArray(parsed)) return [];
+  return parsed.map((row) => normalizeLectureSlim(row, year, semesterCanon));
 }
 
 /** 캐시/병합 포함 핵심: 학기별 슬림 강의 목록 */
@@ -240,14 +202,8 @@ export async function getSlimLectures(
   year: number,
   semesterInput: string
 ): Promise<{ data: LectureSlim[]; cache: "HIT" | "COALESCE" | "MISS" }> {
-  const base = process.env.SNUTT_API_BASE || "https://snutt-api.wafflestudio.com";
-  const apiKey = process.env.SNUTT_API_KEY;
-  const accessToken = process.env.SNUTT_ACCESS_TOKEN;
-  if (!apiKey || !accessToken) throw new Error("SNUTT credentials missing");
-
   const canon = canonicalSemesterId(semesterInput);
-  const variants = semesterVariantsByCanonical(canon);
-  const cacheKey = `${base}::${year}::${canon}`;
+  const cacheKey = `local::${year}::${canon}`;
 
   const hit = cache.get(cacheKey);
   if (hit && hit.expiresAt > Date.now()) return { data: hit.data, cache: "HIT" };
@@ -259,11 +215,7 @@ export async function getSlimLectures(
   }
 
   const job: Promise<LectureSlim[]> = (async () => {
-    let slim: LectureSlim[] = [];
-    for (let i = 0; i < variants.length; i++) {
-      slim = await fetchAllPagesSlim(base, apiKey, accessToken, year, variants[i]);
-      if (slim.length > 0) break;
-    }
+    const slim = await loadLocalSlimLectures(year, canon);
     cache.set(cacheKey, { data: slim, expiresAt: Date.now() + CACHE_TTL_MS });
     return slim;
   })();
