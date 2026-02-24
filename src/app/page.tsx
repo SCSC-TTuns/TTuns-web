@@ -94,6 +94,41 @@ function fmtDistance(meters: number) {
   return `${Math.round(meters)}m`;
 }
 
+const LAST_GEO_KEY = "ttuns.lastGeo.v1";
+
+function readCachedGeo(): { lat: number; lon: number } | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(LAST_GEO_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { lat?: unknown; lon?: unknown };
+    const lat = Number(parsed?.lat);
+    const lon = Number(parsed?.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+    return { lat, lon };
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedGeo(pos: { lat: number; lon: number }) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(LAST_GEO_KEY, JSON.stringify(pos));
+  } catch {}
+}
+
+function geoErrorMessage(err: unknown): string {
+  const geo = err as { code?: number; message?: string };
+  if (geo?.code === 1) return "위치 권한이 필요해요. 브라우저에서 위치 접근을 허용해 주세요.";
+  if (geo?.code === 2) return "현재 위치를 확인할 수 없어요. 잠시 후 다시 시도해 주세요.";
+  if (geo?.code === 3) return "위치 확인 시간이 초과됐어요. 다시 시도해 주세요.";
+  if (typeof window !== "undefined" && !window.isSecureContext) {
+    return "위치 기반 검색은 HTTPS 환경에서만 사용할 수 있어요.";
+  }
+  return "내 위치를 가져오지 못했어요. 동번호를 입력하거나 잠시 후 다시 시도해 주세요.";
+}
+
 function nowKst() {
   const now = new Date();
   const kst = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
@@ -350,7 +385,10 @@ useEffect(() => {
   if (!loading && q.trim() === "") setCollapsed(false);
 }, [q, loading]);
 
-  const canSearch = useMemo(() => !!year && !!semester && q.trim().length > 0, [year, semester, q]);
+  const canSearch = useMemo(
+    () => !!year && !!semester && (mode === "free" || q.trim().length > 0),
+    [mode, year, semester, q]
+  );
 
   const semesterLabel = useMemo(() => {
     const m: Record<string, string> = {
@@ -474,7 +512,7 @@ useEffect(() => {
 
   const onSearch = async (overrideQ?: string | unknown) => {
     const query = (typeof overrideQ === "string" ? overrideQ : q).trim();
-    const can = !!year && !!semester && query.length > 0;
+    const can = !!year && !!semester && (mode === "free" || query.length > 0);
     if (!can) return;
 
     setInputFocused(false);
@@ -493,6 +531,71 @@ useEffect(() => {
     try {
       if (mode === "free") {
         const k = nowKst();
+        const isNearbyMode = query.length === 0;
+
+        if (isNearbyMode) {
+          let pos: { lat: number; lon: number };
+          try {
+            pos = userPos ?? (await requestCurrentPosition());
+          } catch (err) {
+            const msg = geoErrorMessage(err);
+            setFreeRooms([]);
+            setNearbyError(msg);
+            trackEvent("search_failed", {
+              search_type: mode,
+              year,
+              semester,
+              query: "__nearby__",
+              reason: "geolocation_error",
+            });
+            return;
+          }
+
+          setUserPos(pos);
+
+          const url = `/api/snutt/recommendation/location?year=${encodeURIComponent(
+            Number(year)
+          )}&semester=${encodeURIComponent(semester)}&lat=${encodeURIComponent(
+            pos.lat
+          )}&lon=${encodeURIComponent(pos.lon)}&day=${k.snuttDay}&at=${k.hhmm}&limit=24`;
+          const res = await fetch(url);
+          const data: unknown = await res.json();
+          if (!res.ok || !Array.isArray(data)) {
+            setFreeRooms([]);
+            setNearbyError((data as { error?: string })?.error || "내 주변 빈 강의실을 불러오지 못했어요.");
+            trackEvent("search_failed", {
+              search_type: mode,
+              year,
+              semester,
+              query: "__nearby__",
+            });
+            return;
+          }
+
+          const rooms = (data as unknown[]).filter(
+            (r): r is FreeRoom =>
+              !!r &&
+              typeof (r as FreeRoom).room === "string" &&
+              typeof (r as FreeRoom).until === "number"
+          );
+
+          setFreeRooms(rooms);
+          setEvents([]);
+          setActiveLectures([]);
+          setNearbyError("");
+          trackEvent("search_performed", {
+            search_type: mode,
+            year,
+            semester,
+            query: "__nearby__",
+            query_len: 0,
+            result_count: rooms.length,
+          });
+          await loadNearbyAirdrop(pos);
+          if (typeof window !== "undefined" && window.innerWidth < 720) setCollapsed(true);
+          return;
+        }
+
         const url = `/api/snutt/free-rooms?year=${encodeURIComponent(
           Number(year)
         )}&semester=${encodeURIComponent(semester)}&building=${encodeURIComponent(query)}&day=${
@@ -516,6 +619,7 @@ useEffect(() => {
         addHistory("free", query);
         setEvents([]);
         setActiveLectures([]);
+        setNearbyError("");
         trackEvent("search_performed", {
           search_type: mode,
           year,
@@ -708,13 +812,44 @@ useEffect(() => {
 
   const requestCurrentPosition = () =>
     new Promise<{ lat: number; lon: number }>((resolve, reject) => {
-      if (typeof navigator === "undefined" || !navigator.geolocation) {
-        reject(new Error("geolocation unavailable"));
+      const cached = readCachedGeo();
+      if (typeof navigator === "undefined") {
+        if (cached) {
+          resolve(cached);
+          return;
+        }
+        reject(new Error("navigator unavailable"));
+        return;
+      }
+      if (!window.isSecureContext) {
+        if (cached) {
+          resolve(cached);
+          return;
+        }
+        reject(new Error("insecure context"));
+        return;
+      }
+      if (!navigator.geolocation) {
+        if (cached) {
+          resolve(cached);
+          return;
+        }
+        reject(new Error("geolocation unsupported"));
         return;
       }
       navigator.geolocation.getCurrentPosition(
-        (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
-        (err) => reject(err),
+        (pos) => {
+          const next = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+          writeCachedGeo(next);
+          resolve(next);
+        },
+        (err) => {
+          if (cached) {
+            resolve(cached);
+            return;
+          }
+          reject(err);
+        },
         { enableHighAccuracy: true, timeout: 12_000, maximumAge: 60_000 }
       );
     });
@@ -779,11 +914,8 @@ useEffect(() => {
         semester,
       });
     } catch (err) {
-      const geo = err as { code?: number; message?: string };
-      let msg = "내 위치를 가져오지 못했어요.";
-      if (geo?.code === 1) msg = "위치 권한이 필요해요. 브라우저에서 위치 접근을 허용해 주세요.";
-      else if (geo?.code === 3) msg = "위치 확인 시간이 초과됐어요. 다시 시도해 주세요.";
-      else if (geo?.message) msg = geo.message;
+      const geo = err as { message?: string };
+      const msg = geoErrorMessage(err);
       setNearbyBuildings([]);
       setSelectedNearbyBuilding("");
       setNearbyError(msg);
@@ -1158,7 +1290,11 @@ useEffect(() => {
 
               <div className="tt-field tt-mode">
                 <Label>
-                  {mode === "professor" ? "교수명" : mode === "room" ? "강의실" : "건물 동번호"}
+                  {mode === "professor"
+                    ? "교수명"
+                    : mode === "room"
+                      ? "강의실"
+                      : "건물 동번호 (선택)"}
                 </Label>
                 <div className="tt-searchWrap">
                   <Input
@@ -1170,7 +1306,7 @@ useEffect(() => {
                         ? "예: 문송기"
                         : mode === "room"
                           ? "예: 26-B101"
-                          : "예: 301"
+                          : "예: 301 (비우면 내 주변)"
                     }
                     inputMode={mode === "free" ? "numeric" : "text"}
                     onKeyDown={onKeyDownInput}
@@ -1249,6 +1385,11 @@ useEffect(() => {
                       </div>
                     ))}
                   </div>
+                  {mode === "free" && (
+                    <div className="tt-freeHint">
+                      동번호를 비워두고 검색하면 현재 위치 기준으로 가까운 빈 강의실을 찾아요.
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1304,7 +1445,7 @@ useEffect(() => {
                 onClick={() => onSearch()}
                 disabled={!canSearch || loading}
               >
-                {loading ? "불러오는 중…" : "검색"}
+                {loading ? "불러오는 중…" : mode === "free" && q.trim().length === 0 ? "내 주변 검색" : "검색"}
               </TrackedButton>
 
               {mode === "professor" && deptOptions.length > 1 && (
