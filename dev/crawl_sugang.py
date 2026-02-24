@@ -22,11 +22,12 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import multiprocessing as mp
 import random
 import re
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -89,6 +90,8 @@ DEFAULT_SHTM_CODES = {
     4: "U000200002U000300002",  # winter
 }
 
+DETAIL_POOL_CONTEXT = mp.get_context("spawn")
+
 
 class CrawlError(RuntimeError):
     pass
@@ -125,6 +128,10 @@ class CrawlStats:
     resumed_rows: int = 0
     fetched_rows: int = 0
     failed_rows: int = 0
+
+
+_DETAIL_WORKER_CLIENT: Optional["SugangClient"] = None
+_DETAIL_WORKER_TERM: Optional[Term] = None
 
 
 class SugangClient:
@@ -233,7 +240,7 @@ def normalize_space(value: str) -> str:
     return re.sub(r"\s+", " ", (value or "")).strip()
 
 
-def build_stub_from_item(item: Any) -> Optional[CourseStub]:
+def build_stub_from_item(item: Any, default_year: int, default_sem_code: str) -> Optional[CourseStub]:
     hidden: Dict[str, str] = {}
     for inp in item.select("input[type='hidden']"):
         name = (inp.get("name") or "").strip()
@@ -241,32 +248,39 @@ def build_stub_from_item(item: Any) -> Optional[CourseStub]:
             continue
         hidden[name] = normalize_space(str(inp.get("value") or ""))
 
-    required = ["openSchyy", "openShtmFg", "openDetaShtmFg", "sbjtCd", "ltNo", "sbjtSubhCd"]
-    if not all(hidden.get(k) for k in required):
+    # sbjtSubhCd can be empty in recent terms; keep the row and query detail with empty string.
+    sbjt_cd = hidden.get("sbjtCd") or ""
+    lt_no = hidden.get("ltNo") or ""
+    if not sbjt_cd or not lt_no:
         return None
+
+    open_schyy = hidden.get("openSchyy") or str(default_year)
+    open_shtm_fg = hidden.get("openShtmFg") or default_sem_code
+    open_deta_shtm_fg = hidden.get("openDetaShtmFg") or open_shtm_fg
+    sbjt_subh_cd = hidden.get("sbjtSubhCd") or ""
 
     title_node = item.select_one(".course-name strong")
     fallback_title = normalize_space(title_node.get_text(" ", strip=True) if title_node else "")
 
     key = "|".join(
         [
-            hidden["openSchyy"],
-            hidden["openShtmFg"],
-            hidden["openDetaShtmFg"],
-            hidden["sbjtCd"],
-            hidden["ltNo"],
-            hidden["sbjtSubhCd"],
+            open_schyy,
+            open_shtm_fg,
+            open_deta_shtm_fg,
+            sbjt_cd,
+            lt_no,
+            sbjt_subh_cd,
         ]
     )
 
     return CourseStub(
         key=key,
-        open_schyy=hidden["openSchyy"],
-        open_shtm_fg=hidden["openShtmFg"],
-        open_deta_shtm_fg=hidden["openDetaShtmFg"],
-        sbjt_cd=hidden["sbjtCd"],
-        lt_no=hidden["ltNo"],
-        sbjt_subh_cd=hidden["sbjtSubhCd"],
+        open_schyy=open_schyy,
+        open_shtm_fg=open_shtm_fg,
+        open_deta_shtm_fg=open_deta_shtm_fg,
+        sbjt_cd=sbjt_cd,
+        lt_no=lt_no,
+        sbjt_subh_cd=sbjt_subh_cd,
         fallback_title=fallback_title,
     )
 
@@ -308,7 +322,7 @@ def collect_course_stubs(
         nonlocal stubs, stats
         items = page_soup.select(".course-info-item")
         for item in items:
-            stub = build_stub_from_item(item)
+            stub = build_stub_from_item(item, default_year=term.year, default_sem_code=sem_code)
             if stub is None:
                 continue
             stubs.append(stub)
@@ -537,6 +551,39 @@ def parse_term_arg(raw: str) -> Term:
     return Term(year=year, semester=sem)
 
 
+def init_detail_worker(
+    term_year: int,
+    term_semester: int,
+    max_attempts: int,
+    connect_timeout_sec: int,
+    read_timeout_sec: int,
+) -> None:
+    global _DETAIL_WORKER_CLIENT, _DETAIL_WORKER_TERM
+
+    session = build_session()
+    client = SugangClient(
+        session=session,
+        max_attempts=max_attempts,
+        connect_timeout_sec=connect_timeout_sec,
+        read_timeout_sec=read_timeout_sec,
+    )
+    # Detail endpoint stability improves when session cookie is initialized per process.
+    client.post_form(SEMESTER_META_ENDPOINT, {"openUpDeptCd": "", "openDeptCd": ""})
+
+    _DETAIL_WORKER_CLIENT = client
+    _DETAIL_WORKER_TERM = Term(year=term_year, semester=term_semester)
+
+
+def fetch_detail_for_row(row_key: str, stub: CourseStub) -> Tuple[str, Dict[str, Any]]:
+    if _DETAIL_WORKER_CLIENT is None or _DETAIL_WORKER_TERM is None:
+        raise CrawlError("detail worker is not initialized")
+
+    response = _DETAIL_WORKER_CLIENT.post_form(DETAIL_ENDPOINT, detail_payload(stub))
+    detail = parse_detail_json(response.text)
+    lecture = transform_detail_to_slim(_DETAIL_WORKER_TERM, stub, detail)
+    return row_key, lecture
+
+
 def build_terms_from_args(term_args: Optional[List[Term]]) -> List[Term]:
     if not term_args:
         return [Term(year=y, semester=s) for y, s in DEFAULT_TERMS]
@@ -559,7 +606,7 @@ def crawl_term(
 ) -> Dict[str, Any]:
     term_key = term.key
     out_file = out_dir / f"{term_key}.json"
-    tmp_file = out_dir / ".tmp" / f"{term_key}.jsonl"
+    tmp_file = out_dir / ".tmp" / f"{term_key}.rows.v2.jsonl"
 
     if force:
         if out_file.exists():
@@ -569,50 +616,59 @@ def crawl_term(
 
     stubs, stats = collect_course_stubs(client, term, sem_code, max_pages=max_pages)
 
-    unique_stubs: Dict[str, CourseStub] = {}
-    ordered_keys: List[str] = []
-    for stub in stubs:
-        if stub.key in unique_stubs:
-            continue
-        unique_stubs[stub.key] = stub
-        ordered_keys.append(stub.key)
-    stats.unique_rows = len(unique_stubs)
+    # Preserve list-row cardinality to avoid dropping courses when keys collide or duplicate list rows exist.
+    ordered_rows: List[Tuple[str, CourseStub]] = []
+    unique_detail_keys: Dict[str, CourseStub] = {}
+    for idx, stub in enumerate(stubs):
+        row_key = f"{idx + 1:05d}|{stub.key}"
+        ordered_rows.append((row_key, stub))
+        unique_detail_keys.setdefault(stub.key, stub)
+    stats.unique_rows = len(unique_detail_keys)
 
     checkpoint_map = load_checkpoint_map(tmp_file)
-    stats.resumed_rows = len(checkpoint_map)
+    stats.resumed_rows = sum(1 for row_key, _ in ordered_rows if row_key in checkpoint_map)
 
     if max_details is not None:
-        ordered_keys = ordered_keys[: max(0, max_details)]
+        ordered_rows = ordered_rows[: max(0, max_details)]
 
-    pending_keys = [k for k in ordered_keys if k not in checkpoint_map]
+    pending_rows = [(row_key, stub) for row_key, stub in ordered_rows if row_key not in checkpoint_map]
 
     print(
         f"[{term_key}] total={stats.total_count} pages={stats.page_count} "
-        f"listed={stats.listed_rows} unique={stats.unique_rows} resumed={stats.resumed_rows} pending={len(pending_keys)}"
+        f"listed={stats.listed_rows} uniqueDetailKeys={stats.unique_rows} "
+        f"resumedRows={stats.resumed_rows} pendingRows={len(pending_rows)}"
     )
 
     lock = threading.Lock()
 
-    def worker(stub: CourseStub) -> Tuple[str, Dict[str, Any]]:
-        response = client.post_form(DETAIL_ENDPOINT, detail_payload(stub))
-        detail = parse_detail_json(response.text)
-        lecture = transform_detail_to_slim(term, stub, detail)
-        return stub.key, lecture
-
-    if pending_keys:
-        with ThreadPoolExecutor(max_workers=workers) as executor:
-            futures = {executor.submit(worker, unique_stubs[k]): k for k in pending_keys}
+    if pending_rows:
+        with ProcessPoolExecutor(
+            max_workers=workers,
+            mp_context=DETAIL_POOL_CONTEXT,
+            initializer=init_detail_worker,
+            initargs=(
+                term.year,
+                term.semester,
+                client.max_attempts,
+                client.connect_timeout_sec,
+                client.read_timeout_sec,
+            ),
+        ) as executor:
+            futures = {
+                executor.submit(fetch_detail_for_row, row_key, stub): (row_key, stub.key)
+                for row_key, stub in pending_rows
+            }
 
             for idx, future in enumerate(as_completed(futures), start=1):
-                key = futures[future]
+                row_key, detail_key = futures[future]
                 try:
-                    result_key, lecture = future.result()
-                    checkpoint_map[result_key] = lecture
-                    append_checkpoint(tmp_file, result_key, lecture, lock)
+                    result_row_key, lecture = future.result()
+                    checkpoint_map[result_row_key] = lecture
+                    append_checkpoint(tmp_file, result_row_key, lecture, lock)
                     stats.fetched_rows += 1
                 except Exception as exc:
                     stats.failed_rows += 1
-                    print(f"[{term_key}] detail failed key={key}: {exc}")
+                    print(f"[{term_key}] detail failed row={row_key} key={detail_key}: {exc}")
 
                 if idx % 200 == 0 or idx == len(futures):
                     print(
@@ -620,8 +676,7 @@ def crawl_term(
                         f"fetched={stats.fetched_rows} failed={stats.failed_rows}"
                     )
 
-    final_keys = ordered_keys
-    final_data = [checkpoint_map[k] for k in final_keys if k in checkpoint_map]
+    final_data = [checkpoint_map[row_key] for row_key, _ in ordered_rows if row_key in checkpoint_map]
 
     out_file.parent.mkdir(parents=True, exist_ok=True)
     with out_file.open("w", encoding="utf-8") as fp:
@@ -655,7 +710,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Crawl SNU sugang and export LectureSlim JSON files.",
     )
-    parser.add_argument("--workers", type=int, default=8, help="detail request workers (default: 8)")
+    parser.add_argument("--workers", type=int, default=8, help="detail request worker processes (default: 8)")
     parser.add_argument("--force", action="store_true", help="overwrite existing outputs and checkpoint")
     parser.add_argument(
         "--term",
@@ -668,7 +723,7 @@ def main() -> None:
         "--max-details",
         type=int,
         default=None,
-        help="limit number of unique lecture details per term",
+        help="limit number of listed lecture rows per term",
     )
     parser.add_argument(
         "--out-dir",
@@ -727,4 +782,7 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    # Spawned worker interpreters can load this file as __main__;
+    # prevent recursively executing the CLI entrypoint there.
+    if mp.parent_process() is None:
+        main()
