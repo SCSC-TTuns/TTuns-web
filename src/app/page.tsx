@@ -953,6 +953,7 @@ export default function TimetablePage() {
       const primary = (root.getPropertyValue("--primary") || "#4f46e5").trim();
       const muted = (root.getPropertyValue("--muted-foreground") || "#6b7280").trim();
       const panel = (root.getPropertyValue("--panel") || "#ffffff").trim();
+      const accent = (root.getPropertyValue("--color-accent") || "#f8fafc").trim();
 
       ctx.fillStyle = panel;
       ctx.fillRect(0, 0, width, height);
@@ -960,18 +961,27 @@ export default function TimetablePage() {
       const cx = width / 2;
       const cy = height / 2;
       const RADAR_CELL_METERS = 50;
-      const padding = 16;
+      const padding = 14;
       const minHalf = Math.min(width, height) / 2;
-      const maxCells = Math.max(3, Math.floor((minHalf - padding) / 18));
-      const cellPx = Math.max(12, Math.min(20, (minHalf - padding) / maxCells));
+      const maxCells = Math.max(3, Math.floor((minHalf - padding) / 20));
+      const cellPx = Math.max(12, Math.min(22, (minHalf - padding) / maxCells));
       const halfSpanPx = maxCells * cellPx;
       const viewMeters = maxCells * RADAR_CELL_METERS;
+
+      // Plot background: timetable-like muted panel
+      ctx.fillStyle = accent;
+      ctx.fillRect(cx - halfSpanPx, cy - halfSpanPx, halfSpanPx * 2, halfSpanPx * 2);
 
       ctx.lineWidth = 1;
       for (let i = -maxCells; i <= maxCells; i++) {
         const axis = i === 0;
         const major = Math.abs(i) % 2 === 0;
-        ctx.strokeStyle = axis ? line : major ? lineSoft : `${lineSoft}AA`;
+
+        ctx.save();
+        ctx.globalAlpha = axis ? 1 : major ? 0.9 : 0.55;
+        ctx.strokeStyle = axis ? line : lineSoft;
+        ctx.lineWidth = axis ? 1.2 : 1;
+
         const x = cx + i * cellPx;
         const y = cy + i * cellPx;
 
@@ -984,29 +994,56 @@ export default function TimetablePage() {
         ctx.moveTo(cx - halfSpanPx, y);
         ctx.lineTo(cx + halfSpanPx, y);
         ctx.stroke();
+
+        ctx.restore();
       }
 
-      ctx.strokeStyle = line;
+      // Distance rings every 100m
+      ctx.save();
+      ctx.strokeStyle = lineSoft;
+      ctx.globalAlpha = 0.8;
       ctx.lineWidth = 1;
       for (let i = 2; i <= maxCells; i += 2) {
         ctx.beginPath();
         ctx.arc(cx, cy, i * cellPx, 0, Math.PI * 2);
         ctx.stroke();
       }
+      ctx.restore();
+
+      // Plot border
+      ctx.strokeStyle = line;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(cx - halfSpanPx, cy - halfSpanPx, halfSpanPx * 2, halfSpanPx * 2);
 
       ctx.fillStyle = muted;
       ctx.font = "11px sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText("N", cx, cy - halfSpanPx - 8);
-      ctx.fillText("S", cx, cy + halfSpanPx + 14);
-      ctx.fillText("W", cx - halfSpanPx - 10, cy + 4);
-      ctx.fillText("E", cx + halfSpanPx + 10, cy + 4);
+      ctx.fillText(`+${viewMeters}m`, cx, cy - halfSpanPx - 8);
+      ctx.fillText(`-${viewMeters}m`, cx, cy + halfSpanPx + 14);
+      ctx.fillText(`-${viewMeters}m`, cx - halfSpanPx - 22, cy + 4);
+      ctx.fillText(`+${viewMeters}m`, cx + halfSpanPx + 22, cy + 4);
 
       ctx.fillStyle = primary;
       ctx.beginPath();
       ctx.arc(cx, cy, 4, 0, Math.PI * 2);
       ctx.fill();
+      ctx.fillStyle = muted;
       ctx.fillText("ME", cx, cy - 10);
+
+      const drawRoundRect = (x: number, y: number, w: number, h: number, r: number) => {
+        const rr = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rr, y);
+        ctx.lineTo(x + w - rr, y);
+        ctx.arcTo(x + w, y, x + w, y + rr, rr);
+        ctx.lineTo(x + w, y + h - rr);
+        ctx.arcTo(x + w, y + h, x + w - rr, y + h, rr);
+        ctx.lineTo(x + rr, y + h);
+        ctx.arcTo(x, y + h, x, y + h - rr, rr);
+        ctx.lineTo(x, y + rr);
+        ctx.arcTo(x, y, x + rr, y, rr);
+        ctx.closePath();
+      };
 
       nearbyPlotRef.current = [];
 
@@ -1019,37 +1056,49 @@ export default function TimetablePage() {
       }
 
       setNearbyScaleMeters((prev) => (prev === viewMeters ? prev : viewMeters));
+      const plotItems = nearbyBuildings
+        .map((item) => {
+          const gx = item.dxMeters / RADAR_CELL_METERS;
+          const gy = item.dyMeters / RADAR_CELL_METERS;
+          if (Math.abs(gx) > maxCells || Math.abs(gy) > maxCells) return null;
+          return { item, gx, gy };
+        })
+        .filter(
+          (v): v is { item: NearbyBuildingPoint; gx: number; gy: number } => v !== null
+        )
+        .sort((a, b) =>
+          a.item.building === selectedNearbyBuilding
+            ? 1
+            : b.item.building === selectedNearbyBuilding
+              ? -1
+              : 0
+        );
 
-      const labelSet = new Set<string>(nearbyBuildings.slice(0, 6).map((b) => b.building));
-      if (selectedNearbyBuilding) labelSet.add(selectedNearbyBuilding);
-
-      for (const item of nearbyBuildings) {
-        const gx = item.dxMeters / RADAR_CELL_METERS;
-        const gy = item.dyMeters / RADAR_CELL_METERS;
-        if (Math.abs(gx) > maxCells || Math.abs(gy) > maxCells) continue;
-
+      for (const { item, gx, gy } of plotItems) {
         const px = cx + gx * cellPx;
         const py = cy - gy * cellPx;
         const isSelected = item.building === selectedNearbyBuilding;
-        const r = Math.max(5, Math.min(11, 4 + Math.log2(item.freeRoomCount + 1) * 1.6));
+        const label = item.building;
+        const bw = Math.max(30, Math.min(54, 16 + label.length * 8));
+        const bh = 20;
+        const bx = px - bw / 2;
+        const by = py - bh / 2;
+        const hitR = Math.max(bw, bh) * 0.62;
 
-        ctx.fillStyle = isSelected ? primary : `${primary}B0`;
-        ctx.strokeStyle = isSelected ? "#ffffff" : `${line}`;
-        ctx.lineWidth = isSelected ? 2 : 1;
-
-        ctx.beginPath();
-        ctx.arc(px, py, r, 0, Math.PI * 2);
+        drawRoundRect(bx, by, bw, bh, 6);
+        ctx.fillStyle = isSelected ? primary : panel;
         ctx.fill();
+        ctx.strokeStyle = isSelected ? primary : line;
+        ctx.lineWidth = isSelected ? 1.5 : 1;
         ctx.stroke();
 
-        nearbyPlotRef.current.push({ building: item.building, x: px, y: py, r });
+        ctx.fillStyle = isSelected ? panel : muted;
+        ctx.font = "11px sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(label, px, py + 0.5);
 
-        if (labelSet.has(item.building)) {
-          ctx.fillStyle = muted;
-          ctx.font = "11px sans-serif";
-          ctx.textAlign = "left";
-          ctx.fillText(item.building, px + r + 4, py - r - 1);
-        }
+        nearbyPlotRef.current.push({ building: item.building, x: px, y: py, r: hitR });
       }
     };
 
@@ -1505,6 +1554,17 @@ export default function TimetablePage() {
 
           {q.trim().length === 0 && (
             <div className="tt-freeRadarSection">
+              <div className="tt-radarHead">
+                <div className="tt-radarTitle">주변 동 레이더</div>
+                <TrackedButton
+                  button_type="nearby_airdrop_refresh"
+                  className="tt-radarRefresh"
+                  onClick={() => void loadNearbyAirdrop(userPos ?? undefined)}
+                  disabled={nearbyLoading}
+                >
+                  {nearbyLoading ? "갱신 중…" : "새로고침"}
+                </TrackedButton>
+              </div>
               <div className="tt-nearbyCanvasBox">
                 <canvas
                   ref={nearbyCanvasRef}
