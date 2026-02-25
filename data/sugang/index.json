@@ -1,0 +1,97 @@
+{
+  "generatedAt": "2026-02-24T14:18:16.457548+00:00",
+  "source": "https://sugang.snu.ac.kr",
+  "terms": [
+    {
+      "term": "2024-1",
+      "year": 2024,
+      "semester": 1,
+      "count": 7543,
+      "source": "https://sugang.snu.ac.kr",
+      "generatedAt": "2026-02-24T14:18:01.953405+00:00",
+      "failedRows": 0,
+      "totalRows": 7543
+    },
+    {
+      "term": "2024-2",
+      "year": 2024,
+      "semester": 2,
+      "count": 328,
+      "source": "https://sugang.snu.ac.kr",
+      "generatedAt": "2026-02-24T14:18:02.488511+00:00",
+      "failedRows": 0,
+      "totalRows": 328
+    },
+    {
+      "term": "2024-3",
+      "year": 2024,
+      "semester": 3,
+      "count": 7625,
+      "source": "https://sugang.snu.ac.kr",
+      "generatedAt": "2026-02-24T14:18:05.635931+00:00",
+      "failedRows": 0,
+      "totalRows": 7625
+    },
+    {
+      "term": "2024-4",
+      "year": 2024,
+      "semester": 4,
+      "count": 253,
+      "source": "https://sugang.snu.ac.kr",
+      "generatedAt": "2026-02-24T14:18:06.075343+00:00",
+      "failedRows": 0,
+      "totalRows": 253
+    },
+    {
+      "term": "2025-1",
+      "year": 2025,
+      "semester": 1,
+      "count": 7708,
+      "source": "https://sugang.snu.ac.kr",
+      "generatedAt": "2026-02-24T14:18:09.027582+00:00",
+      "failedRows": 0,
+      "totalRows": 7708
+    },
+    {
+      "term": "2025-2",
+      "year": 2025,
+      "semester": 2,
+      "count": 341,
+      "source": "https://sugang.snu.ac.kr",
+      "generatedAt": "2026-02-24T14:18:09.507931+00:00",
+      "failedRows": 0,
+      "totalRows": 341
+    },
+    {
+      "term": "2025-3",
+      "year": 2025,
+      "semester": 3,
+      "count": 7671,
+      "source": "https://sugang.snu.ac.kr",
+      "generatedAt": "2026-02-24T14:18:12.371373+00:00",
+      "failedRows": 0,
+      "totalRows": 7671
+    },
+    {
+      "term": "2025-4",
+      "year": 2025,
+      "semester": 4,
+      "count": 260,
+      "source": "https://sugang.snu.ac.kr",
+      "generatedAt": "2026-02-24T14:18:12.981751+00:00",
+      "failedRows": 0,
+      "totalRows": 260
+    },
+    {
+      "term": "2026-1",
+      "year": 2026,
+      "semester": 1,
+      "count": 8577,
+      "source": "https://sugang.snu.ac.kr",
+      "generatedAt": "2026-02-24T14:18:16.456915+00:00",
+      "failedRows": 0,
+      "totalRows": 8577
+    }
+  ],
+  "totalCount": 40306
+}

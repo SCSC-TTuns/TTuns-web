@@ -175,7 +175,7 @@ function toCartesianMeters(originLat: number, originLon: number, lat: number, lo
 function buildRecommendationBase(
   lectures: Array<{ class_time_json?: any[] }>,
   day: number,
-  minute: number,
+  slot: number,
   idsByPrefix: string[]
 ): RecoBaseItem[] {
   const allRooms = new Set<string>();
@@ -213,7 +213,7 @@ function buildRecommendationBase(
 
     let occupied = false;
     for (const r of ranges) {
-      if (r.s <= minute && minute < r.e) {
+      if (r.s <= slot && slot < r.e) {
         occupied = true;
         break;
       }
@@ -222,7 +222,7 @@ function buildRecommendationBase(
 
     let until = END_OF_DAY;
     for (const r of ranges) {
-      if (r.s >= minute) {
+      if (r.s >= slot) {
         until = r.s;
         break;
       }
@@ -305,7 +305,7 @@ export async function GET(req: NextRequest) {
   } else {
     try {
       const { data: lectures } = await getSlimLectures(year, semester);
-      baseItems = buildRecommendationBase(lectures, day, minute, dataset.idsByPrefix);
+      baseItems = buildRecommendationBase(lectures, day, slot, dataset.idsByPrefix);
       recoBaseCache.set(baseKey, { data: baseItems, expiresAt: Date.now() + 60_000 });
     } catch {
       return jsonError("upstream error", 502);
