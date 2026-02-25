@@ -54,7 +54,7 @@ function splitPlaces(p: string): string[] {
     .filter(Boolean);
 }
 
-/** 방 이름만: "301-118" → "118", "301-B119" → "B119", 
+/** 방 이름만: "301-118" → "118", "301-B119" → "B119",
  * "71-1-101" -> "101", "301-113-2" -> "113-2"*/
 function parsePlace(place: string): { building: string; room: string } | null {
   const lastDashIndex = place.lastIndexOf("-");
@@ -64,7 +64,7 @@ function parsePlace(place: string): { building: string; room: string } | null {
 
   if (partAfterLastDash.length === 1) {
     const secondLastDashIndex = place.lastIndexOf("-", lastDashIndex - 1);
-    
+
     if (secondLastDashIndex !== -1) {
       splitIndex = secondLastDashIndex;
     }
@@ -76,7 +76,6 @@ function parsePlace(place: string): { building: string; room: string } | null {
   if (!building || !room) return null; // not parsed
   return { building, room };
 }
-
 
 /** 호실 번호만 추출: "301-113-2" → "113-2", "71-1-101" → "101" */
 function roomLabel(place: string): string {

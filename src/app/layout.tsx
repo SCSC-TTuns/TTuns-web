@@ -1,7 +1,16 @@
-// src/app/layout.tsx
+import localFont from "next/font/local";
 import { Analytics } from "@vercel/analytics/next";
 import MixpanelProvider from "./provider/MixpanelProvider";
-import { ThemeProvider } from "@/components/theme-provider"
+import { ThemeProvider } from "@/components/theme-provider";
+import "./reset.css";
+import "./globals.css";
+import "./page.css";
+
+const pretendard = localFont({
+  src: "./fonts/PretendardVariable.ttf",
+  display: "swap",
+  variable: "--font-pretendard",
+});
 
 export const metadata = {
   title: "TTuns",
@@ -13,9 +22,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="icon" href="/icon.png" sizes="any" />
-        {/* 아이콘 어떻게 설정하더라 */}
       </head>
-      <body>
+      <body className={pretendard.className}>
         <Analytics />
         <MixpanelProvider />
         <ThemeProvider
@@ -30,4 +38,3 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     </html>
   );
 }
-import "./reset.css";

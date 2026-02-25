@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import type { DayIndex } from "@/lib/lectureSchedule";
 import {
   AnyLecture,
   buildEventsFromLectures,
   DAY_LABELS,
-  layoutByDay,
   lectureMatchesProfessorExact,
   lectureMatchesRoomExact,
   timeBounds,
@@ -14,10 +14,7 @@ import {
 import TrackedButton from "@/components/TrackedButton";
 import { trackEvent, trackUIEvent } from "@/lib/mixpanel/trackEvent";
 import ReactDOM from "react-dom";
-import "./globals.css";
-import "./page.css";
 import { clsx } from "clsx";
-import localFont from "next/font/local";
 import { Label } from "@/components/ui/label";
 import { DarkModeToggle } from "@/components/DarkModeToggle";
 import { Card } from "@/components/ui/card";
@@ -29,86 +26,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import TimetableGrid from "@/components/ttuns/TimetableGrid";
+import NearbyRadar from "@/components/ttuns/NearbyRadar";
+import { EventBlock, FreeRoom, NearbyBuildingPoint, fmtDistance, fmtTime } from "@/lib/ttunsUi";
 
 type Mode = "professor" | "room" | "free";
-type FreeRoom = { room: string; until: number };
 type GeoPoint = { lat: number; lon: number };
 type ResolvedGeoPosition = GeoPoint & { source: "gps" | "cached" };
-type NearbyBuildingPoint = {
-  building: string;
-  buildingName: string;
-  lat: number;
-  lon: number;
-  distanceMeters: number;
-  dxMeters: number;
-  dyMeters: number;
-  freeRoomCount: number;
-  topUntil: number;
-  rooms: FreeRoom[];
-};
 
-type LabelRect = {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-};
-
-type PlotNode = {
-  building: string;
-  item: NearbyBuildingPoint;
-  x: number;
-  y: number;
-  labelRect: LabelRect;
-};
-
-type EventBlock = {
-  start: number;
-  end: number;
-  day: DayIndex;
-  title: string;
-  professor: string;
-  room: string;
-  col: number;
-  colCount: number;
-};
-
-type Laid = Partial<Record<DayIndex, EventBlock[]>>;
-
-function colorForTitle(title: string) {
-  let hue = 0;
-  for (let i = 0; i < title.length; i++) hue = (hue * 31 + title.charCodeAt(i)) % 360;
-  const smax = 65;
-  const smin = 40;
-  const saturation =
-    hue < 120
-      ? (smax * (120 - hue) + smin * hue) / 120
-      : (smax * (hue - 120) + smin * (240 - hue)) / 120;
-  const lmax = 59;
-  const lmin = 40;
-  const lightness =
-    hue < 120
-      ? (lmax * (120 - hue) + lmin * hue) / 120
-      : (lmax * (hue - 120) + lmin * (240 - hue)) / 120;
-  return {
-    fill: `hsl(${hue}, ${saturation}%, ${lightness}%)`,
-    stroke: `hsla(${hue}, 85%, 96%, 1)`,
-  };
-}
-
-function fmtTime(min: number) {
-  const h = Math.floor(min / 60),
-    m = min % 60;
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+function parseModeParam(value: string | null): Mode | null {
+  if (value === "professor" || value === "room" || value === "free") return value;
+  return null;
 }
 
 function fmtHHMM(min: number) {
   return fmtTime(min);
-}
-
-function fmtDistance(meters: number) {
-  if (meters >= 1000) return `${(meters / 1000).toFixed(2)}km`;
-  return `${Math.round(meters)}m`;
 }
 
 const LAST_GEO_KEY = "ttuns.lastGeo.v1";
@@ -133,10 +65,6 @@ function writeCachedGeo(pos: GeoPoint) {
   try {
     localStorage.setItem(LAST_GEO_KEY, JSON.stringify(pos));
   } catch {}
-}
-
-function pointInRect(x: number, y: number, rect: LabelRect) {
-  return x >= rect.x && x <= rect.x + rect.w && y >= rect.y && y <= rect.y + rect.h;
 }
 
 function geoErrorMessage(err: unknown): string {
@@ -242,10 +170,6 @@ function groupDepts(uniqueDepts: string[]) {
   return { mode: "dropdown" as const, options: filteredForDetail };
 }
 
-const rootFont = localFont({
-  src: "./fonts/PretendardVariable.ttf",
-});
-
 const chosungList = [
   "ㄱ",
   "ㄲ",
@@ -298,13 +222,31 @@ function isFuzzyMatch(input: string, target: string): boolean {
   return input_point === normalizedInput.length;
 }
 
-export default function TimetablePage() {
+function TimetablePageContent() {
+  const searchParams = useSearchParams();
   const initialYS = useMemo(() => currentYearSemesterKst(), []);
-  const [year, setYear] = useState(initialYS.year);
-  const [semester, setSemester] = useState(initialYS.semester);
+  const initialParamState = useMemo(() => {
+    const yearParam = String(searchParams.get("year") ?? "").trim();
+    const semesterParam = String(searchParams.get("semester") ?? "").trim();
+    const modeParam = parseModeParam(searchParams.get("mode"));
+    const queryParam = String(searchParams.get("q") ?? "");
+    const safeYear = /^\d{4}$/.test(yearParam) ? yearParam : initialYS.year;
+    const safeSemester = ["1", "2", "3", "4"].includes(semesterParam)
+      ? semesterParam
+      : initialYS.semester;
+    return {
+      year: safeYear,
+      semester: safeSemester,
+      mode: modeParam ?? "room",
+      q: queryParam,
+    };
+  }, [initialYS.semester, initialYS.year, searchParams]);
 
-  const [mode, setMode] = useState<Mode>("room");
-  const [q, setQ] = useState("");
+  const [year, setYear] = useState(initialParamState.year);
+  const [semester, setSemester] = useState(initialParamState.semester);
+
+  const [mode, setMode] = useState<Mode>(initialParamState.mode);
+  const [q, setQ] = useState(initialParamState.q);
   const [loading, setLoading] = useState(false);
 
   const [events, setEvents] = useState<EventBlock[]>([]);
@@ -312,11 +254,8 @@ export default function TimetablePage() {
   const [copied, setCopied] = useState<string>("");
   const [nearbyBuildings, setNearbyBuildings] = useState<NearbyBuildingPoint[]>([]);
   const [nearbyError, setNearbyError] = useState("");
-  const [nearbyScaleMeters, setNearbyScaleMeters] = useState(0);
   const [selectedNearbyBuilding, setSelectedNearbyBuilding] = useState<string>("");
   const [userPos, setUserPos] = useState<ResolvedGeoPosition | null>(null);
-  const nearbyCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const nearbyPlotRef = useRef<PlotNode[]>([]);
 
   const [collapsed, setCollapsed] = useState(false);
   const panelRef = useRef<HTMLDivElement | null>(null);
@@ -324,7 +263,6 @@ export default function TimetablePage() {
 
   const [deptOptions, setDeptOptions] = useState<string[]>([]);
   const [dept, setDept] = useState<string>("");
-  const [deptInclude, setDeptInclude] = useState<string[] | null>(null);
   const [profFiltered, setProfFiltered] = useState<AnyLecture[]>([]);
 
   const [activeLectures, setActiveLectures] = useState<AnyLecture[]>([]);
@@ -336,10 +274,7 @@ export default function TimetablePage() {
     room: [],
     free: [],
   });
-  const laid = layoutByDay(events) as Laid;
-  const VISIBLE_DAYS: DayIndex[] =
-    (laid[5] ?? []).length > 0 ? [0, 1, 2, 3, 4, 5] : [0, 1, 2, 3, 4];
-  const { startMin, endMin } = timeBounds(events);
+  const { startMin, endMin } = useMemo(() => timeBounds(events), [events]);
 
   const semesterCacheRef = useRef(new Map<string, AnyLecture[]>());
   const lastSearchRef = useRef<{ q: string; year: string; semester: string; mode: Mode } | null>(
@@ -439,14 +374,12 @@ export default function TimetablePage() {
   useEffect(() => {
     setDept("");
     setDeptOptions([]);
-    setDeptInclude(null);
     setProfFiltered([]);
     setActiveLectures([]);
     setEvents([]);
     setFreeRooms([]);
     setNearbyBuildings([]);
     setNearbyError("");
-    setNearbyScaleMeters(0);
     setSelectedNearbyBuilding("");
     setSel(null);
   }, [mode, year, semester]);
@@ -507,15 +440,6 @@ export default function TimetablePage() {
     setHistoryByMode(loadHistory());
   }, []);
 
-  const histClickTimers = useRef<Record<string, number>>({});
-  const clearHistTimer = (key: string) => {
-    const id = histClickTimers.current[key];
-    if (id) {
-      clearTimeout(id);
-      delete histClickTimers.current[key];
-    }
-  };
-
   //reset app to initial state
   const resetToInitial = () => {
     setQ("");
@@ -555,7 +479,6 @@ export default function TimetablePage() {
     setCopied("");
     setDept("");
     setDeptOptions([]);
-    setDeptInclude(null);
     setProfFiltered([]);
     lastSearchRef.current = { q: query, year, semester, mode };
     autoCollapseRef.current = Date.now();
@@ -727,7 +650,6 @@ export default function TimetablePage() {
 
     if (!profFiltered.length) {
       setDeptOptions([]);
-      setDeptInclude(null);
       setEvents([]);
       setActiveLectures([]);
       return;
@@ -756,7 +678,6 @@ export default function TimetablePage() {
       const includeArr = Array.from(grouped.include);
       setDeptOptions([grouped.label]);
       setDept(grouped.label);
-      setDeptInclude(includeArr);
       const filteredByGroup = profFiltered.filter((lec) =>
         includeArr.includes(String(extractDept(lec)).trim())
       );
@@ -775,7 +696,6 @@ export default function TimetablePage() {
     }
 
     setDeptOptions(grouped.options);
-    setDeptInclude(null);
 
     if (!dept || !grouped.options.includes(dept)) {
       setEvents([]);
@@ -942,317 +862,6 @@ export default function TimetablePage() {
   };
 
   useEffect(() => {
-    const canvas = nearbyCanvasRef.current;
-    if (!canvas) return;
-
-    const drawRoundRectPath = (
-      ctx: CanvasRenderingContext2D,
-      x: number,
-      y: number,
-      w: number,
-      h: number,
-      r: number
-    ) => {
-      const rr = Math.min(r, w / 2, h / 2);
-      ctx.beginPath();
-      ctx.moveTo(x + rr, y);
-      ctx.lineTo(x + w - rr, y);
-      ctx.arcTo(x + w, y, x + w, y + rr, rr);
-      ctx.lineTo(x + w, y + h - rr);
-      ctx.arcTo(x + w, y + h, x + w - rr, y + h, rr);
-      ctx.lineTo(x + rr, y + h);
-      ctx.arcTo(x, y + h, x, y + h - rr, rr);
-      ctx.lineTo(x, y + rr);
-      ctx.arcTo(x, y, x + rr, y, rr);
-      ctx.closePath();
-    };
-
-    const draw = () => {
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-
-      const rect = canvas.getBoundingClientRect();
-      const width = Math.max(280, Math.round(rect.width));
-      const height = Math.max(260, Math.round(rect.height));
-      const dprRaw = window.devicePixelRatio || 1;
-      const dpr = Math.min(Math.max(dprRaw, 1), 2);
-      const realW = Math.max(1, Math.round(width * dpr));
-      const realH = Math.max(1, Math.round(height * dpr));
-
-      if (canvas.width !== realW || canvas.height !== realH) {
-        canvas.width = realW;
-        canvas.height = realH;
-      }
-
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, width, height);
-
-      const root = getComputedStyle(document.documentElement);
-      const line = (root.getPropertyValue("--line") || "#d1d5db").trim();
-      const lineSoft = (root.getPropertyValue("--line-soft") || "#eef2f7").trim();
-      const primary = (root.getPropertyValue("--primary") || "#4f46e5").trim();
-      const primary2 = (root.getPropertyValue("--primary-2") || "#6366f1").trim();
-      const panel = (root.getPropertyValue("--panel") || "#ffffff").trim();
-      const mutedForeground = (root.getPropertyValue("--muted-foreground") || "#6b7280").trim();
-      const isDark = document.documentElement.classList.contains("dark");
-      const radialCardinalStroke = line;
-      const radialMinorStroke = lineSoft;
-      const ringMajorStroke = line;
-      const ringMinorStroke = lineSoft;
-      const radarBoundaryStroke = line;
-      const labelStroke = isDark ? mutedForeground : line;
-
-      ctx.fillStyle = panel;
-      ctx.fillRect(0, 0, width, height);
-
-      const cx = width / 2;
-      const cy = height / 2;
-      const centerX = Math.round(cx) + 0.5;
-      const centerY = Math.round(cy) + 0.5;
-      const RADAR_CELL_METERS = 50;
-      const padding = 12;
-      const minHalf = Math.min(width, height) / 2;
-      const maxCells = Math.max(3, Math.floor((minHalf - padding) / 20));
-      const rawCellPx = Math.max(12, Math.min(22, (minHalf - padding) / maxCells));
-      const cellPx = Math.max(12, Math.min(22, Math.round(rawCellPx * 2) / 2));
-      const ringRadiusAt = (index: number) => Math.max(0.5, Math.round(index * cellPx) + 0.5);
-      const radarRadius = ringRadiusAt(maxCells);
-      const viewMeters = maxCells * RADAR_CELL_METERS;
-
-      // Polar-only radar body.
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, radarRadius, 0, Math.PI * 2);
-      ctx.clip();
-
-      // Keep radar tone identical with nearby panel.
-      ctx.fillStyle = panel;
-      ctx.fillRect(
-        Math.round(centerX - radarRadius),
-        Math.round(centerY - radarRadius),
-        Math.round(radarRadius * 2),
-        Math.round(radarRadius * 2)
-      );
-
-      const radialCount = 12;
-
-      // Polar grid: alternate sector tint to improve cell separation at a glance.
-      const sectorFill = lineSoft;
-      const sectorAlpha = isDark ? 0.44 : 0.6;
-      for (let i = 0; i < radialCount; i += 2) {
-        const start = (i * Math.PI * 2) / radialCount;
-        const end = ((i + 1) * Math.PI * 2) / radialCount;
-        ctx.save();
-        ctx.globalAlpha = sectorAlpha;
-        ctx.fillStyle = sectorFill;
-        ctx.beginPath();
-        ctx.moveTo(centerX, centerY);
-        ctx.arc(centerX, centerY, radarRadius, start, end);
-        ctx.closePath();
-        ctx.fill();
-        ctx.restore();
-      }
-
-      // Polar grid: alternating ring bands to make each 50m cell separation clearer.
-      const ringBandFill = lineSoft;
-      const ringBandAlpha = isDark ? 0.5 : 0.42;
-      for (let i = 1; i <= maxCells; i += 2) {
-        ctx.save();
-        ctx.globalAlpha = ringBandAlpha;
-        ctx.fillStyle = ringBandFill;
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, ringRadiusAt(i), 0, Math.PI * 2);
-        ctx.arc(centerX, centerY, ringRadiusAt(i - 1), 0, Math.PI * 2, true);
-        ctx.closePath();
-        ctx.fill();
-        ctx.restore();
-      }
-
-      // Polar grid: 12 radial lines (30-degree step), cardinal emphasized.
-      const radialCardinalAlpha = isDark ? 0.9 : 0.88;
-      const radialMinorAlpha = isDark ? 0.64 : 0.58;
-      for (let i = 0; i < radialCount; i++) {
-        const angle = (i * Math.PI * 2) / radialCount;
-        const cardinal = i % 3 === 0;
-        const endX = Math.round(centerX + Math.cos(angle) * radarRadius) + 0.5;
-        const endY = Math.round(centerY + Math.sin(angle) * radarRadius) + 0.5;
-        ctx.save();
-        ctx.globalAlpha = cardinal ? radialCardinalAlpha : radialMinorAlpha;
-        ctx.strokeStyle = cardinal ? radialCardinalStroke : radialMinorStroke;
-        ctx.lineWidth = cardinal ? 1.35 : 1.05;
-        ctx.beginPath();
-        ctx.moveTo(centerX, centerY);
-        ctx.lineTo(endX, endY);
-        ctx.stroke();
-        ctx.restore();
-      }
-
-      // Polar grid: rings every 50m, emphasized every 250m.
-      const ringMajorAlpha = isDark ? 0.92 : 0.88;
-      const ringMinorAlpha = isDark ? 0.7 : 0.62;
-      for (let i = 1; i <= maxCells; i++) {
-        const major = i % 5 === 0;
-        ctx.save();
-        ctx.globalAlpha = major ? ringMajorAlpha : ringMinorAlpha;
-        ctx.strokeStyle = major ? ringMajorStroke : ringMinorStroke;
-        ctx.lineWidth = major ? 1.35 : 1.05;
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, ringRadiusAt(i), 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.restore();
-      }
-      ctx.restore();
-
-      // Radar boundary
-      ctx.save();
-      ctx.globalAlpha = isDark ? 0.96 : 0.92;
-      ctx.strokeStyle = radarBoundaryStroke;
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, radarRadius, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.restore();
-
-      ctx.save();
-      ctx.globalAlpha = isDark ? 0.92 : 0.86;
-      ctx.fillStyle = primary2;
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, 2.5, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.lineWidth = 1;
-      ctx.strokeStyle = panel;
-      ctx.stroke();
-      ctx.restore();
-
-      nearbyPlotRef.current = [];
-
-      if (!nearbyBuildings.length) {
-        setNearbyScaleMeters((prev) => (prev === 0 ? prev : 0));
-        return;
-      }
-
-      const labelPaddingX = 6;
-      const labelPaddingY = 3;
-      const labelHeight = 11 + labelPaddingY * 2;
-      ctx.font = `11px "${rootFont.style.fontFamily}", "Pretendard Variable", sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-
-      setNearbyScaleMeters((prev) => (prev === viewMeters ? prev : viewMeters));
-      const plotItems: PlotNode[] = nearbyBuildings
-        .map((item) => {
-          const gx = item.dxMeters / RADAR_CELL_METERS;
-          const gy = item.dyMeters / RADAR_CELL_METERS;
-          if (Math.hypot(gx, gy) > maxCells) return null;
-          const x = cx + gx * cellPx;
-          const y = cy - gy * cellPx;
-          const textWidth = Math.ceil(ctx.measureText(item.building).width);
-          const labelWidth = Math.max(18, textWidth + labelPaddingX * 2);
-          return {
-            building: item.building,
-            item,
-            x,
-            y,
-            labelRect: {
-              x: x - labelWidth / 2,
-              y: y - labelHeight / 2,
-              w: labelWidth,
-              h: labelHeight,
-            },
-          };
-        })
-        .filter((v): v is PlotNode => v !== null);
-
-      if (!plotItems.length) {
-        return;
-      }
-
-      const labelDrawOrder = [...plotItems].sort((a, b) => {
-        const aSelected = a.building === selectedNearbyBuilding ? 1 : 0;
-        const bSelected = b.building === selectedNearbyBuilding ? 1 : 0;
-        if (aSelected !== bSelected) return aSelected - bSelected;
-        if (a.item.distanceMeters !== b.item.distanceMeters) {
-          return b.item.distanceMeters - a.item.distanceMeters;
-        }
-        return a.building.localeCompare(b.building);
-      });
-
-      for (const node of labelDrawOrder) {
-        const isSelected = node.building === selectedNearbyBuilding;
-        ctx.save();
-        drawRoundRectPath(
-          ctx,
-          node.labelRect.x,
-          node.labelRect.y,
-          node.labelRect.w,
-          node.labelRect.h,
-          4
-        );
-        ctx.fillStyle = isSelected ? primary : panel;
-        ctx.fill();
-        ctx.globalAlpha = isSelected ? 1 : isDark ? 0.45 : 1;
-        ctx.strokeStyle = isSelected ? primary : labelStroke;
-        ctx.lineWidth = isSelected ? 1.4 : 1;
-        ctx.stroke();
-        ctx.restore();
-        ctx.fillStyle = isSelected ? panel : primary;
-        ctx.fillText(node.building, Math.round(node.x), Math.round(node.y));
-      }
-
-      nearbyPlotRef.current = labelDrawOrder;
-    };
-
-    let rafId = 0;
-    const scheduleDraw = () => {
-      if (rafId) return;
-      rafId = window.requestAnimationFrame(() => {
-        rafId = 0;
-        draw();
-      });
-    };
-
-    draw();
-
-    let observer: ResizeObserver | null = null;
-    let themeObserver: MutationObserver | null = null;
-    if (typeof ResizeObserver !== "undefined") {
-      observer = new ResizeObserver(() => scheduleDraw());
-      observer.observe(canvas);
-    }
-    if (typeof MutationObserver !== "undefined") {
-      themeObserver = new MutationObserver(() => scheduleDraw());
-      themeObserver.observe(document.documentElement, {
-        attributes: true,
-        attributeFilter: ["class", "style"],
-      });
-    }
-    window.addEventListener("resize", scheduleDraw);
-
-    return () => {
-      observer?.disconnect();
-      themeObserver?.disconnect();
-      window.removeEventListener("resize", scheduleDraw);
-      if (rafId) window.cancelAnimationFrame(rafId);
-    };
-  }, [nearbyBuildings, selectedNearbyBuilding]);
-
-  const onNearbyCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!nearbyPlotRef.current.length) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    for (let i = nearbyPlotRef.current.length - 1; i >= 0; i--) {
-      const p = nearbyPlotRef.current[i];
-      const labelRect = p.labelRect;
-      if (pointInRect(x, y, labelRect)) {
-        setSelectedNearbyBuilding(p.building);
-        return;
-      }
-    }
-  };
-
-  useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setSel(null);
     };
@@ -1393,7 +1002,7 @@ export default function TimetablePage() {
   };
 
   return (
-    <main className={clsx("tt-wrap", rootFont.className)}>
+    <main className={clsx("tt-wrap")}>
       <Card className="tt-header p-4">
         <div className="tt-headRow p-2">
           <h1 className="tt-title text-2xl">TTuns</h1>
@@ -1683,45 +1292,12 @@ export default function TimetablePage() {
 
           {q.trim().length === 0 && (
             <div className="tt-freeRadarSection">
-              <div className="tt-nearbyCanvasBox">
-                <canvas
-                  ref={nearbyCanvasRef}
-                  className="tt-nearbyCanvas"
-                  onClick={onNearbyCanvasClick}
-                  role="img"
-                  aria-label="내 주변 빈 강의실 건물 레이더"
-                />
-                {nearbyScaleMeters > 0 && (
-                  <div className="tt-nearbyScale">
-                    한 칸 50m · 반경 ±{fmtDistance(nearbyScaleMeters)}
-                  </div>
-                )}
-              </div>
-
+              <NearbyRadar
+                buildings={nearbyBuildings}
+                selectedBuilding={selectedNearbyBuilding}
+                onSelectBuilding={setSelectedNearbyBuilding}
+              />
               {nearbyError && <div className="tt-nearbyError">{nearbyError}</div>}
-
-              {!!nearbyBuildings.length && (
-                <>
-                  <div className="tt-nearbyList">
-                    {nearbyBuildings.slice(0, 8).map((b) => (
-                      <button
-                        key={b.building}
-                        type="button"
-                        className={clsx(
-                          "tt-nearbyChip",
-                          selectedNearby?.building === b.building && "on"
-                        )}
-                        onClick={() => setSelectedNearbyBuilding(b.building)}
-                      >
-                        <span className="tt-nearbyChipTitle">{b.building}</span>
-                        <span className="tt-nearbyChipMeta">
-                          {fmtDistance(b.distanceMeters)} · {b.freeRoomCount}개
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
             </div>
           )}
 
@@ -1767,103 +1343,12 @@ export default function TimetablePage() {
       )}
 
       {mode !== "free" && (
-        <div className="tt-tableWrap">
-          <div
-            className="tt-grid tt-headerRow"
-            no-saturday={((laid[5] ?? []).length == 0).toString()}
-          >
-            <div className="tt-timeCol tt-headCell" aria-hidden="true" />
-            {VISIBLE_DAYS.map((d) => (
-              <div key={d} className="tt-dayHead tt-headCell">
-                {DAY_LABELS[d]}
-              </div>
-            ))}
-          </div>
-
-          <div
-            className="tt-grid tt-body"
-            no-saturday={((laid[5] ?? []).length == 0).toString()}
-            style={{ height: Math.max(380, (endMin - startMin) * PPM) }}
-          >
-            <div className="tt-timeCol">
-              {Array.from({ length: Math.floor(endMin / 60) - Math.floor(startMin / 60) + 1 }).map(
-                (_, idx) => {
-                  const m = (Math.floor(startMin / 60) + idx) * 60;
-                  const top = (m - startMin) * PPM;
-                  const hour = Math.floor(m / 60);
-                  return (
-                    <div key={m} className="tt-hourMark" style={{ top }}>
-                      <div className="tt-label" data-hour={hour}>
-                        {hour}
-                      </div>
-                      <div className="tt-line" />
-                    </div>
-                  );
-                }
-              )}
-            </div>
-
-            {VISIBLE_DAYS.map((d) => {
-              const list = (laid[d] ?? []) as EventBlock[];
-              return (
-                <div key={d} className="tt-dayCol">
-                  {Array.from({
-                    length: Math.floor(endMin / 60) - Math.floor(startMin / 60) + 1,
-                  }).map((_, idx) => {
-                    const m = (Math.floor(startMin / 60) + idx) * 60;
-                    const top = (m - startMin) * PPM;
-                    return <div key={m} className="tt-hLine" style={{ top }} />;
-                  })}
-                  {list.map((e, i) => {
-                    const top = (e.start - startMin) * PPM;
-                    const height = Math.max(22, (e.end - e.start) * PPM - 2);
-                    // Determine dynamic lane count among events that overlap with this event's interval
-                    const overlaps = list.filter(
-                      (o) => o !== e && o.start < e.end && o.end > e.start
-                    );
-                    const activeCols = Array.from(
-                      new Set([...overlaps.map((o) => o.col), e.col])
-                    ).sort((a, b) => a - b);
-                    const localColCount = Math.max(1, activeCols.length);
-                    const localIndex = Math.max(0, activeCols.indexOf(e.col));
-                    const widthPct = 100 / localColCount;
-                    const leftPct = widthPct * localIndex;
-                    const { fill, stroke } = colorForTitle(e.title || "");
-                    return (
-                      <div
-                        key={`${i}-${e.title}-${e.start}`}
-                        className="tt-event"
-                        title={`${e.title}\n${
-                          mode === "professor" ? e.room : e.professor
-                        }\n${fmtTime(e.start)}–${fmtTime(e.end)}`}
-                        style={{
-                          top,
-                          left: `${leftPct}%`,
-                          width: `${widthPct}%`,
-                          height,
-                          background: fill,
-                          borderColor: stroke,
-                        }}
-                        onClick={() => openDetail(e)}
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={(k) => k.key === "Enter" && openDetail(e)}
-                      >
-                        <div className="tt-evTitle">{e.title}</div>
-                        <div className="tt-evMeta">
-                          {mode === "professor" ? e.room : e.professor}
-                        </div>
-                        <div className="tt-evTime">
-                          {fmtTime(e.start)}–{fmtTime(e.end)}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <TimetableGrid
+          events={events}
+          mode={mode === "professor" ? "professor" : "room"}
+          ppm={PPM}
+          onEventClick={openDetail}
+        />
       )}
 
       {sel && (
@@ -1951,5 +1436,13 @@ export default function TimetablePage() {
         </div>
       )}
     </main>
+  );
+}
+
+export default function TimetablePage() {
+  return (
+    <Suspense fallback={null}>
+      <TimetablePageContent />
+    </Suspense>
   );
 }

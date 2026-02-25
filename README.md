@@ -17,6 +17,33 @@ Example:
 
 You can override dataset directory with `SNUTT_LOCAL_DATA_DIR`.
 
+### ChatGPT Apps/MCP test environment
+
+Run the app on port `3001` (required by current MCP endpoint examples):
+
+```bash
+npm run dev -- -p 3001
+```
+
+Health check:
+
+```bash
+curl -sS http://localhost:3001/mcp | jq .
+```
+
+Open local MCP Inspector (for ChatGPT Apps-style MCP testing):
+
+```bash
+npm run mcp:inspector
+```
+
+For `search_timetable`, semester aliases are normalized:
+
+- `1`, `spring`, `1학기`, `봄` -> `1`
+- `2`, `summer`, `여름` -> `2`
+- `3`, `fall`, `autumn`, `2학기`, `가을` -> `3`
+- `4`, `winter`, `겨울` -> `4`
+
 ### Crawl sugang data
 
 Install crawler dependencies:

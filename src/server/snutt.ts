@@ -3,11 +3,9 @@ import path from "node:path";
 import { NextResponse } from "next/server";
 
 /** ====== 타입 ====== */
-export type SemesterValue = string | number;
-
 export type FreeRoom = { room: string; until: number }; // until = 분(0~1440)
 
-export type LectureTimeRaw = {
+type LectureTimeRaw = {
   day: number | string;
   place?: string;
   room?: string;
@@ -20,7 +18,7 @@ export type LectureTimeRaw = {
   start?: number;
 };
 
-export type LectureSlim = {
+type LectureSlim = {
   course_title: string;
   instructor: string;
   class_time_json: LectureTimeRaw[];
@@ -77,29 +75,35 @@ export function take(ip: string): boolean {
 
 /** 표준 학기ID: 1=1학기, 2=여름, 3=2학기, 4=겨울 */
 export function canonicalSemesterId(sem: string): string {
-  const s = String(sem).trim().toUpperCase();
-  if (s === "1" || s === "2" || s === "3" || s === "4") return s;
-  if (s === "S") return "2";
-  if (s === "W") return "4";
-  if (s === "FALL" || s === "SECOND" || s === "AUTUMN") return "3";
-  return s;
-}
+  const raw = String(sem ?? "").trim();
+  if (!raw) return "";
 
-export function semesterVariantsByCanonical(canon: string): SemesterValue[] {
-  switch (canon) {
-    case "1":
-      return ["1", 1];
-    case "2":
-      return ["2", 2, "S"];
-    case "3":
-      return ["3", 3, "2"];
-    case "4":
-      return ["4", 4, "W"];
-    default: {
-      const n = Number(canon);
-      return Number.isFinite(n) ? [canon, n] : [canon];
-    }
-  }
+  const compact = raw.replace(/\s+/g, "");
+  const upper = compact.toUpperCase();
+
+  if (upper === "1" || upper === "2" || upper === "3" || upper === "4") return upper;
+  if (upper === "S") return "2";
+  if (upper === "W") return "4";
+  if (upper === "FALL" || upper === "SECOND" || upper === "AUTUMN") return "3";
+
+  if (upper.includes("SPRING")) return "1";
+  if (upper.includes("SUMMER")) return "2";
+  if (upper.includes("FALL") || upper.includes("AUTUMN")) return "3";
+  if (upper.includes("WINTER")) return "4";
+  if (upper.includes("FIRSTSEMESTER") || upper.includes("1STSEMESTER")) return "1";
+  if (upper.includes("SECONDSEMESTER") || upper.includes("2NDSEMESTER")) return "3";
+
+  if (compact.includes("1학기")) return "1";
+  if (compact.includes("2학기")) return "3";
+  if (compact.includes("봄")) return "1";
+  if (compact.includes("여름")) return "2";
+  if (compact.includes("가을")) return "3";
+  if (compact.includes("겨울")) return "4";
+
+  const trailingTerm = compact.match(/(?:^|[^0-9])([1-4])$/);
+  if (trailingTerm) return trailingTerm[1];
+
+  return upper;
 }
 
 function toNumberOrUndefined(value: unknown): number | undefined {

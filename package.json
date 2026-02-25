@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "mcp:inspector": "npx -y @modelcontextprotocol/inspector --transport http --server-url http://localhost:3001/mcp"
   },
   "dependencies": {
     "@radix-ui/react-dropdown-menu": "^2.1.16",

@@ -1,8 +1,7 @@
-// lib/mixpanel/mixpanel-browser.d.ts
-import { Mixpanel } from "mixpanel-browser";
+import "mixpanel-browser";
 
 declare module "mixpanel-browser" {
-  interface Mixpanel {
+  interface OverridedMixpanel {
     __loaded: boolean;
   }
 }

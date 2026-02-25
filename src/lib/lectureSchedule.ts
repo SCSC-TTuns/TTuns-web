@@ -10,16 +10,29 @@ const normalizeSearchTerm = (value?: unknown) =>
     .toLowerCase()
     .replace(/\s+/g, "");
 
+const normalizeProfessorTerm = (value?: unknown) =>
+  normalizeSearchTerm(value)
+    .replace(/\([^)]*\)/g, "")
+    .replace(/（[^）]*）/g, "")
+    .replace(/(교수님|교수|선생님|님)$/u, "");
+
+function extractProfessorNames(raw: string): string[] {
+  return raw
+    .split(/,|\/|&|·|ㆍ|\band\b/gi)
+    .map((token) => normalizeProfessorTerm(token))
+    .filter(Boolean);
+}
+
 /** 완전 일치: 공백/대소문자 무시 */
 const strictEq = (a?: any, b?: any) => normalizeSearchTerm(a) === normalizeSearchTerm(b);
 
-export function extractProfessor(lec: AnyLecture): string {
+function extractProfessor(lec: AnyLecture): string {
   if (typeof lec?.instructor === "string") return lec.instructor;
   if (Array.isArray(lec?.instructors)) return lec.instructors.join(", ");
   return "";
 }
 
-export function allRooms(lec: AnyLecture): string[] {
+function allRooms(lec: AnyLecture): string[] {
   const set = new Set<string>();
   const top = lec?.place || lec?.room || lec?.location;
   if (typeof top === "string" && top.trim()) set.add(top.trim());
@@ -33,8 +46,15 @@ export function allRooms(lec: AnyLecture): string[] {
 }
 
 export function lectureMatchesProfessorExact(lec: AnyLecture, q: string): boolean {
-  if (!q) return false;
-  return strictEq(extractProfessor(lec), q);
+  const query = normalizeProfessorTerm(q);
+  if (!query) return false;
+
+  const professor = extractProfessor(lec);
+  const normalizedProfessor = normalizeProfessorTerm(professor);
+  if (normalizedProfessor === query) return true;
+
+  const aliases = extractProfessorNames(professor);
+  return aliases.some((name) => name === query);
 }
 
 export function lectureMatchesRoomExact(lec: AnyLecture, q: string): boolean {
@@ -42,7 +62,7 @@ export function lectureMatchesRoomExact(lec: AnyLecture, q: string): boolean {
   return allRooms(lec).some((r) => strictEq(r, q));
 }
 
-export type TimetableEvent = {
+type TimetableEvent = {
   day: DayIndex;
   start: number;
   end: number;
@@ -91,7 +111,7 @@ export function buildEventsFromLectures(
   return out;
 }
 
-export type LaidOutEvent = TimetableEvent & { col: number; colCount: number };
+type LaidOutEvent = TimetableEvent & { col: number; colCount: number };
 
 export function layoutByDay(events: TimetableEvent[]): Record<DayIndex, LaidOutEvent[]> {
   const byDay: Record<DayIndex, TimetableEvent[]> = {
